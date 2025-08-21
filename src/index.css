@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NexERP Design System - Premium ERP Interface
+Colors based on #003972 (primary) and #7ac142 (secondary)
+All colors MUST be HSL.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Core backgrounds */
+    --background: 0 0% 98%;
+    --foreground: 210 22% 22%;
+
+    /* Card system */
+    --card: 0 0% 100%;
+    --card-foreground: 210 22% 22%;
+
+    /* Popover system */
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 22% 22%;
+
+    /* Primary system - Azul escuro #003972 */
+    --primary: 209 100% 22%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 209 100% 28%;
+    --primary-light: 209 100% 95%;
+
+    /* Secondary system - Verde limão #7ac142 */
+    --secondary: 89 60% 51%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 89 60% 45%;
+    --secondary-light: 89 60% 95%;
+
+    /* Neutral system */
+    --muted: 220 13% 95%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent system */
+    --accent: 220 13% 95%;
+    --accent-foreground: 210 22% 22%;
+
+    /* Status colors */
+    --success: 89 60% 51%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border and inputs */
+    --border: 220 13% 91%;
+    --input: 0 0% 100%;
+    --ring: 209 100% 22%;
+
+    /* Radius system */
+    --radius: 0.75rem;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(209 100% 22%), hsl(209 100% 28%));
+    --gradient-secondary: linear-gradient(135deg, hsl(89 60% 51%), hsl(89 60% 45%));
+    --gradient-premium: linear-gradient(135deg, hsl(209 100% 22%), hsl(89 60% 51%));
+
+    /* Shadows */
+    --shadow-premium: 0 20px 40px -12px hsl(209 100% 22% / 0.15);
+    --shadow-card: 0 4px 20px -4px hsl(220 13% 69% / 0.15);
+    --shadow-elevated: 0 8px 30px -8px hsl(209 100% 22% / 0.2);
+
+    /* Sidebar system */
+    --sidebar-background: 209 100% 22%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 89 60% 51%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 209 100% 28%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 209 100% 18%;
+    --sidebar-ring: 89 60% 51%;
+  }
+
+  .dark {
+    /* Core backgrounds - Dark mode */
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    /* Card system - Dark mode */
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+
+    /* Popover system - Dark mode */
+    --popover: 224 71% 4%;
+    --popover-foreground: 213 31% 91%;
+
+    /* Primary system - Mantém as mesmas cores */
+    --primary: 209 100% 22%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 209 100% 28%;
+    --primary-light: 209 100% 15%;
+
+    /* Secondary system - Mantém as mesmas cores */
+    --secondary: 89 60% 51%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-hover: 89 60% 45%;
+    --secondary-light: 89 60% 15%;
+
+    /* Neutral system - Dark mode */
+    --muted: 223 47% 11%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Accent system - Dark mode */
+    --accent: 223 47% 11%;
+    --accent-foreground: 213 31% 91%;
+
+    /* Status colors - Mantém as mesmas cores */
+    --success: 89 60% 51%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border and inputs - Dark mode */
+    --border: 216 34% 17%;
+    --input: 223 47% 11%;
+    --ring: 209 100% 22%;
+
+    /* Gradients - Dark mode */
+    --gradient-primary: linear-gradient(135deg, hsl(209 100% 22%), hsl(209 100% 28%));
+    --gradient-secondary: linear-gradient(135deg, hsl(89 60% 51%), hsl(89 60% 45%));
+    --gradient-premium: linear-gradient(135deg, hsl(209 100% 22%), hsl(89 60% 51%));
+
+    /* Shadows - Dark mode */
+    --shadow-premium: 0 20px 40px -12px hsl(0 0% 0% / 0.25);
+    --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.25);
+    --shadow-elevated: 0 8px 30px -8px hsl(0 0% 0% / 0.35);
+
+    /* Sidebar system - Dark mode */
+    --sidebar-background: 216 34% 17%;
+    --sidebar-foreground: 213 31% 91%;
+    --sidebar-primary: 89 60% 51%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 34% 22%;
+    --sidebar-accent-foreground: 213 31% 91%;
+    --sidebar-border: 216 34% 12%;
+    --sidebar-ring: 89 60% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+  }
+}
+
+@layer components {
+  /* Premium card styles */
+  .card-premium {
+    @apply bg-card border border-border rounded-lg shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-elevated)] transition-all duration-300;
+  }
+
+  /* Gradient buttons */
+  .btn-primary-gradient {
+    background: var(--gradient-primary);
+    @apply text-white border-0 shadow-[var(--shadow-premium)];
+  }
+
+  .btn-secondary-gradient {
+    background: var(--gradient-secondary);
+    @apply text-white border-0;
+  }
+
+  /* Premium layouts */
+  .layout-premium {
+    @apply min-h-screen bg-gradient-to-br from-background to-muted/30;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
