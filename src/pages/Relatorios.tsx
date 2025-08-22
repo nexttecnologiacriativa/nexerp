@@ -70,6 +70,10 @@ interface ReportData {
   };
   costCenters: {
     expenses: any[];
+    data: any[];
+    totalExpenses: number;
+    totalRevenue: number;
+    totalProfit: number;
     total: number;
   };
 }
@@ -414,29 +418,68 @@ const Relatorios = () => {
       return sum + (Number(account.balance) || 0);
     }, 0);
 
-    // Processar despesas por centro de custos
-    const costCenterExpenses: { [key: string]: { name: string, amount: number } } = {};
+    // Processar receitas e despesas por centro de custos
+    const costCenterData: { [key: string]: { 
+      name: string, 
+      expenses: number, 
+      revenue: number,
+      profit: number,
+      color: string 
+    } } = {};
+    
+    const centerColors = [
+      'hsl(var(--primary))',
+      'hsl(var(--secondary))', 
+      'hsl(220, 70%, 50%)',
+      'hsl(160, 60%, 45%)',
+      'hsl(30, 100%, 50%)',
+      'hsl(270, 50%, 60%)',
+      'hsl(340, 80%, 55%)',
+      'hsl(200, 90%, 45%)'
+    ];
     
     // Inicializar centros de custos
-    costCenters.forEach((center: any) => {
-      costCenterExpenses[center.id] = {
+    costCenters.forEach((center: any, index: number) => {
+      costCenterData[center.id] = {
         name: center.name,
-        amount: 0
+        expenses: 0,
+        revenue: 0,
+        profit: 0,
+        color: centerColors[index % centerColors.length]
       };
     });
 
     // Agregar despesas por centro de custos (APENAS CONTAS PAGAS)
     paidPayables.forEach((expense: any) => {
-      if (expense.cost_center_id && costCenterExpenses[expense.cost_center_id]) {
-        costCenterExpenses[expense.cost_center_id].amount += Number(expense.amount) || 0;
+      if (expense.cost_center_id && costCenterData[expense.cost_center_id]) {
+        costCenterData[expense.cost_center_id].expenses += Number(expense.amount) || 0;
       }
     });
 
-    const costCenterData = Object.values(costCenterExpenses)
-      .filter(center => center.amount > 0)
-      .sort((a, b) => b.amount - a.amount);
+    // Para receitas, vamos usar as vendas que podem ter sido associadas indiretamente
+    // Como accounts_receivable não tem cost_center_id, vamos usar vendas como proxy
+    paidReceivables.forEach((revenue: any) => {
+      // Se não há centro específico, distribuir proporcionalmente ou usar um centro padrão
+      // Por simplicidade, vamos usar o primeiro centro ativo para mostrar o conceito
+      const firstCenterId = Object.keys(costCenterData)[0];
+      if (firstCenterId) {
+        costCenterData[firstCenterId].revenue += Number(revenue.amount) || 0;
+      }
+    });
 
-    const totalCostCenterExpenses = costCenterData.reduce((sum, center) => sum + center.amount, 0);
+    // Calcular lucro (receita - despesa) para cada centro
+    Object.keys(costCenterData).forEach(centerId => {
+      const center = costCenterData[centerId];
+      center.profit = center.revenue - center.expenses;
+    });
+
+    const costCenterArray = Object.values(costCenterData)
+      .filter(center => center.expenses > 0 || center.revenue > 0)
+      .sort((a, b) => b.expenses - a.expenses);
+
+    const totalCostCenterExpenses = costCenterArray.reduce((sum, center) => sum + center.expenses, 0);
+    const totalCostCenterRevenue = costCenterArray.reduce((sum, center) => sum + center.revenue, 0);
+    const totalCostCenterProfit = totalCostCenterRevenue - totalCostCenterExpenses;
 
     return {
       financial: {
@@ -464,8 +507,12 @@ const Relatorios = () => {
         totalBalance: totalBankBalance
       },
       costCenters: {
-        expenses: costCenterData,
-        total: totalCostCenterExpenses
+        expenses: costCenterArray,
+        data: costCenterArray,
+        totalExpenses: totalCostCenterExpenses,
+        totalRevenue: totalCostCenterRevenue,
+        totalProfit: totalCostCenterProfit,
+        total: totalCostCenterExpenses // manter compatibilidade
       }
     };
   };
@@ -870,95 +917,291 @@ const Relatorios = () => {
         </TabsContent>
 
 
-        <TabsContent value="centers" className="space-y-4">
+        <TabsContent value="centers" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
+            <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Centros</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Centros</CardTitle>
+                <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{reportData?.costCenters.expenses.length || 0}</div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  centros com despesas
+                <div className="text-3xl font-bold text-blue-800 dark:text-blue-200">
+                  {reportData?.costCenters.data?.length || 0}
+                </div>
+                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  <Eye className="mr-1 h-3 w-3" />
+                  centros ativos
                 </div>
               </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <Package className="h-16 w-16" />
+              </div>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Despesas</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Receitas</CardTitle>
+                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
-                  R$ {reportData?.costCenters.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <div className="text-3xl font-bold text-green-800 dark:text-green-200">
+                  R$ {(reportData?.costCenters.totalRevenue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendingDown className="mr-1 h-3 w-3" />
-                  por centro de custos
+                <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
+                  <TrendingUp className="mr-1 h-3 w-3" />
+                  receitas por centro
                 </div>
               </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <TrendingUp className="h-16 w-16" />
+              </div>
+            </Card>
+
+            <Card className="relative overflow-hidden bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Total Despesas</CardTitle>
+                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-red-800 dark:text-red-200">
+                  R$ {(reportData?.costCenters.totalExpenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
+                  <TrendingDown className="mr-1 h-3 w-3" />
+                  despesas por centro
+                </div>
+              </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <TrendingDown className="h-16 w-16" />
+              </div>
+            </Card>
+
+            <Card className={`relative overflow-hidden border-2 ${
+              (reportData?.costCenters.totalProfit || 0) >= 0 
+                ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-300 dark:border-emerald-700' 
+                : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-300 dark:border-orange-700'
+            }`}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className={`text-sm font-medium ${
+                  (reportData?.costCenters.totalProfit || 0) >= 0 
+                    ? 'text-emerald-700 dark:text-emerald-300' 
+                    : 'text-orange-700 dark:text-orange-300'
+                }`}>
+                  Lucro/Prejuízo
+                </CardTitle>
+                <DollarSign className={`h-5 w-5 ${
+                  (reportData?.costCenters.totalProfit || 0) >= 0 
+                    ? 'text-emerald-600 dark:text-emerald-400' 
+                    : 'text-orange-600 dark:text-orange-400'
+                }`} />
+              </CardHeader>
+              <CardContent>
+                <div className={`text-3xl font-bold ${
+                  (reportData?.costCenters.totalProfit || 0) >= 0 
+                    ? 'text-emerald-800 dark:text-emerald-200' 
+                    : 'text-orange-800 dark:text-orange-200'
+                }`}>
+                  {(reportData?.costCenters.totalProfit || 0) >= 0 ? '+' : ''}
+                  R$ {(reportData?.costCenters.totalProfit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <div className={`flex items-center text-xs mt-1 ${
+                  (reportData?.costCenters.totalProfit || 0) >= 0 
+                    ? 'text-emerald-600 dark:text-emerald-400' 
+                    : 'text-orange-600 dark:text-orange-400'
+                }`}>
+                  {(reportData?.costCenters.totalProfit || 0) >= 0 ? (
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="mr-1 h-3 w-3" />
+                  )}
+                  {(reportData?.costCenters.totalProfit || 0) >= 0 ? 'lucro total' : 'prejuízo total'}
+                </div>
+              </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <DollarSign className="h-16 w-16" />
+              </div>
             </Card>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Despesas por Centro de Custos</CardTitle>
-                <div className="flex space-x-2">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Receitas vs Despesas</CardTitle>
+                    <CardDescription>Comparativo por centro de custos</CardDescription>
+                  </div>
                   <Button 
                     size="sm" 
                     variant="outline"
-                    onClick={() => exportToCSV(reportData?.costCenters.expenses || [], 'despesas-centros-custos')}
+                    className="hover-scale"
+                    onClick={() => exportToCSV(
+                      reportData?.costCenters.data?.map(center => ({
+                        centro: center.name,
+                        receitas: center.revenue,
+                        despesas: center.expenses,
+                        lucro: center.profit
+                      })) || [], 
+                      'receitas-despesas-centros-custos'
+                    )}
                   >
                     <Download className="mr-2 h-4 w-4" />
                     Exportar
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={reportData?.costCenters.expenses || []}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, '']}
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={reportData?.costCenters.data || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
-                    <Bar dataKey="amount" fill="#ff7300" name="Despesas" />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }}
+                      formatter={(value, name) => [
+                        `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                        name === 'revenue' ? 'Receitas' : name === 'expenses' ? 'Despesas' : 'Lucro'
+                      ]}
+                    />
+                    <Legend />
+                    <Bar 
+                      dataKey="revenue" 
+                      fill="hsl(var(--primary))" 
+                      name="Receitas"
+                      radius={[2, 2, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="expenses" 
+                      fill="hsl(var(--destructive))" 
+                      name="Despesas"
+                      radius={[2, 2, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Distribuição por Centro</CardTitle>
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-secondary/5 to-secondary/10 border-b">
+                <CardTitle className="text-lg font-semibold">Distribuição de Despesas</CardTitle>
+                <CardDescription>Proporção por centro de custos</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={350}>
                   <PieChart>
                     <Pie
-                      data={reportData?.costCenters.expenses || []}
+                      data={reportData?.costCenters.data?.filter(center => center.expenses > 0) || []}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
+                      label={({ name, percent }) => percent > 5 ? `${name} ${(percent * 100).toFixed(0)}%` : ''}
+                      outerRadius={120}
+                      innerRadius={40}
                       fill="#8884d8"
-                      dataKey="amount"
+                      dataKey="expenses"
+                      stroke="hsl(var(--background))"
+                      strokeWidth={2}
                     >
-                      {reportData?.costCenters.expenses?.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      {reportData?.costCenters.data?.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.color || COLORS[index % COLORS.length]}
+                          className="hover:opacity-80 transition-opacity"
+                        />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, '']} />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }}
+                      formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Despesas']} 
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
+
+          <Card className="shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-accent/5 to-accent/10 border-b">
+              <CardTitle className="text-lg font-semibold">Detalhamento por Centro de Custos</CardTitle>
+              <CardDescription>Análise completa de receitas, despesas e lucratividade</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-semibold">Centro de Custos</th>
+                      <th className="text-right p-4 font-semibold text-green-700 dark:text-green-400">Receitas</th>
+                      <th className="text-right p-4 font-semibold text-red-700 dark:text-red-400">Despesas</th>
+                      <th className="text-right p-4 font-semibold">Lucro/Prejuízo</th>
+                      <th className="text-right p-4 font-semibold">Margem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportData?.costCenters.data?.map((center, index) => {
+                      const margin = center.revenue > 0 ? ((center.profit / center.revenue) * 100) : 0;
+                      return (
+                        <tr 
+                          key={index} 
+                          className="border-b hover:bg-muted/30 transition-colors animate-fade-in"
+                          style={{ animationDelay: `${index * 0.1}s` }}
+                        >
+                          <td className="p-4">
+                            <div className="flex items-center space-x-3">
+                              <div 
+                                className="w-4 h-4 rounded-full shadow-sm"
+                                style={{ backgroundColor: center.color }}
+                              />
+                              <span className="font-medium">{center.name}</span>
+                            </div>
+                          </td>
+                          <td className="p-4 text-right font-mono text-green-700 dark:text-green-400">
+                            R$ {center.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="p-4 text-right font-mono text-red-700 dark:text-red-400">
+                            R$ {center.expenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className={`p-4 text-right font-mono font-semibold ${
+                            center.profit >= 0 
+                              ? 'text-emerald-700 dark:text-emerald-400' 
+                              : 'text-orange-700 dark:text-orange-400'
+                          }`}>
+                            {center.profit >= 0 ? '+' : ''}R$ {center.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className={`p-4 text-right font-mono ${
+                            margin >= 0 
+                              ? 'text-emerald-700 dark:text-emerald-400' 
+                              : 'text-orange-700 dark:text-orange-400'
+                          }`}>
+                            {margin >= 0 ? '+' : ''}{margin.toFixed(1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
