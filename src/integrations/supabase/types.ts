@@ -807,6 +807,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      process_recurring_transactions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_payables: number
+          created_receivables: number
+        }[]
+      }
       user_belongs_to_company: {
         Args: { target_company_id: string }
         Returns: boolean

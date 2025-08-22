@@ -274,6 +274,35 @@ const ContasPagar = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta conta?")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('accounts_payable')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast({
+          title: "Erro ao excluir conta",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Conta excluída!",
+          description: "Conta removida com sucesso",
+        });
+        fetchAccounts();
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+    }
+  };
+
   const handleEdit = (account: AccountPayable) => {
     setEditingAccount(account);
     setFormData({
@@ -699,7 +728,12 @@ const ContasPagar = () => {
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(account)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleDelete(account.id)}
+                          title="Excluir conta"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
