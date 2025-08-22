@@ -26,9 +26,12 @@ export type Database = {
           due_date: string
           id: string
           is_recurring: boolean | null
+          next_due_date: string | null
           notes: string | null
+          parent_transaction_id: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_count: number | null
           recurrence_end_date: string | null
           recurrence_frequency: string | null
           recurrence_interval: number | null
@@ -47,9 +50,12 @@ export type Database = {
           due_date: string
           id?: string
           is_recurring?: boolean | null
+          next_due_date?: string | null
           notes?: string | null
+          parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
@@ -68,9 +74,12 @@ export type Database = {
           due_date?: string
           id?: string
           is_recurring?: boolean | null
+          next_due_date?: string | null
           notes?: string | null
+          parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
@@ -121,9 +130,12 @@ export type Database = {
           due_date: string
           id: string
           is_recurring: boolean | null
+          next_due_date: string | null
           notes: string | null
+          parent_transaction_id: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_count: number | null
           recurrence_end_date: string | null
           recurrence_frequency: string | null
           recurrence_interval: number | null
@@ -141,9 +153,12 @@ export type Database = {
           due_date: string
           id?: string
           is_recurring?: boolean | null
+          next_due_date?: string | null
           notes?: string | null
+          parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
@@ -161,9 +176,12 @@ export type Database = {
           due_date?: string
           id?: string
           is_recurring?: boolean | null
+          next_due_date?: string | null
           notes?: string | null
+          parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
