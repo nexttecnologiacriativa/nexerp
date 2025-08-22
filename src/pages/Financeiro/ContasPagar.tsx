@@ -61,6 +61,7 @@ const ContasPagar = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"monthly" | "all">("all");
+  const [testingRecurrence, setTestingRecurrence] = useState(false);
 
   const [formData, setFormData] = useState({
     supplier_id: "",
@@ -166,6 +167,40 @@ const ContasPagar = () => {
       bank_account_id: "",
     });
     setEditingAccount(null);
+  };
+
+  const testRecurringGeneration = async () => {
+    setTestingRecurrence(true);
+    
+    try {
+      console.log('🧪 Testando geração de contas recorrentes...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-recurring-accounts');
+      
+      if (error) throw error;
+      
+      console.log('✅ Resposta da função:', data);
+      
+      toast({
+        title: "✅ Teste concluído!",
+        description: `Contas criadas: ${data?.summary?.total_created || 0}. Verifique o console para detalhes.`,
+        variant: "default",
+      });
+      
+      // Recarregar as contas após o teste
+      await fetchAccounts();
+      
+    } catch (error) {
+      console.error('❌ Erro no teste:', error);
+      
+      toast({
+        title: "❌ Erro no teste",
+        description: error.message || 'Erro desconhecido',
+        variant: "destructive",
+      });
+    } finally {
+      setTestingRecurrence(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -321,19 +356,32 @@ const ContasPagar = () => {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
-          <p className="text-muted-foreground">Gerencie suas contas a pagar</p>
-        </div>
-        
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="premium" onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Conta a Pagar
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Contas a Pagar</h1>
+            <p className="text-muted-foreground">Gerencie suas contas a pagar</p>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={testRecurringGeneration}
+              disabled={testingRecurrence}
+            >
+              {testingRecurrence ? (
+                <>⏳ Testando...</>
+              ) : (
+                <>🧪 Testar Recorrência</>
+              )}
             </Button>
-          </DialogTrigger>
+            
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="premium" onClick={resetForm}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Conta a Pagar
+                </Button>
+              </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editingAccount ? "Editar Conta" : "Nova Conta a Pagar"}</DialogTitle>
@@ -535,8 +583,9 @@ const ContasPagar = () => {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+            </Dialog>
+          </div>
+        </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
