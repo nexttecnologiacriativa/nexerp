@@ -31,9 +31,12 @@ interface AccountPayable {
   cost_center_id: string | null;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check' | null;
   is_recurring: boolean;
-  recurrence_frequency: string;
-  recurrence_interval: number;
+  recurrence_frequency: string | null;
+  recurrence_interval: number | null;
   recurrence_end_date: string | null;
+  recurrence_count?: number;
+  parent_transaction_id?: string | null;
+  next_due_date?: string | null;
   bank_account_id: string | null;
   suppliers: {
     name: string;
@@ -201,7 +204,10 @@ const ContasPagar = () => {
         recurrence_interval: formData.is_recurring ? formData.recurrence_interval : null,
         recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null,
         bank_account_id: formData.bank_account_id || null,
-        cost_center_id: null, // Adicionaremos centro de custo depois
+        cost_center_id: null,
+        next_due_date: formData.is_recurring ? formData.due_date : null,
+        recurrence_count: 0,
+        parent_transaction_id: null,
       };
 
       let error;
@@ -537,14 +543,13 @@ const ContasPagar = () => {
                 <Button type="submit" variant="premium" disabled={loading}>
                   {loading ? "Salvando..." : (editingAccount ? "Atualizar" : "Cadastrar")}
                 </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+               </DialogFooter>
+             </form>
+           </DialogContent>
+         </Dialog>
+       </div>
 
-      {/* Statistics Cards */}
+       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

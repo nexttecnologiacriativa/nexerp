@@ -773,6 +773,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_next_due_date: {
+        Args: { base_date: string; frequency: string; interval_value: number }
+        Returns: string
+      }
+      generate_next_payable: {
+        Args: { parent_id: string }
+        Returns: string
+      }
+      generate_next_receivable: {
+        Args: { parent_id: string }
+        Returns: string
+      }
       get_user_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string
