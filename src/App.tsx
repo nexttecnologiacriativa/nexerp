@@ -24,7 +24,6 @@ import Usuarios from "./pages/Usuarios/Index";
 import NotaFiscal from "./pages/NotaFiscal";
 import Relatorios from "./pages/Relatorios";
 import Planos from "./pages/Planos";
-import Vendas from "./pages/Vendas";
 import Faturamento from "./pages/Faturamento";
 import Layout from "./components/Layout";
 
@@ -44,11 +43,6 @@ const App = () => (
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Layout><Dashboard /></Layout>
-              </ProtectedRoute>
-            } />
-            <Route path="/vendas" element={
-              <ProtectedRoute>
-                <Layout><Vendas /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/faturamento" element={

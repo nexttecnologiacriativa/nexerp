@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, DollarSign, Users, Package, FileText, BarChart3, Settings, Building2, CreditCard, Receipt, UserCog, LogOut, ChevronDown, Truck, Tag, ShoppingCart } from "lucide-react";
+import { LayoutDashboard, DollarSign, Users, Package, FileText, BarChart3, Settings, Building2, CreditCard, Receipt, UserCog, LogOut, ChevronDown, Truck, Tag } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -10,10 +10,6 @@ const menuItems = [{
   title: "Dashboard",
   url: "/dashboard",
   icon: LayoutDashboard
-}, {
-  title: "Vendas",
-  url: "/vendas",
-  icon: ShoppingCart
 }, {
   title: "Faturamento",
   url: "/faturamento",
