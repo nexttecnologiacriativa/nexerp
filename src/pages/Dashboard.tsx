@@ -271,14 +271,14 @@ const Dashboard = () => {
       </div>
 
       {/* Main Financial Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Contas a Receber</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
               {formatCurrency(financialData.receivable)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -289,11 +289,11 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contas a Pagar</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Contas a Pagar</CardTitle>
+            <TrendingDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-red-600 break-all">
               {formatCurrency(financialData.payable)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -304,11 +304,11 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Bancário</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Saldo Bancário</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 break-all">
               {formatCurrency(financialData.bankBalance)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -319,11 +319,11 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Projetado</CardTitle>
-            <BalanceIcon className={`h-4 w-4 ${balanceStatus.color}`} />
+            <CardTitle className="text-xs sm:text-sm font-medium">Saldo Projetado</CardTitle>
+            <BalanceIcon className={`h-4 w-4 ${balanceStatus.color} flex-shrink-0`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${balanceStatus.color}`}>
+            <div className={`text-lg sm:text-xl lg:text-2xl font-bold ${balanceStatus.color} break-all`}>
               {formatCurrency(financialData.balance)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -352,7 +352,7 @@ const Dashboard = () => {
       </div>
 
       {/* Business Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>

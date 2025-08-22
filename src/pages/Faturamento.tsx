@@ -211,15 +211,15 @@ const Faturamento = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Faturamento</h1>
-          <p className="text-muted-foreground">Indicadores de vendas e gestão de faturamento</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Faturamento</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Indicadores de vendas e gestão de faturamento</p>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -229,7 +229,7 @@ const Faturamento = () => {
             </SelectContent>
           </Select>
           
-          <Button variant="outline">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Exportar
           </Button>
@@ -237,14 +237,14 @@ const Faturamento = () => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Vendas</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Total de Vendas</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{metrics.totalSales}</div>
+            <div className="text-xl sm:text-2xl font-bold">{metrics.totalSales}</div>
             <p className="text-xs text-muted-foreground">
               vendas no período
             </p>
@@ -253,11 +253,11 @@ const Faturamento = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Receita Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
               {formatCurrency(metrics.totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -268,11 +268,11 @@ const Faturamento = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Ticket Médio</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold break-all">
               {formatCurrency(metrics.averageTicket)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -283,11 +283,11 @@ const Faturamento = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">A Receber</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">A Receber</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-yellow-600 break-all">
               {formatCurrency(metrics.pendingReceivables)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -298,15 +298,15 @@ const Faturamento = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Crescimento</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Crescimento</CardTitle>
             {metrics.monthlyGrowth >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
             ) : (
-              <TrendingDown className="h-4 w-4 text-red-600" />
+              <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
             )}
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${metrics.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-xl sm:text-2xl font-bold ${metrics.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {metrics.monthlyGrowth.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">
@@ -317,11 +317,11 @@ const Faturamento = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Melhor Cliente</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Melhor Cliente</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-sm font-bold truncate">
+            <div className="text-sm sm:text-base font-bold truncate" title={metrics.topCustomer}>
               {metrics.topCustomer}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -339,19 +339,19 @@ const Faturamento = () => {
             Todas as vendas registradas no período selecionado
           </CardDescription>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
             <div className="flex items-center space-x-2 flex-1">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por número da venda ou cliente..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
+                className="w-full sm:max-w-sm"
               />
             </div>
             
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -373,62 +373,66 @@ const Faturamento = () => {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Valor Bruto</TableHead>
-                  <TableHead>Desconto</TableHead>
-                  <TableHead>Valor Líquido</TableHead>
-                  <TableHead>Pagamento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSales.map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell className="font-medium">
-                      {sale.sale_number}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(sale.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
-                    </TableCell>
-                    <TableCell>{sale.customer_name}</TableCell>
-                    <TableCell>{formatCurrency(Number(sale.total_amount))}</TableCell>
-                    <TableCell>
-                      {sale.discount_amount > 0 ? formatCurrency(Number(sale.discount_amount)) : '-'}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {formatCurrency(Number(sale.net_amount))}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {sale.payment_method || 'Não informado'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusVariant(sale.status)}>
-                        {sale.status === 'active' ? 'Ativo' : 
-                         sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[100px]">Número</TableHead>
+                    <TableHead className="min-w-[100px]">Data</TableHead>
+                    <TableHead className="min-w-[150px]">Cliente</TableHead>
+                    <TableHead className="min-w-[120px]">Valor Bruto</TableHead>
+                    <TableHead className="min-w-[100px]">Desconto</TableHead>
+                    <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
+                    <TableHead className="min-w-[120px]">Pagamento</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="text-right min-w-[120px]">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredSales.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell className="font-medium">
+                        {sale.sale_number}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(sale.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
+                        {sale.customer_name}
+                      </TableCell>
+                      <TableCell>{formatCurrency(Number(sale.total_amount))}</TableCell>
+                      <TableCell>
+                        {sale.discount_amount > 0 ? formatCurrency(Number(sale.discount_amount)) : '-'}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatCurrency(Number(sale.net_amount))}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {sale.payment_method || 'Não informado'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(sale.status)} className="text-xs">
+                          {sale.status === 'active' ? 'Ativo' : 
+                           sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end space-x-1">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
