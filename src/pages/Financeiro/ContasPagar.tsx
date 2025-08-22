@@ -224,14 +224,19 @@ const ContasPagar = () => {
       }
 
       const accountData = {
-        ...formData,
+        supplier_id: formData.supplier_id || null,
+        description: formData.description,
         amount: parseFloat(formData.amount),
+        due_date: formData.due_date,
+        notes: formData.notes || null,
+        document_number: formData.document_number || null,
         company_id: profile.company_id,
         is_recurring: formData.is_recurring,
         recurrence_frequency: formData.is_recurring ? formData.recurrence_frequency : null,
         recurrence_interval: formData.is_recurring ? formData.recurrence_interval : null,
         recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null,
         bank_account_id: formData.bank_account_id || null,
+        cost_center_id: null, // Adicionaremos centro de custo depois
       };
 
       let error;
