@@ -30,8 +30,17 @@ interface AccountPayable {
   updated_at: string;
   cost_center_id: string | null;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check' | null;
+  is_recurring: boolean;
+  recurrence_frequency: string;
+  recurrence_interval: number;
+  recurrence_end_date: string | null;
+  bank_account_id: string | null;
   suppliers: {
     name: string;
+  };
+  bank_accounts?: {
+    name: string;
+    bank_name: string;
   };
 }
 
@@ -60,12 +69,19 @@ const ContasPagar = () => {
     due_date: "",
     notes: "",
     document_number: "",
+    is_recurring: false,
+    recurrence_frequency: "monthly",
+    recurrence_interval: 1,
+    recurrence_end_date: "",
+    bank_account_id: "",
   });
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
       fetchAccounts();
       fetchSuppliers();
+      fetchBankAccounts();
     }
   }, [user]);
 
@@ -77,6 +93,10 @@ const ContasPagar = () => {
           *,
           suppliers:supplier_id (
             name
+          ),
+          bank_accounts:bank_account_id (
+            name,
+            bank_name
           )
         `)
         .order('due_date', { ascending: true });
@@ -116,6 +136,21 @@ const ContasPagar = () => {
     }
   };
 
+  const fetchBankAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .select('id, name, bank_name, account_number')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      setBankAccounts(data || []);
+    } catch (error) {
+      console.error('Error fetching bank accounts:', error);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       supplier_id: "",
@@ -124,6 +159,11 @@ const ContasPagar = () => {
       due_date: "",
       notes: "",
       document_number: "",
+      is_recurring: false,
+      recurrence_frequency: "monthly",
+      recurrence_interval: 1,
+      recurrence_end_date: "",
+      bank_account_id: "",
     });
     setEditingAccount(null);
   };
@@ -152,6 +192,11 @@ const ContasPagar = () => {
         ...formData,
         amount: parseFloat(formData.amount),
         company_id: profile.company_id,
+        is_recurring: formData.is_recurring,
+        recurrence_frequency: formData.is_recurring ? formData.recurrence_frequency : null,
+        recurrence_interval: formData.is_recurring ? formData.recurrence_interval : null,
+        recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null,
+        bank_account_id: formData.bank_account_id || null,
       };
 
       let error;
@@ -227,6 +272,11 @@ const ContasPagar = () => {
       due_date: account.due_date,
       notes: account.notes || "",
       document_number: account.document_number || "",
+      is_recurring: account.is_recurring || false,
+      recurrence_frequency: account.recurrence_frequency || "monthly",
+      recurrence_interval: account.recurrence_interval || 1,
+      recurrence_end_date: account.recurrence_end_date || "",
+      bank_account_id: account.bank_account_id || "",
     });
     setIsDialogOpen(true);
   };
@@ -353,6 +403,83 @@ const ContasPagar = () => {
                     onChange={(e) => setFormData({...formData, document_number: e.target.value})}
                   />
                 </div>
+                
+                
+                <div className="space-y-2">
+                  <Label htmlFor="bank_account_id">Conta Bancária</Label>
+                  <Select value={formData.bank_account_id} onValueChange={(value) => setFormData({...formData, bank_account_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a conta bancária" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name} - {account.bank_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2 col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_recurring"
+                      checked={formData.is_recurring}
+                      onChange={(e) => setFormData({...formData, is_recurring: e.target.checked})}
+                    />
+                    <Label htmlFor="is_recurring">Configurar recorrência de pagamento</Label>
+                  </div>
+                </div>
+
+                {formData.is_recurring && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="recurrence_frequency">Frequência</Label>
+                      <Select value={formData.recurrence_frequency} onValueChange={(value) => setFormData({...formData, recurrence_frequency: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monthly">Mensalmente</SelectItem>
+                          <SelectItem value="weekly">Semanalmente</SelectItem>
+                          <SelectItem value="yearly">Anualmente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="recurrence_interval">Intervalo</Label>
+                      <Input
+                        id="recurrence_interval"
+                        type="number"
+                        min="1"
+                        value={formData.recurrence_interval}
+                        onChange={(e) => setFormData({...formData, recurrence_interval: parseInt(e.target.value) || 1})}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        A cada {formData.recurrence_interval} {
+                          formData.recurrence_frequency === 'monthly' ? 'meses' :
+                          formData.recurrence_frequency === 'weekly' ? 'semanas' : 'anos'
+                        }
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="recurrence_end_date">Data limite (opcional)</Label>
+                      <Input
+                        id="recurrence_end_date"
+                        type="date"
+                        value={formData.recurrence_end_date}
+                        onChange={(e) => setFormData({...formData, recurrence_end_date: e.target.value})}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe vazio para recorrência indefinida
+                      </p>
+                    </div>
+                  </>
+                )}
                 
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="notes">Observações</Label>

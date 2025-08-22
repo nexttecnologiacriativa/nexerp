@@ -13,6 +13,7 @@ import { CalendarIcon, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 
 interface SaleItem {
   id: string;
@@ -81,14 +82,14 @@ const Vendas = () => {
   
   const [saleType, setSaleType] = useState("budget");
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
-    payment_method: "pix",
+  const [paymentInfo, setPaymentInfo] = useState({
+    payment_method: "",
     receiving_account: "",
     percentage: 100,
-    amount: 0,
     installments: 1,
-    due_date: new Date().toISOString().split('T')[0]
+    due_date: format(new Date(), 'yyyy-MM-dd')
   });
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     sale_number: "",
@@ -160,13 +161,14 @@ const Vendas = () => {
 
       setUserProfile(profileData);
 
-      const [customersData, servicesData, categoriesData, costCentersData, usersData, salesData] = await Promise.all([
+      const [customersData, servicesData, categoriesData, costCentersData, usersData, salesData, bankAccountsData] = await Promise.all([
         supabase.from('customers').select('id, name, email, phone').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('services').select('id, name, price').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('categories').select('id, name').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('cost_centers').select('id, name').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('profiles').select('id, full_name').eq('company_id', profileData.company_id),
-        supabase.from('sales').select('sale_number').eq('company_id', profileData.company_id).order('created_at', { ascending: false }).limit(1)
+        supabase.from('sales').select('sale_number').eq('company_id', profileData.company_id).order('created_at', { ascending: false }).limit(1),
+        supabase.from('bank_accounts').select('id, name, bank_name, account_number').eq('company_id', profileData.company_id).eq('status', 'active')
       ]);
 
       if (customersData.data) setCustomers(customersData.data);
@@ -174,6 +176,7 @@ const Vendas = () => {
       if (categoriesData.data) setCategories(categoriesData.data);
       if (costCentersData.data) setCostCenters(costCentersData.data);
       if (usersData.data) setUsers(usersData.data);
+      if (bankAccountsData.data) setBankAccounts(bankAccountsData.data);
 
       // Generate next sale number
       const nextSaleNumber = generateNextSaleNumber(salesData.data?.[0]?.sale_number);
@@ -350,7 +353,12 @@ const Vendas = () => {
           due_date: installment.due_date,
           status: 'pending' as const,
           payment_method: paymentInfo.payment_method as any,
-          notes: `Gerado automaticamente da ${saleType === 'sale' ? 'venda' : 'venda recorrente'} ${formData.sale_number}`
+          notes: `Gerado automaticamente da ${saleType === 'sale' ? 'venda' : 'venda recorrente'} ${formData.sale_number}`,
+          bank_account_id: paymentInfo.receiving_account || null,
+          is_recurring: saleType === 'recurring',
+          recurrence_frequency: saleType === 'recurring' ? 'monthly' : null,
+          recurrence_interval: saleType === 'recurring' ? 1 : null,
+          recurrence_end_date: null
         }));
 
         const { error: receivableError } = await supabase
@@ -669,11 +677,14 @@ const Vendas = () => {
                 onValueChange={(value) => setPaymentInfo({...paymentInfo, receiving_account: value})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma conta" />
+                  <SelectValue placeholder="Selecione uma conta bancária" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="conta_principal">Conta Principal</SelectItem>
-                  <SelectItem value="conta_secundaria">Conta Secundária</SelectItem>
+                  {bankAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} - {account.bank_name} ({account.account_number})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -721,9 +732,18 @@ const Vendas = () => {
                   <SelectItem value="1">À vista</SelectItem>
                   <SelectItem value="2">2x</SelectItem>
                   <SelectItem value="3">3x</SelectItem>
+                  <SelectItem value="4">4x</SelectItem>
+                  <SelectItem value="5">5x</SelectItem>
                   <SelectItem value="6">6x</SelectItem>
+                  <SelectItem value="7">7x</SelectItem>
+                  <SelectItem value="8">8x</SelectItem>
+                  <SelectItem value="9">9x</SelectItem>
                   <SelectItem value="10">10x</SelectItem>
+                  <SelectItem value="11">11x</SelectItem>
                   <SelectItem value="12">12x</SelectItem>
+                  <SelectItem value="18">18x</SelectItem>
+                  <SelectItem value="24">24x</SelectItem>
+                  <SelectItem value="36">36x</SelectItem>
                 </SelectContent>
               </Select>
             </div>

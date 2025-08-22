@@ -17,6 +17,7 @@ export type Database = {
       accounts_payable: {
         Row: {
           amount: number
+          bank_account_id: string | null
           company_id: string
           cost_center_id: string | null
           created_at: string
@@ -24,15 +25,20 @@ export type Database = {
           document_number: string | null
           due_date: string
           id: string
+          is_recurring: boolean | null
           notes: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_end_date: string | null
+          recurrence_frequency: string | null
+          recurrence_interval: number | null
           status: Database["public"]["Enums"]["payment_status"]
           supplier_id: string | null
           updated_at: string
         }
         Insert: {
           amount: number
+          bank_account_id?: string | null
           company_id: string
           cost_center_id?: string | null
           created_at?: string
@@ -40,15 +46,20 @@ export type Database = {
           document_number?: string | null
           due_date: string
           id?: string
+          is_recurring?: boolean | null
           notes?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
           supplier_id?: string | null
           updated_at?: string
         }
         Update: {
           amount?: number
+          bank_account_id?: string | null
           company_id?: string
           cost_center_id?: string | null
           created_at?: string
@@ -56,9 +67,13 @@ export type Database = {
           document_number?: string | null
           due_date?: string
           id?: string
+          is_recurring?: boolean | null
           notes?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
           supplier_id?: string | null
           updated_at?: string
@@ -85,11 +100,19 @@ export type Database = {
             referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_accounts_payable_bank_account"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       accounts_receivable: {
         Row: {
           amount: number
+          bank_account_id: string | null
           company_id: string
           created_at: string
           customer_id: string | null
@@ -97,14 +120,19 @@ export type Database = {
           document_number: string | null
           due_date: string
           id: string
+          is_recurring: boolean | null
           notes: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_end_date: string | null
+          recurrence_frequency: string | null
+          recurrence_interval: number | null
           status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
         }
         Insert: {
           amount: number
+          bank_account_id?: string | null
           company_id: string
           created_at?: string
           customer_id?: string | null
@@ -112,14 +140,19 @@ export type Database = {
           document_number?: string | null
           due_date: string
           id?: string
+          is_recurring?: boolean | null
           notes?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
         }
         Update: {
           amount?: number
+          bank_account_id?: string | null
           company_id?: string
           created_at?: string
           customer_id?: string | null
@@ -127,9 +160,13 @@ export type Database = {
           document_number?: string | null
           due_date?: string
           id?: string
+          is_recurring?: boolean | null
           notes?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          recurrence_end_date?: string | null
+          recurrence_frequency?: string | null
+          recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
         }
@@ -146,6 +183,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_accounts_receivable_bank_account"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
             referencedColumns: ["id"]
           },
         ]
