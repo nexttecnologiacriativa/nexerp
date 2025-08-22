@@ -221,7 +221,7 @@ const Bancos = () => {
     const types = {
       checking: 'Conta Corrente',
       savings: 'Poupança',
-      current: 'Conta Empresa'
+      credit: 'Cartão de Crédito'
     };
     return types[type as keyof typeof types] || type;
   };
@@ -296,7 +296,7 @@ const Bancos = () => {
                     <SelectContent>
                       <SelectItem value="checking">Conta Corrente</SelectItem>
                       <SelectItem value="savings">Poupança</SelectItem>
-                      <SelectItem value="current">Conta Empresa</SelectItem>
+                      <SelectItem value="credit">Cartão de Crédito</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
