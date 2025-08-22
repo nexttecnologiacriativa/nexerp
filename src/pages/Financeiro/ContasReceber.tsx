@@ -544,7 +544,7 @@ const ContasReceber = () => {
               Nova Conta a Receber
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingAccount ? "Editar Conta" : "Nova Conta a Receber"}</DialogTitle>
               <DialogDescription>
@@ -552,7 +552,7 @@ const ContasReceber = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4 py-4 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-2">
                   <Label htmlFor="customer_id">Cliente *</Label>
                   <Select value={formData.customer_id} onValueChange={(value) => setFormData({...formData, customer_id: value})}>
