@@ -106,6 +106,32 @@ const Vendas = () => {
     loadData();
   }, []);
 
+  // Generate next sale number when sale type changes
+  useEffect(() => {
+    if (userProfile?.company_id) {
+      updateSaleNumber();
+    }
+  }, [saleType, userProfile?.company_id]);
+
+  const updateSaleNumber = async () => {
+    try {
+      const prefix = saleType === 'budget' ? 'ORC' : 'VND';
+      
+      const { data: salesData } = await supabase
+        .from('sales')
+        .select('sale_number')
+        .eq('company_id', userProfile.company_id)
+        .like('sale_number', `${prefix}%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const nextSaleNumber = generateNextSaleNumber(salesData?.[0]?.sale_number);
+      setFormData(prev => ({ ...prev, sale_number: nextSaleNumber }));
+    } catch (error) {
+      console.error('Error updating sale number:', error);
+    }
+  };
+
   // Generate installments when payment info changes
   useEffect(() => {
     generateInstallments();
@@ -163,15 +189,17 @@ const Vendas = () => {
     const year = today.getFullYear().toString().slice(-2);
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
     
-    if (!lastSaleNumber) {
-      return `VND${year}${month}0001`;
+    const prefix = saleType === 'budget' ? 'ORC' : 'VND';
+    
+    if (!lastSaleNumber || !lastSaleNumber.startsWith(prefix)) {
+      return `${prefix}${year}${month}0001`;
     }
     
     // Extract number from last sale
     const lastNumber = parseInt(lastSaleNumber.slice(-4)) || 0;
     const nextNumber = (lastNumber + 1).toString().padStart(4, '0');
     
-    return `VND${year}${month}${nextNumber}`;
+    return `${prefix}${year}${month}${nextNumber}`;
   };
 
   const generateInstallments = () => {

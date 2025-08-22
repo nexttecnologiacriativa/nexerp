@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,17 +44,23 @@ interface BillingMetrics {
   pendingReceivables: number;
   monthlyGrowth: number;
   topCustomer: string;
+  totalBudgets: number;
+  budgetValue: number;
 }
 
 const Faturamento = () => {
   const [sales, setSales] = useState<Sale[]>([]);
+  const [budgets, setBudgets] = useState<Sale[]>([]);
+  const [activeTab, setActiveTab] = useState('sales');
   const [metrics, setMetrics] = useState<BillingMetrics>({
     totalSales: 0,
     totalRevenue: 0,
     averageTicket: 0,
     pendingReceivables: 0,
     monthlyGrowth: 0,
-    topCustomer: '-'
+    topCustomer: '-',
+    totalBudgets: 0,
+    budgetValue: 0
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,8 +111,8 @@ const Faturamento = () => {
           dateFilter = currentMonth.toISOString();
       }
 
-      // Fetch sales with customer names
-      const { data: salesData, error: salesError } = await supabase
+      // Fetch all sales and separate by type
+      const { data: allSalesData, error: salesError } = await supabase
         .from('sales')
         .select(`
           *,
@@ -117,17 +124,33 @@ const Faturamento = () => {
 
       if (salesError) throw salesError;
 
-      const formattedSales: Sale[] = salesData?.map(sale => ({
+      const formattedData = allSalesData?.map(sale => ({
         ...sale,
         customer_name: sale.customers?.name || 'Cliente não informado'
       })) || [];
 
-      setSales(formattedSales);
+      // Separate sales from budgets based on sale_number prefix or notes
+      const actualSales = formattedData.filter(sale => 
+        !sale.sale_number?.startsWith('ORC') && // Orçamentos não começam com ORC
+        !sale.notes?.toLowerCase().includes('orçamento') // Ou não têm "orçamento" nas notas
+      );
+      
+      const budgetData = formattedData.filter(sale => 
+        sale.sale_number?.startsWith('ORC') || // Orçamentos começam com ORC
+        sale.notes?.toLowerCase().includes('orçamento') // Ou têm "orçamento" nas notas
+      );
 
-      // Calculate metrics
-      const totalSales = formattedSales.length;
-      const totalRevenue = formattedSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
+      setSales(actualSales);
+      setBudgets(budgetData);
+
+      // Calculate metrics for sales only (not budgets)
+      const totalSales = actualSales.length;
+      const totalRevenue = actualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
       const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
+
+      // Calculate budget metrics
+      const totalBudgets = budgetData.length;
+      const budgetValue = budgetData.reduce((sum, budget) => sum + Number(budget.net_amount), 0);
 
       // Fetch pending receivables
       const { data: receivables } = await supabase
@@ -138,19 +161,24 @@ const Faturamento = () => {
 
       const pendingReceivables = receivables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
 
-      // Calculate monthly growth (compare with previous period)
+      // Calculate monthly growth for sales only (compare with previous period)
       const { data: previousSales } = await supabase
         .from('sales')
-        .select('net_amount')
+        .select('net_amount, sale_number, notes')
         .eq('company_id', companyId)
         .gte('sale_date', lastMonth.toISOString())
         .lte('sale_date', lastMonthEnd.toISOString());
 
-      const previousRevenue = previousSales?.reduce((sum, sale) => sum + Number(sale.net_amount), 0) || 0;
+      const previousActualSales = previousSales?.filter(sale => 
+        !sale.sale_number?.startsWith('ORC') && 
+        !sale.notes?.toLowerCase().includes('orçamento')
+      ) || [];
+
+      const previousRevenue = previousActualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
       const monthlyGrowth = previousRevenue > 0 ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 : 0;
 
-      // Find top customer
-      const customerSales = formattedSales.reduce((acc, sale) => {
+      // Find top customer from actual sales only
+      const customerSales = actualSales.reduce((acc, sale) => {
         const customer = sale.customer_name || 'Sem cliente';
         acc[customer] = (acc[customer] || 0) + Number(sale.net_amount);
         return acc;
@@ -165,7 +193,9 @@ const Faturamento = () => {
         averageTicket,
         pendingReceivables,
         monthlyGrowth,
-        topCustomer
+        topCustomer,
+        totalBudgets,
+        budgetValue
       });
 
     } catch (error) {
@@ -184,6 +214,13 @@ const Faturamento = () => {
     const matchesSearch = sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredBudgets = budgets.filter(budget => {
+    const matchesSearch = budget.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         budget.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || budget.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -246,7 +283,7 @@ const Faturamento = () => {
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">{metrics.totalSales}</div>
             <p className="text-xs text-muted-foreground">
-              vendas no período
+              vendas realizadas
             </p>
           </CardContent>
         </Card>
@@ -261,7 +298,7 @@ const Faturamento = () => {
               {formatCurrency(metrics.totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground">
-              faturamento bruto
+              apenas vendas efetivas
             </p>
           </CardContent>
         </Card>
@@ -331,111 +368,271 @@ const Faturamento = () => {
         </Card>
       </div>
 
-      {/* Sales Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Vendas</CardTitle>
-          <CardDescription>
-            Todas as vendas registradas no período selecionado
-          </CardDescription>
-          
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-            <div className="flex items-center space-x-2 flex-1">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por número da venda ou cliente..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:max-w-sm"
-              />
+      {/* Tabs para Vendas e Dinheiro na Mesa */}
+      <div className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="sales">Vendas Efetivas</TabsTrigger>
+            <TabsTrigger value="budgets">Dinheiro na Mesa</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sales">
+            {/* Sales Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Lista de Vendas</CardTitle>
+                <CardDescription>
+                  Vendas efetivas (avulsa e recorrente) realizadas no período
+                </CardDescription>
+                
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por número da venda ou cliente..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full sm:max-w-sm"
+                    />
+                  </div>
+                  
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="active">Ativo</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredSales.length === 0 ? (
+                  <div className="text-center py-10">
+                    <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-semibold">Nenhuma venda encontrada</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Não há vendas efetivas para o período e filtros selecionados.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[100px]">Número</TableHead>
+                          <TableHead className="min-w-[100px]">Data</TableHead>
+                          <TableHead className="min-w-[150px]">Cliente</TableHead>
+                          <TableHead className="min-w-[120px]">Valor Bruto</TableHead>
+                          <TableHead className="min-w-[100px]">Desconto</TableHead>
+                          <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
+                          <TableHead className="min-w-[120px]">Pagamento</TableHead>
+                          <TableHead className="min-w-[100px]">Status</TableHead>
+                          <TableHead className="text-right min-w-[120px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSales.map((sale) => (
+                          <TableRow key={sale.id}>
+                            <TableCell className="font-medium">
+                              {sale.sale_number}
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(sale.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
+                              {sale.customer_name}
+                            </TableCell>
+                            <TableCell>{formatCurrency(Number(sale.total_amount))}</TableCell>
+                            <TableCell>
+                              {sale.discount_amount > 0 ? formatCurrency(Number(sale.discount_amount)) : '-'}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {formatCurrency(Number(sale.net_amount))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {sale.payment_method || 'Não informado'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusVariant(sale.status)} className="text-xs">
+                                {sale.status === 'active' ? 'Ativo' : 
+                                 sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-1">
+                                <Button variant="outline" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" size="sm">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="budgets">
+            {/* Budget Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Total de Orçamentos</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-xl sm:text-2xl font-bold">{metrics.totalBudgets}</div>
+                  <p className="text-xs text-muted-foreground">
+                    orçamentos criados
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Valor Total</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 break-all">
+                    {formatCurrency(metrics.budgetValue)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    potencial de faturamento
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-xs sm:text-sm font-medium">Ticket Médio</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold break-all">
+                    {formatCurrency(metrics.totalBudgets > 0 ? metrics.budgetValue / metrics.totalBudgets : 0)}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    valor médio por orçamento
+                  </p>
+                </CardContent>
+              </Card>
             </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="active">Ativo</SelectItem>
-                <SelectItem value="cancelled">Cancelado</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filteredSales.length === 0 ? (
-            <div className="text-center py-10">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-sm font-semibold">Nenhuma venda encontrada</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Não há vendas para o período e filtros selecionados.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[100px]">Número</TableHead>
-                    <TableHead className="min-w-[100px]">Data</TableHead>
-                    <TableHead className="min-w-[150px]">Cliente</TableHead>
-                    <TableHead className="min-w-[120px]">Valor Bruto</TableHead>
-                    <TableHead className="min-w-[100px]">Desconto</TableHead>
-                    <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
-                    <TableHead className="min-w-[120px]">Pagamento</TableHead>
-                    <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="text-right min-w-[120px]">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSales.map((sale) => (
-                    <TableRow key={sale.id}>
-                      <TableCell className="font-medium">
-                        {sale.sale_number}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(sale.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
-                        {sale.customer_name}
-                      </TableCell>
-                      <TableCell>{formatCurrency(Number(sale.total_amount))}</TableCell>
-                      <TableCell>
-                        {sale.discount_amount > 0 ? formatCurrency(Number(sale.discount_amount)) : '-'}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(Number(sale.net_amount))}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {sale.payment_method || 'Não informado'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(sale.status)} className="text-xs">
-                          {sale.status === 'active' ? 'Ativo' : 
-                           sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-1">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Budgets Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Dinheiro na Mesa</CardTitle>
+                <CardDescription>
+                  Orçamentos que podem se transformar em vendas efetivas
+                </CardDescription>
+                
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+                  <div className="flex items-center space-x-2 flex-1">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por número do orçamento ou cliente..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full sm:max-w-sm"
+                    />
+                  </div>
+                  
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-48">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os status</SelectItem>
+                      <SelectItem value="active">Ativo</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                      <SelectItem value="pending">Pendente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {filteredBudgets.length === 0 ? (
+                  <div className="text-center py-10">
+                    <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <h3 className="mt-2 text-sm font-semibold">Nenhum orçamento encontrado</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Não há orçamentos para o período e filtros selecionados.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[100px]">Número</TableHead>
+                          <TableHead className="min-w-[100px]">Data</TableHead>
+                          <TableHead className="min-w-[150px]">Cliente</TableHead>
+                          <TableHead className="min-w-[120px]">Valor Bruto</TableHead>
+                          <TableHead className="min-w-[100px]">Desconto</TableHead>
+                          <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
+                          <TableHead className="min-w-[100px]">Status</TableHead>
+                          <TableHead className="text-right min-w-[120px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredBudgets.map((budget) => (
+                          <TableRow key={budget.id}>
+                            <TableCell className="font-medium">
+                              {budget.sale_number}
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(budget.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="max-w-[150px] truncate" title={budget.customer_name}>
+                              {budget.customer_name}
+                            </TableCell>
+                            <TableCell>{formatCurrency(Number(budget.total_amount))}</TableCell>
+                            <TableCell>
+                              {budget.discount_amount > 0 ? formatCurrency(Number(budget.discount_amount)) : '-'}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {formatCurrency(Number(budget.net_amount))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusVariant(budget.status)} className="text-xs">
+                                {budget.status === 'active' ? 'Ativo' : 
+                                 budget.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-1">
+                                <Button variant="outline" size="sm">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button variant="outline" size="sm">
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

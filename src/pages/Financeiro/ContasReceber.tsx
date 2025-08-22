@@ -415,9 +415,69 @@ const ContasReceber = () => {
         </Card>
       </div>
 
+      {/* Navegação por mês e filtros */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Contas a Receber</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Lista de Contas a Receber</CardTitle>
+              <CardDescription>Gerencie suas contas a receber</CardDescription>
+            </div>
+            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "monthly" | "all")}>
+              <TabsList>
+                <TabsTrigger value="all">Todas</TabsTrigger>
+                <TabsTrigger value="monthly">Por Mês</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+
+          {viewMode === "monthly" && (
+            <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <h3 className="text-lg font-semibold">
+                {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          <CardDescription>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4" />
+                <Input
+                  placeholder="Buscar contas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filtrar por status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="paid">Recebido</SelectItem>
+                  <SelectItem value="overdue">Vencido</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
