@@ -217,7 +217,7 @@ const Vendas = () => {
           company_id: userProfile.company_id,
           customer_id: formData.client_id,
           total_amount: totalAmount,
-          discount,
+          discount_amount: discount,
           tax,
           net_amount: totalAmount - discount + tax,
           sale_date: formData.sale_date,

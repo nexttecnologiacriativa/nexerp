@@ -15,7 +15,7 @@ interface Company {
   id: string;
   name: string;
   document: string;
-  document_type: string;
+  document_type: 'cpf' | 'cnpj';
   email: string;
   phone: string;
   address: string;
@@ -27,8 +27,9 @@ interface Company {
 interface Profile {
   id: string;
   full_name: string;
-  email: string;
   phone: string;
+  company_id: string;
+  role: string;
 }
 
 const Configuracoes = () => {
@@ -40,7 +41,7 @@ const Configuracoes = () => {
   const [companyForm, setCompanyForm] = useState({
     name: '',
     document: '',
-    document_type: 'cnpj' as 'cpf' | 'cnpj' | 'passport',
+    document_type: 'cnpj' as 'cpf' | 'cnpj',
     email: '',
     phone: '',
     address: '',
@@ -51,7 +52,6 @@ const Configuracoes = () => {
 
   const [profileForm, setProfileForm] = useState({
     full_name: '',
-    email: '',
     phone: ''
   });
 
@@ -82,7 +82,6 @@ const Configuracoes = () => {
         setProfile(profileData);
         setProfileForm({
           full_name: profileData.full_name || '',
-          email: profileData.email || '',
           phone: profileData.phone || ''
         });
 
@@ -239,15 +238,6 @@ const Configuracoes = () => {
                     id="full_name"
                     value={profileForm.full_name}
                     onChange={(e) => setProfileForm(prev => ({ ...prev, full_name: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileForm.email}
-                    onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
                   />
                 </div>
               </div>

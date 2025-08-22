@@ -8,10 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, Trash2, Check, Calendar, DollarSign, Repeat, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Check, Calendar, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,20 +24,12 @@ interface AccountPayable {
   payment_date: string | null;
   status: "pending" | "paid" | "overdue" | "cancelled";
   notes: string | null;
-  is_recurring: boolean;
-  recurrence_frequency: string | null;
-  recurrence_interval: number | null;
-  recurrence_end_date: string | null;
-  next_due_date: string | null;
-  parent_transaction_id: string | null;
-  recurrence_count: number | null;
+  document_number: string | null;
   company_id: string;
   created_at: string;
   updated_at: string;
   cost_center_id: string | null;
-  category_id: string | null;
-  payment_method: 'boleto' | 'cartao_credito' | 'cartao_debito' | 'transferencia' | 'pix' | 'cheque' | 'dinheiro' | 'outro' | null;
-  attachment_url: string | null;
+  payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check' | null;
   suppliers: {
     name: string;
   };
@@ -68,10 +59,7 @@ const ContasPagar = () => {
     amount: "",
     due_date: "",
     notes: "",
-    is_recurring: false,
-    recurrence_frequency: "monthly",
-    recurrence_interval: 1,
-    recurrence_end_date: "",
+    document_number: "",
   });
 
   useEffect(() => {
@@ -83,7 +71,6 @@ const ContasPagar = () => {
 
   const fetchAccounts = async () => {
     try {
-      // Buscar contas existentes
       const { data: existingAccounts, error: existingError } = await supabase
         .from('accounts_payable')
         .select(`
@@ -103,79 +90,12 @@ const ContasPagar = () => {
         return;
       }
 
-      let allAccounts = existingAccounts || [];
-
-      // Gerar parcelas futuras para contas recorrentes
-      const recurringAccounts = allAccounts.filter(account => 
-        account.is_recurring && account.next_due_date
-      );
-
-      for (const account of recurringAccounts) {
-        const generatedAccounts = generateFutureInstallments(account, 12); // Gerar 12 meses à frente
-        allAccounts = [...allAccounts, ...generatedAccounts];
-      }
-
-      // Remover duplicatas baseado no ID
-      const uniqueAccounts = allAccounts.filter((account, index, self) => 
-        index === self.findIndex(a => a.id === account.id)
-      );
-
-      setAccounts(uniqueAccounts);
+      setAccounts(existingAccounts || []);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateFutureInstallments = (parentAccount: AccountPayable, monthsAhead: number) => {
-    const generatedAccounts: AccountPayable[] = [];
-    let currentDate = new Date(parentAccount.next_due_date || parentAccount.due_date);
-    
-    for (let i = 1; i <= monthsAhead; i++) {
-      // Calcular próxima data baseada na frequência
-      let nextDate = new Date(currentDate);
-      
-      switch (parentAccount.recurrence_frequency) {
-        case 'daily':
-          nextDate.setDate(currentDate.getDate() + (parentAccount.recurrence_interval || 1) * i);
-          break;
-        case 'weekly':
-          nextDate.setDate(currentDate.getDate() + (parentAccount.recurrence_interval || 1) * 7 * i);
-          break;
-        case 'monthly':
-          nextDate = addMonths(currentDate, (parentAccount.recurrence_interval || 1) * i);
-          break;
-        case 'quarterly':
-          nextDate = addMonths(currentDate, (parentAccount.recurrence_interval || 1) * 3 * i);
-          break;
-        case 'yearly':
-          nextDate = addMonths(currentDate, (parentAccount.recurrence_interval || 1) * 12 * i);
-          break;
-      }
-
-      // Verificar se não passou da data limite
-      if (parentAccount.recurrence_end_date && nextDate > new Date(parentAccount.recurrence_end_date)) {
-        break;
-      }
-
-      generatedAccounts.push({
-        ...parentAccount,
-        id: `${parentAccount.id}-future-${i}`,
-        due_date: nextDate.toISOString().split('T')[0],
-        description: `${parentAccount.description} (Parcela ${(parentAccount.recurrence_count || 0) + i + 1})`,
-        status: 'pending' as const,
-        payment_date: null,
-        recurrence_count: (parentAccount.recurrence_count || 0) + i,
-        next_due_date: null, // Parcelas futuras não precisam de next_due_date
-        company_id: parentAccount.company_id,
-        created_at: parentAccount.created_at,
-        updated_at: parentAccount.updated_at,
-        suppliers: parentAccount.suppliers
-      });
-    }
-
-    return generatedAccounts;
   };
 
   const fetchSuppliers = async () => {
@@ -203,10 +123,7 @@ const ContasPagar = () => {
       amount: "",
       due_date: "",
       notes: "",
-      is_recurring: false,
-      recurrence_frequency: "monthly",
-      recurrence_interval: 1,
-      recurrence_end_date: "",
+      document_number: "",
     });
     setEditingAccount(null);
   };
@@ -235,7 +152,6 @@ const ContasPagar = () => {
         ...formData,
         amount: parseFloat(formData.amount),
         company_id: profile.company_id,
-        next_due_date: formData.is_recurring ? formData.due_date : null,
       };
 
       let error;
@@ -310,10 +226,7 @@ const ContasPagar = () => {
       amount: account.amount.toString(),
       due_date: account.due_date,
       notes: account.notes || "",
-      is_recurring: account.is_recurring || false,
-      recurrence_frequency: account.recurrence_frequency || "monthly",
-      recurrence_interval: account.recurrence_interval || 1,
-      recurrence_end_date: account.recurrence_end_date || "",
+      document_number: account.document_number || "",
     });
     setIsDialogOpen(true);
   };
@@ -432,6 +345,16 @@ const ContasPagar = () => {
                 </div>
                 
                 <div className="space-y-2">
+                  <Label htmlFor="document_number">Número do Documento</Label>
+                  <Input
+                    id="document_number"
+                    placeholder="Número do documento"
+                    value={formData.document_number}
+                    onChange={(e) => setFormData({...formData, document_number: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-2 col-span-2">
                   <Label htmlFor="notes">Observações</Label>
                   <Input
                     id="notes"
@@ -439,75 +362,6 @@ const ContasPagar = () => {
                     value={formData.notes}
                     onChange={(e) => setFormData({...formData, notes: e.target.value})}
                   />
-                </div>
-
-                {/* Configuração de Recorrência */}
-                <div className="col-span-2 space-y-4 border-t pt-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="is_recurring"
-                      checked={formData.is_recurring}
-                      onCheckedChange={(checked) => setFormData({...formData, is_recurring: !!checked})}
-                    />
-                    <Label htmlFor="is_recurring" className="flex items-center gap-2">
-                      <Repeat className="h-4 w-4" />
-                      Configurar recorrência de pagamento
-                    </Label>
-                  </div>
-
-                  {formData.is_recurring && (
-                    <div className="grid grid-cols-3 gap-4 bg-muted/30 p-4 rounded-lg">
-                      <div className="space-y-2">
-                        <Label>Frequência</Label>
-                        <Select 
-                          value={formData.recurrence_frequency} 
-                          onValueChange={(value) => setFormData({...formData, recurrence_frequency: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="daily">Diariamente</SelectItem>
-                            <SelectItem value="weekly">Semanalmente</SelectItem>
-                            <SelectItem value="monthly">Mensalmente</SelectItem>
-                            <SelectItem value="quarterly">Trimestralmente</SelectItem>
-                            <SelectItem value="yearly">Anualmente</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Intervalo</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="12"
-                          value={formData.recurrence_interval}
-                          onChange={(e) => setFormData({...formData, recurrence_interval: parseInt(e.target.value) || 1})}
-                          placeholder="1"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {formData.recurrence_frequency === 'monthly' ? 'A cada X meses' : 
-                           formData.recurrence_frequency === 'weekly' ? 'A cada X semanas' :
-                           formData.recurrence_frequency === 'daily' ? 'A cada X dias' :
-                           formData.recurrence_frequency === 'quarterly' ? 'A cada X trimestres' :
-                           'A cada X anos'}
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Data limite (opcional)</Label>
-                        <Input
-                          type="date"
-                          value={formData.recurrence_end_date}
-                          onChange={(e) => setFormData({...formData, recurrence_end_date: e.target.value})}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Deixe vazio para recorrência indefinida
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
               <DialogFooter>
@@ -632,18 +486,17 @@ const ContasPagar = () => {
                 <TableHead>Valor</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Recorrência</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">Carregando...</TableCell>
+                  <TableCell colSpan={6} className="text-center">Carregando...</TableCell>
                 </TableRow>
               ) : filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center">Nenhuma conta encontrada</TableCell>
+                  <TableCell colSpan={6} className="text-center">Nenhuma conta encontrada</TableCell>
                 </TableRow>
               ) : (
                 filteredAccounts.map((account) => (
@@ -659,22 +512,6 @@ const ContasPagar = () => {
                       {format(new Date(account.due_date), 'dd/MM/yyyy', { locale: ptBR })}
                     </TableCell>
                     <TableCell>{getStatusBadge(account.status)}</TableCell>
-                    <TableCell>
-                      {account.is_recurring ? (
-                        <div className="flex items-center gap-1">
-                          <Repeat className="h-4 w-4 text-primary" />
-                          <span className="text-xs text-muted-foreground">
-                            {account.recurrence_frequency === 'monthly' ? 'Mensal' :
-                             account.recurrence_frequency === 'quarterly' ? 'Trimestral' :
-                             account.recurrence_frequency === 'yearly' ? 'Anual' :
-                             account.recurrence_frequency === 'weekly' ? 'Semanal' :
-                             'Diário'}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
                         {account.status === 'pending' && (

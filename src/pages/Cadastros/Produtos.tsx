@@ -20,7 +20,7 @@ interface Product {
   price: number;
   cost: number;
   stock_quantity: number;
-  unit_type: string;
+  unit: string;
   category_id: string;
   status: 'active' | 'inactive' | 'pending';
 }
@@ -160,7 +160,7 @@ const Produtos = () => {
         price: parseFloat(formData.price) || 0,
         cost: parseFloat(formData.cost) || 0,
         stock_quantity: parseInt(formData.stock_quantity) || 0,
-        unit_type: formData.unit_type,
+        unit: formData.unit_type,
         category_id: formData.category_id || null,
         company_id: profile.company_id,
       };
@@ -211,7 +211,7 @@ const Produtos = () => {
       price: product.price?.toString() || '',
       cost: product.cost?.toString() || '',
       stock_quantity: product.stock_quantity?.toString() || '',
-      unit_type: product.unit_type || 'un',
+      unit_type: product.unit || 'un',
       category_id: product.category_id || '',
     });
     setEditingProduct(product);
@@ -524,7 +524,7 @@ const Produtos = () => {
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <span>{product.stock_quantity || 0}</span>
-                        <span className="text-xs text-muted-foreground">{product.unit_type}</span>
+                        <span className="text-xs text-muted-foreground">{product.unit}</span>
                         {product.stock_quantity <= 10 && (
                           <Badge variant="destructive" className="text-xs">Baixo</Badge>
                         )}

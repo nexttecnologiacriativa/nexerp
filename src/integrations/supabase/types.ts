@@ -729,7 +729,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_company_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      user_belongs_to_company: {
+        Args: { target_company_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_type: "checking" | "savings" | "credit"

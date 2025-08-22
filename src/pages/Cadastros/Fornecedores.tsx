@@ -16,7 +16,7 @@ interface Supplier {
   name: string;
   email: string;
   document: string;
-  document_type: 'cpf' | 'cnpj' | 'passport';
+  document_type: 'cpf' | 'cnpj';
   city: string;
   state: string;
   status: 'active' | 'inactive' | 'pending';
@@ -35,7 +35,7 @@ const Fornecedores = () => {
     email: '',
     phone: '',
     document: '',
-    document_type: 'cnpj' as 'cpf' | 'cnpj' | 'passport',
+    document_type: 'cnpj' as 'cpf' | 'cnpj',
     address: '',
     city: '',
     state: '',
@@ -102,7 +102,7 @@ const Fornecedores = () => {
       email: '',
       phone: '',
       document: '',
-      document_type: 'cnpj' as 'cpf' | 'cnpj' | 'passport',
+      document_type: 'cnpj' as 'cpf' | 'cnpj',
       address: '',
       city: '',
       state: '',
@@ -279,7 +279,7 @@ const Fornecedores = () => {
                   <Label htmlFor="document_type">Tipo de Documento</Label>
                   <Select
                     value={formData.document_type}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, document_type: value as "cpf" | "cnpj" | "passport" }))}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, document_type: value as "cpf" | "cnpj" }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -287,7 +287,6 @@ const Fornecedores = () => {
                     <SelectContent>
                       <SelectItem value="cpf">CPF</SelectItem>
                       <SelectItem value="cnpj">CNPJ</SelectItem>
-                      <SelectItem value="passport">Passaporte</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

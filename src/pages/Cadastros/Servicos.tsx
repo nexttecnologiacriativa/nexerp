@@ -16,8 +16,8 @@ interface Service {
   id: string;
   name: string;
   description: string;
-  sku: string;
   price: number;
+  duration?: number;
   category_id: string;
   status: 'active' | 'inactive' | 'pending';
 }
@@ -39,7 +39,6 @@ const Servicos = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    sku: '',
     price: '',
     category_id: '',
   });
@@ -113,7 +112,6 @@ const Servicos = () => {
     setFormData({
       name: '',
       description: '',
-      sku: '',
       price: '',
       category_id: '',
     });
@@ -145,7 +143,7 @@ const Servicos = () => {
       const serviceData = {
         name: formData.name,
         description: formData.description,
-        sku: formData.sku,
+        
         price: parseFloat(formData.price) || 0,
         category_id: formData.category_id || null,
         company_id: profile.company_id,
@@ -193,7 +191,7 @@ const Servicos = () => {
     setFormData({
       name: service.name,
       description: service.description || '',
-      sku: service.sku || '',
+      
       price: service.price?.toString() || '',
       category_id: service.category_id || '',
     });
@@ -230,7 +228,7 @@ const Servicos = () => {
 
   const filteredServices = services.filter(service =>
     service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    
     service.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -276,27 +274,6 @@ const Servicos = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="sku">Código</Label>
-                  <Input
-                    id="sku"
-                    value={formData.sku}
-                    onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">Preço (R$)</Label>
                   <Input
@@ -436,7 +413,7 @@ const Servicos = () => {
                 {filteredServices.map((service) => (
                   <TableRow key={service.id}>
                     <TableCell className="font-medium">{service.name}</TableCell>
-                    <TableCell>{service.sku || '-'}</TableCell>
+                    <TableCell>-</TableCell>
                     <TableCell>{getCategoryName(service.category_id)}</TableCell>
                     <TableCell>
                       {service.price ? `R$ ${service.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
