@@ -120,6 +120,13 @@ const Dashboard = () => {
         .eq('company_id', profile.company_id)
         .eq('status', 'active');
 
+      // Fetch services count
+      const { count: servicesCount } = await supabase
+        .from('services')
+        .select('*', { count: 'exact', head: true })
+        .eq('company_id', profile.company_id)
+        .eq('status', 'active');
+
       // Fetch sales count
       const { count: salesCount } = await supabase
         .from('sales')
@@ -137,7 +144,7 @@ const Dashboard = () => {
         balance: totalBankBalance + totalReceivable - totalPayable,
         bankBalance: totalBankBalance,
         customers: customersCount || 0,
-        products: productsCount || 0,
+        products: (productsCount || 0) + (servicesCount || 0),
         sales: salesCount || 0,
       });
 
