@@ -275,28 +275,100 @@ const ContasPagar = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta conta?")) {
-      return;
-    }
-
     try {
-      const { error } = await supabase
+      // Buscar informações da conta
+      const { data: account, error: fetchError } = await supabase
         .from('accounts_payable')
-        .delete()
-        .eq('id', id);
+        .select('*')
+        .eq('id', id)
+        .single();
 
-      if (error) {
+      if (fetchError || !account) {
         toast({
-          title: "Erro ao excluir conta",
-          description: error.message,
+          title: "Erro",
+          description: "Não foi possível encontrar a conta",
           variant: "destructive",
         });
+        return;
+      }
+
+      let deleteRelated = false;
+      let confirmMessage = "Tem certeza que deseja excluir esta conta?";
+      
+      // Se for conta recorrente (pai) ou conta filha de recorrente
+      if (account.is_recurring || account.parent_transaction_id) {
+        const isParent = account.is_recurring && !account.parent_transaction_id;
+        const parentId = isParent ? account.id : account.parent_transaction_id;
+        
+        // Contar quantas contas relacionadas existem
+        const { data: relatedAccounts } = await supabase
+          .from('accounts_payable')
+          .select('id')
+          .or(
+            isParent 
+              ? `parent_transaction_id.eq.${parentId}`
+              : `id.eq.${parentId},parent_transaction_id.eq.${parentId}`
+          );
+
+        const relatedCount = relatedAccounts?.length || 0;
+        
+        if (relatedCount > 0) {
+          confirmMessage = isParent 
+            ? `Esta é uma conta recorrente com ${relatedCount} parcela(s) futura(s).\n\nDeseja excluir também todas as parcelas futuras?`
+            : `Esta conta faz parte de uma recorrência com ${relatedCount} parcela(s) relacionada(s).\n\nDeseja excluir também a conta principal e todas as outras parcelas?`;
+            
+          deleteRelated = confirm(confirmMessage);
+        }
+      }
+
+      if (!confirm("Tem certeza que deseja prosseguir com a exclusão?")) {
+        return;
+      }
+
+      // Executar exclusão
+      if (deleteRelated && (account.is_recurring || account.parent_transaction_id)) {
+        const isParent = account.is_recurring && !account.parent_transaction_id;
+        const parentId = isParent ? account.id : account.parent_transaction_id;
+        
+        // Deletar conta principal e todas as filhas
+        const { error } = await supabase
+          .from('accounts_payable')
+          .delete()
+          .or(`id.eq.${parentId},parent_transaction_id.eq.${parentId}`);
+
+        if (error) {
+          toast({
+            title: "Erro ao excluir contas",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Contas excluídas!",
+            description: "Conta recorrente e parcelas futuras removidas com sucesso",
+          });
+          fetchAccounts();
+        }
       } else {
-        toast({
-          title: "Conta excluída!",
-          description: "Conta removida com sucesso",
-        });
-        fetchAccounts();
+        // Deletar apenas a conta específica
+        const { error } = await supabase
+          .from('accounts_payable')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          toast({
+            title: "Erro ao excluir conta",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Conta excluída!",
+            description: "Conta removida com sucesso",
+          });
+          fetchAccounts();
+        }
       }
     } catch (error) {
       console.error('Error deleting account:', error);
