@@ -16,7 +16,10 @@ import {
   Edit,
   Search,
   Filter,
-  Download
+  Download,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +39,7 @@ interface Sale {
   payment_method?: string;
   status: string;
   created_at: string;
+  notes?: string;
 }
 
 interface BillingMetrics {
@@ -264,6 +268,58 @@ const Faturamento = () => {
     }
   };
 
+  const getSaleType = (sale: Sale) => {
+    if (sale.sale_number?.startsWith('ORC') || sale.notes?.toLowerCase().includes('orçamento')) {
+      return 'Orçamento';
+    }
+    // Verificar se é recorrente baseado nas notas ou outros campos
+    if (sale.notes?.toLowerCase().includes('recorrente') || sale.notes?.toLowerCase().includes('mensal')) {
+      return 'Recorrente';
+    }
+    return 'Avulsa';
+  };
+
+  const handleViewReceivables = async (sale: Sale) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Buscar contas a receber relacionadas a esta venda
+      const { data: receivables } = await supabase
+        .from('accounts_receivable')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .ilike('description', `%${sale.sale_number}%`)
+        .order('due_date', { ascending: true });
+
+      if (receivables && receivables.length > 0) {
+        // Navegar para contas a receber com filtro aplicado
+        navigate(`/financeiro/contas-receber?filter=${sale.sale_number}`);
+      } else {
+        toast({
+          title: "Nenhuma cobrança encontrada",
+          description: "Não há cobranças relacionadas a esta venda.",
+          variant: "default",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching receivables:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível buscar as cobranças.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -447,70 +503,78 @@ const Faturamento = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[100px]">Número</TableHead>
-                          <TableHead className="min-w-[100px]">Data</TableHead>
-                          <TableHead className="min-w-[150px]">Cliente</TableHead>
-                          <TableHead className="min-w-[120px]">Valor Bruto</TableHead>
-                          <TableHead className="min-w-[100px]">Desconto</TableHead>
-                          <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
-                          <TableHead className="min-w-[120px]">Pagamento</TableHead>
-                          <TableHead className="min-w-[100px]">Status</TableHead>
-                          <TableHead className="text-right min-w-[120px]">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredSales.map((sale) => (
-                          <TableRow key={sale.id}>
-                            <TableCell className="font-medium">
-                              {sale.sale_number}
-                            </TableCell>
-                            <TableCell>
-                              {format(new Date(sale.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
-                            </TableCell>
-                            <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
-                              {sale.customer_name}
-                            </TableCell>
-                            <TableCell>{formatCurrency(Number(sale.total_amount))}</TableCell>
-                            <TableCell>
-                              {sale.discount_amount > 0 ? formatCurrency(Number(sale.discount_amount)) : '-'}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {formatCurrency(Number(sale.net_amount))}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-xs">
-                                {sale.payment_method || 'Não informado'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={getStatusVariant(sale.status)} className="text-xs">
-                                {sale.status === 'active' ? 'Ativo' : 
-                                 sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end space-x-1">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleViewSale(sale.id)}
-                                  title="Visualizar venda"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleEditSale(sale.id)}
-                                  title="Editar venda"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
+                     <Table>
+                       <TableHeader>
+                         <TableRow>
+                           <TableHead className="min-w-[100px]">Número</TableHead>
+                           <TableHead className="min-w-[80px]">Tipo</TableHead>
+                           <TableHead className="min-w-[100px]">Data</TableHead>
+                           <TableHead className="min-w-[150px]">Cliente</TableHead>
+                           <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
+                           <TableHead className="min-w-[80px]">Status</TableHead>
+                           <TableHead className="min-w-[120px]">Tag</TableHead>
+                           <TableHead className="min-w-[120px]">Ações</TableHead>
+                         </TableRow>
+                       </TableHeader>
+                       <TableBody>
+                         {filteredSales.map((sale) => (
+                           <TableRow key={sale.id}>
+                             <TableCell className="font-medium">
+                               {sale.sale_number}
+                             </TableCell>
+                             <TableCell>
+                               <Badge variant="outline" className="text-xs">
+                                 {getSaleType(sale)}
+                               </Badge>
+                             </TableCell>
+                             <TableCell>
+                               {format(new Date(sale.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
+                             </TableCell>
+                             <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
+                               {sale.customer_name}
+                             </TableCell>
+                             <TableCell className="font-medium">
+                               {formatCurrency(Number(sale.net_amount))}
+                             </TableCell>
+                             <TableCell>
+                               <Badge variant={getStatusVariant(sale.status)} className="text-xs">
+                                 {sale.status === 'active' ? 'Ativo' : 
+                                  sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                               </Badge>
+                             </TableCell>
+                             <TableCell>
+                               <Badge variant="secondary" className="text-xs">
+                                 {sale.payment_method || 'Não informado'}
+                               </Badge>
+                             </TableCell>
+                             <TableCell className="text-right">
+                               <div className="flex justify-end space-x-1">
+                                 <Button 
+                                   variant="outline" 
+                                   size="sm"
+                                   onClick={() => handleViewReceivables(sale)}
+                                   title="Ver cobranças no contas a receber"
+                                 >
+                                   <RefreshCw className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="sm"
+                                   onClick={() => handleViewSale(sale.id)}
+                                   title="Visualizar venda"
+                                 >
+                                   <Eye className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="sm"
+                                   onClick={() => handleEditSale(sale.id)}
+                                   title="Editar venda"
+                                 >
+                                   <Edit className="h-4 w-4" />
+                                 </Button>
+                               </div>
+                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

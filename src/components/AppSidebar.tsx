@@ -63,10 +63,6 @@ const menuItems = [{
     icon: CreditCard
   }]
 }, {
-  title: "Nota Fiscal",
-  url: "/nota-fiscal",
-  icon: FileText
-}, {
   title: "Relatórios",
   url: "/relatorios",
   icon: BarChart3
@@ -80,10 +76,6 @@ const systemItems = [{
   title: "Usuários",
   url: "/usuarios",
   icon: UserCog
-}, {
-  title: "Planos",
-  url: "/planos",
-  icon: Building2
 }];
 
 export function AppSidebar() {
