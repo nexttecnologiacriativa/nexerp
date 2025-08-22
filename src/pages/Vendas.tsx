@@ -53,6 +53,13 @@ interface Category {
   color?: string;
 }
 
+interface Subcategory {
+  id: string;
+  category_id: string;
+  name: string;
+  color?: string;
+}
+
 interface CostCenter {
   id: string;
   name: string;
@@ -76,6 +83,7 @@ const Vendas = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [showInstallments, setShowInstallments] = useState(false);
@@ -97,6 +105,7 @@ const Vendas = () => {
     client_id: "",
     sale_date: new Date().toISOString().split('T')[0],
     category_id: "",
+    subcategory_id: "",
     cost_center_id: "",
     salesperson: "",
     status: "approved",
@@ -163,10 +172,11 @@ const Vendas = () => {
 
       setUserProfile(profileData);
 
-      const [customersData, servicesData, categoriesData, costCentersData, usersData, salesData, bankAccountsData] = await Promise.all([
+      const [customersData, servicesData, categoriesData, subcategoriesData, costCentersData, usersData, salesData, bankAccountsData] = await Promise.all([
         supabase.from('customers').select('id, name, email, phone').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('services').select('id, name, price').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('categories').select('id, name, color').eq('company_id', profileData.company_id).eq('status', 'active'),
+        supabase.from('subcategories').select('id, category_id, name, color').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('cost_centers').select('id, name').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('profiles').select('id, full_name').eq('company_id', profileData.company_id),
         supabase.from('sales').select('sale_number').eq('company_id', profileData.company_id).order('created_at', { ascending: false }).limit(1),
@@ -176,6 +186,7 @@ const Vendas = () => {
       if (customersData.data) setCustomers(customersData.data);
       if (servicesData.data) setServices(servicesData.data);
       if (categoriesData.data) setCategories(categoriesData.data);
+      if (subcategoriesData.data) setSubcategories(subcategoriesData.data);
       if (costCentersData.data) setCostCenters(costCentersData.data);
       if (usersData.data) setUsers(usersData.data);
       if (bankAccountsData.data) setBankAccounts(bankAccountsData.data);
@@ -475,11 +486,16 @@ const Vendas = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Categoria financeira */}
             <div>
               <Label htmlFor="category">Categoria financeira</Label>
-              <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value})}>
+              <Select 
+                value={formData.category_id} 
+                onValueChange={(value) => {
+                  setFormData({...formData, category_id: value, subcategory_id: ''});
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
@@ -495,6 +511,35 @@ const Vendas = () => {
                       </div>
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Subcategoria */}
+            <div>
+              <Label htmlFor="subcategory">Subcategoria</Label>
+              <Select 
+                value={formData.subcategory_id} 
+                onValueChange={(value) => setFormData({...formData, subcategory_id: value})}
+                disabled={!formData.category_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma subcategoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subcategories
+                    .filter(sub => sub.category_id === formData.category_id)
+                    .map(subcategory => (
+                      <SelectItem key={subcategory.id} value={subcategory.id}>
+                        <div className="flex items-center space-x-2">
+                          <div 
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: subcategory.color || '#6B7280' }}
+                          />
+                          <span>{subcategory.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -561,29 +606,7 @@ const Vendas = () => {
                 </Select>
               </div>
             </div>
-            
-            {/* Categoria */}
-            <div>
-              <Label htmlFor="category_id">Categoria</Label>
-              <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center space-x-2">
-                        <div 
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: category.color || '#3B82F6' }}
-                        />
-                        <span>{category.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <div></div>
           </div>
         </CardContent>
       </Card>
