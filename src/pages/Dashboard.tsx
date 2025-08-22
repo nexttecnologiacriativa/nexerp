@@ -279,149 +279,199 @@ const Dashboard = () => {
 
       {/* Main Financial Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
-        <Card>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Contas a Receber</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <CardTitle className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">Contas a Receber</CardTitle>
+            <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-800 dark:text-green-200 break-all">
               {formatCurrency(financialData.receivable)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-green-600 dark:text-green-400">
               Valores pendentes de recebimento
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <TrendingUp className="h-16 w-16" />
+          </div>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Contas a Pagar</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <CardTitle className="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300">Contas a Pagar</CardTitle>
+            <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-red-600 break-all">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-red-800 dark:text-red-200 break-all">
               {formatCurrency(financialData.payable)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-red-600 dark:text-red-400">
               Valores pendentes de pagamento
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <TrendingDown className="h-16 w-16" />
+          </div>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Saldo Bancário</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <CardTitle className="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300">Saldo Bancário</CardTitle>
+            <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 break-all">
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-800 dark:text-blue-200 break-all">
               {formatCurrency(financialData.bankBalance)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-blue-600 dark:text-blue-400">
               Saldo atual nas contas bancárias
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <DollarSign className="h-16 w-16" />
+          </div>
         </Card>
 
-        <Card>
+        <Card className={`relative overflow-hidden border-2 ${
+          financialData.balance >= 0 
+            ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-300 dark:border-emerald-700' 
+            : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-300 dark:border-orange-700'
+        }`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Saldo Projetado</CardTitle>
-            <BalanceIcon className={`h-4 w-4 ${balanceStatus.color} flex-shrink-0`} />
+            <CardTitle className={`text-xs sm:text-sm font-medium ${
+              financialData.balance >= 0 
+                ? 'text-emerald-700 dark:text-emerald-300' 
+                : 'text-orange-700 dark:text-orange-300'
+            }`}>Saldo Projetado</CardTitle>
+            <BalanceIcon className={`h-5 w-5 ${
+              financialData.balance >= 0 
+                ? 'text-emerald-600 dark:text-emerald-400' 
+                : 'text-orange-600 dark:text-orange-400'
+            } flex-shrink-0`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-lg sm:text-xl lg:text-2xl font-bold ${balanceStatus.color} break-all`}>
+            <div className={`text-lg sm:text-xl lg:text-2xl font-bold ${
+              financialData.balance >= 0 
+                ? 'text-emerald-800 dark:text-emerald-200' 
+                : 'text-orange-800 dark:text-orange-200'
+            } break-all`}>
               {formatCurrency(financialData.balance)}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className={`text-xs ${
+              financialData.balance >= 0 
+                ? 'text-emerald-600 dark:text-emerald-400' 
+                : 'text-orange-600 dark:text-orange-400'
+            }`}>
               Bancário + Receber - Pagar
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <BalanceIcon className="h-16 w-16" />
+          </div>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fluxo Mensal</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Fluxo Mensal</CardTitle>
+            <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">
               {monthlyData.length > 0 
                 ? formatCurrency(monthlyData[monthlyData.length - 1].balance)
                 : formatCurrency(financialData.balance)
               }
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-purple-600 dark:text-purple-400">
               {monthlyData.length > 0 ? 'Resultado do último mês' : 'Saldo atual projetado'}
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <Calendar className="h-16 w-16" />
+          </div>
         </Card>
       </div>
 
       {/* Business Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <Card>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 border-indigo-200 dark:border-indigo-800 hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Total de Clientes</CardTitle>
+            <Users className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{financialData.customers}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-indigo-800 dark:text-indigo-200">{financialData.customers}</div>
+            <p className="text-xs text-indigo-600 dark:text-indigo-400">
               Clientes cadastrados ativos
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <Users className="h-16 w-16" />
+          </div>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-900/20 dark:to-cyan-800/20 border-cyan-200 dark:border-cyan-800 hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Produtos/Serviços</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-cyan-700 dark:text-cyan-300">Produtos/Serviços</CardTitle>
+            <Package className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{financialData.products}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-cyan-800 dark:text-cyan-200">{financialData.products}</div>
+            <p className="text-xs text-cyan-600 dark:text-cyan-400">
               Itens no catálogo ativo
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <Package className="h-16 w-16" />
+          </div>
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-amber-200 dark:border-amber-800 hover-scale">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas Realizadas</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-300">Vendas Realizadas</CardTitle>
+            <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{financialData.sales}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">{financialData.sales}</div>
+            <p className="text-xs text-amber-600 dark:text-amber-400">
               Total de vendas registradas
             </p>
           </CardContent>
+          <div className="absolute -bottom-2 -right-2 opacity-10">
+            <FileText className="h-16 w-16" />
+          </div>
         </Card>
       </div>
 
       {/* Monthly Trends */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tendência dos Últimos 6 Meses</CardTitle>
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+          <CardTitle className="text-lg font-semibold">Tendência dos Últimos 6 Meses</CardTitle>
           <CardDescription>
             Análise do fluxo de receitas e despesas mensais
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-4">
             {monthlyData.map((month, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+              <div 
+                key={index} 
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors animate-fade-in"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 text-sm font-medium">{month.month}</div>
+                  <div className="w-12 text-sm font-medium bg-primary/10 px-2 py-1 rounded">{month.month}</div>
                   <div className="flex items-center space-x-6">
-                    <div className="text-sm">
+                    <div className="text-sm flex items-center">
+                      <TrendingUp className="h-4 w-4 text-green-600 mr-1" />
                       <span className="text-green-600 font-medium">
                         +{formatCurrency(month.income)}
                       </span>
                       <span className="text-muted-foreground ml-1">receitas</span>
                     </div>
-                    <div className="text-sm">
+                    <div className="text-sm flex items-center">
+                      <TrendingDown className="h-4 w-4 text-red-600 mr-1" />
                       <span className="text-red-600 font-medium">
                         -{formatCurrency(month.expenses)}
                       </span>
@@ -430,13 +480,16 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Badge variant={month.balance >= 0 ? "default" : "destructive"}>
+                  <Badge 
+                    variant={month.balance >= 0 ? "default" : "destructive"}
+                    className="font-semibold px-3 py-1"
+                  >
                     {formatCurrency(month.balance)}
                   </Badge>
                   {month.balance >= 0 ? (
-                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <TrendingUp className="h-5 w-5 text-green-600" />
                   ) : (
-                    <TrendingDown className="h-4 w-4 text-red-600" />
+                    <TrendingDown className="h-5 w-5 text-red-600" />
                   )}
                 </div>
               </div>

@@ -634,100 +634,144 @@ const Relatorios = () => {
           <TabsTrigger value="centers">Centros de Custos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="financial" className="space-y-4">
+        <TabsContent value="financial" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <Card>
+            <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Receita Recebida</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Receita Recebida</CardTitle>
+                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-green-800 dark:text-green-200">
                   R$ {reportData?.financial.revenue.reduce((sum, item) => sum + item.receitasPagas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs text-green-600 dark:text-green-400 mt-1">
                   <TrendingUp className="mr-1 h-3 w-3" />
                   apenas valores recebidos
                 </div>
               </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <TrendingUp className="h-16 w-16" />
+              </div>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Despesas Pagas</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Despesas Pagas</CardTitle>
+                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-red-800 dark:text-red-200">
                   R$ {reportData?.financial.expenses.reduce((sum, item) => sum + item.despesasPagas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs text-red-600 dark:text-red-400 mt-1">
                   <TrendingDown className="mr-1 h-3 w-3" />
                   apenas valores pagos
                 </div>
               </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <TrendingDown className="h-16 w-16" />
+              </div>
             </Card>
 
-            <Card>
+            <Card className={`relative overflow-hidden border-2 ${
+              reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
+                ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-300 dark:border-emerald-700'
+                : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-300 dark:border-orange-700'
+            }`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lucro Líquido Real</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className={`text-sm font-medium ${
+                  reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-orange-700 dark:text-orange-300'
+                }`}>Lucro Líquido Real</CardTitle>
+                <DollarSign className={`h-5 w-5 ${
+                  reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-orange-600 dark:text-orange-400'
+                }`} />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className={`text-2xl font-bold ${
+                  reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
+                    ? 'text-emerald-800 dark:text-emerald-200'
+                    : 'text-orange-800 dark:text-orange-200'
+                }`}>
+                  {reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0 ? '+' : ''}
                   R$ {reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendingUp className="mr-1 h-3 w-3" />
+                <div className={`flex items-center text-xs mt-1 ${
+                  reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-orange-600 dark:text-orange-400'
+                }`}>
+                  {reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0 ? (
+                    <TrendingUp className="mr-1 h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="mr-1 h-3 w-3" />
+                  )}
                   receitas - despesas pagas
                 </div>
               </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <DollarSign className="h-16 w-16" />
+              </div>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Saldo em Bancos</CardTitle>
-                <Landmark className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Saldo em Bancos</CardTitle>
+                <Landmark className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                   R$ {reportData?.banks.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs text-blue-600 dark:text-blue-400 mt-1">
                   <PiggyBank className="mr-1 h-3 w-3" />
                   total em {reportData?.banks.accounts.length} conta(s)
                 </div>
               </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <Landmark className="h-16 w-16" />
+              </div>
             </Card>
 
-            <Card>
+            <Card className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Margem de Lucro</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Margem de Lucro</CardTitle>
+                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">
                   {reportData?.financial.revenue.reduce((sum, item) => sum + item.receitasPagas, 0) > 0 
                     ? ((reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) / reportData?.financial.revenue.reduce((sum, item) => sum + item.receitasPagas, 0)) * 100).toFixed(1)
                     : '0.0'
                   }%
                 </div>
-                <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs text-purple-600 dark:text-purple-400 mt-1">
                   <TrendingUp className="mr-1 h-3 w-3" />
                   baseado em valores reais
                 </div>
               </CardContent>
+              <div className="absolute -bottom-2 -right-2 opacity-10">
+                <TrendingUp className="h-16 w-16" />
+              </div>
             </Card>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Receitas vs Despesas</CardTitle>
-                <div className="flex space-x-2">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Receitas vs Despesas</CardTitle>
+                    <CardDescription>Evolução mensal dos valores recebidos e pagos</CardDescription>
+                  </div>
                   <Button 
                     size="sm" 
                     variant="outline"
+                    className="hover-scale"
                     onClick={() => exportToCSV(reportData?.financial.revenue || [], 'receitas-despesas')}
                   >
                     <Download className="mr-2 h-4 w-4" />
@@ -735,30 +779,62 @@ const Relatorios = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={reportData?.financial.revenue || []}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={reportData?.financial.revenue || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                    />
                     <Tooltip 
-                      formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, '']}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }}
+                      formatter={(value, name) => [
+                        `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+                        name === 'receitasPagas' ? 'Receitas Recebidas' : 'Despesas Pagas'
+                      ]}
                     />
                     <Legend />
-                    <Bar dataKey="receitasPagas" fill="#8884d8" name="Receitas Recebidas" />
-                    <Bar dataKey="despesasPagas" fill="#82ca9d" name="Despesas Pagas" />
+                    <Bar 
+                      dataKey="receitasPagas" 
+                      fill="hsl(var(--primary))" 
+                      name="Receitas Recebidas"
+                      radius={[2, 2, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="despesasPagas" 
+                      fill="hsl(var(--destructive))" 
+                      name="Despesas Pagas"
+                      radius={[2, 2, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Fluxo de Caixa</CardTitle>
-                <div className="flex space-x-2">
+            <Card className="shadow-lg">
+              <CardHeader className="bg-gradient-to-r from-secondary/5 to-secondary/10 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Fluxo de Caixa</CardTitle>
+                    <CardDescription>Evolução do lucro líquido mensal</CardDescription>
+                  </div>
                   <Button 
                     size="sm" 
                     variant="outline"
+                    className="hover-scale"
                     onClick={() => exportToCSV(reportData?.financial.cashFlow || [], 'fluxo-caixa')}
                   >
                     <Download className="mr-2 h-4 w-4" />
@@ -766,16 +842,38 @@ const Relatorios = () => {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={reportData?.financial.cashFlow || []}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, '']}
+              <CardContent className="pt-6">
+                <ResponsiveContainer width="100%" height={350}>
+                  <AreaChart data={reportData?.financial.cashFlow || []} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis 
+                      dataKey="month" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                     />
-                    <Area type="monotone" dataKey="lucro" stroke="#8884d8" fill="#8884d8" name="Lucro" />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }}
+                      formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Lucro']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="lucro" 
+                      stroke="hsl(var(--primary))" 
+                      fill="hsl(var(--primary))" 
+                      fillOpacity={0.3}
+                      name="Lucro" 
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
