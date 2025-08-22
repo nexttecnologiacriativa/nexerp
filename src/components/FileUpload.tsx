@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, X, File, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,14 +15,38 @@ interface FileUploadProps {
 export function FileUpload({ onFileUploaded, currentFile, companyId, accountId }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [userCompanyId, setUserCompanyId] = useState<string>('');
+
+  useEffect(() => {
+    const fetchUserCompanyId = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('company_id')
+            .eq('id', user.id)
+            .single();
+          
+          if (profile?.company_id) {
+            setUserCompanyId(profile.company_id);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar company_id:', error);
+      }
+    };
+
+    fetchUserCompanyId();
+  }, []);
 
   const uploadFile = async (file: File) => {
-    if (!file) return;
+    if (!file || !userCompanyId) return;
 
     setUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${companyId}/${accountId || Date.now()}-${Math.random()}.${fileExt}`;
+      const fileName = `${userCompanyId}/${accountId || Date.now()}-${Math.random()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('receipts')

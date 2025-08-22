@@ -552,7 +552,7 @@ const ContasReceber = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
                 <div className="space-y-2">
                   <Label htmlFor="customer_id">Cliente *</Label>
                   <Select value={formData.customer_id} onValueChange={(value) => setFormData({...formData, customer_id: value})}>
@@ -774,7 +774,7 @@ const ContasReceber = () => {
                   )}
                 </div>
                 
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="notes">Observações</Label>
                   <Input
                     id="notes"
@@ -784,7 +784,7 @@ const ContasReceber = () => {
                   />
                 </div>
                 
-                <div className="col-span-2">
+                <div className="md:col-span-2">
                   <FileUpload
                     onFileUploaded={(filePath) => setFormData({...formData, receipt_file_path: filePath})}
                     currentFile={formData.receipt_file_path}
