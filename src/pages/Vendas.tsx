@@ -44,7 +44,6 @@ interface Service {
   id: string;
   name: string;
   price: number;
-  sku?: string;
 }
 
 interface Category {
@@ -57,6 +56,17 @@ interface CostCenter {
   name: string;
 }
 
+interface User {
+  id: string;
+  full_name: string;
+}
+
+interface Installment {
+  number: number;
+  amount: number;
+  due_date: string;
+}
+
 const Vendas = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -65,6 +75,9 @@ const Vendas = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [showInstallments, setShowInstallments] = useState(false);
+  const [installments, setInstallments] = useState<Installment[]>([]);
   
   const [saleType, setSaleType] = useState("budget");
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
@@ -78,7 +91,7 @@ const Vendas = () => {
   });
 
   const [formData, setFormData] = useState({
-    sale_number: `VND${Date.now().toString().slice(-6)}`,
+    sale_number: "",
     client_id: "",
     sale_date: new Date().toISOString().split('T')[0],
     category_id: "",
@@ -92,6 +105,11 @@ const Vendas = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Generate installments when payment info changes
+  useEffect(() => {
+    generateInstallments();
+  }, [paymentInfo.installments, paymentInfo.due_date, saleItems]);
 
   const loadData = async () => {
     try {
@@ -116,21 +134,68 @@ const Vendas = () => {
 
       setUserProfile(profileData);
 
-      const [customersData, servicesData, categoriesData, costCentersData] = await Promise.all([
-        supabase.from('customers').select('id, name, email, phone').eq('status', 'active'),
-        supabase.from('services').select('id, name, price').eq('status', 'active'),
-        supabase.from('categories').select('id, name').eq('status', 'active'),
-        supabase.from('cost_centers').select('id, name').eq('status', 'active')
+      const [customersData, servicesData, categoriesData, costCentersData, usersData, salesData] = await Promise.all([
+        supabase.from('customers').select('id, name, email, phone').eq('company_id', profileData.company_id).eq('status', 'active'),
+        supabase.from('services').select('id, name, price').eq('company_id', profileData.company_id).eq('status', 'active'),
+        supabase.from('categories').select('id, name').eq('company_id', profileData.company_id).eq('status', 'active'),
+        supabase.from('cost_centers').select('id, name').eq('company_id', profileData.company_id).eq('status', 'active'),
+        supabase.from('profiles').select('id, full_name').eq('company_id', profileData.company_id),
+        supabase.from('sales').select('sale_number').eq('company_id', profileData.company_id).order('created_at', { ascending: false }).limit(1)
       ]);
 
       if (customersData.data) setCustomers(customersData.data);
       if (servicesData.data) setServices(servicesData.data);
       if (categoriesData.data) setCategories(categoriesData.data);
       if (costCentersData.data) setCostCenters(costCentersData.data);
+      if (usersData.data) setUsers(usersData.data);
+
+      // Generate next sale number
+      const nextSaleNumber = generateNextSaleNumber(salesData.data?.[0]?.sale_number);
+      setFormData(prev => ({ ...prev, sale_number: nextSaleNumber }));
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Erro ao carregar dados');
     }
+  };
+
+  const generateNextSaleNumber = (lastSaleNumber?: string) => {
+    const today = new Date();
+    const year = today.getFullYear().toString().slice(-2);
+    const month = (today.getMonth() + 1).toString().padStart(2, '0');
+    
+    if (!lastSaleNumber) {
+      return `VND${year}${month}0001`;
+    }
+    
+    // Extract number from last sale
+    const lastNumber = parseInt(lastSaleNumber.slice(-4)) || 0;
+    const nextNumber = (lastNumber + 1).toString().padStart(4, '0');
+    
+    return `VND${year}${month}${nextNumber}`;
+  };
+
+  const generateInstallments = () => {
+    const totalAmount = getTotalAmount();
+    const installmentAmount = totalAmount / paymentInfo.installments;
+    
+    const newInstallments: Installment[] = [];
+    
+    for (let i = 1; i <= paymentInfo.installments; i++) {
+      const dueDate = calculateInstallmentDate(i);
+      newInstallments.push({
+        number: i,
+        amount: installmentAmount,
+        due_date: dueDate
+      });
+    }
+    
+    setInstallments(newInstallments);
+  };
+
+  const updateInstallment = (index: number, field: keyof Installment, value: any) => {
+    setInstallments(prev => prev.map((installment, i) => 
+      i === index ? { ...installment, [field]: value } : installment
+    ));
   };
 
   const addSaleItem = () => {
@@ -233,7 +298,7 @@ const Vendas = () => {
       const saleItemsData = saleItems.map(item => ({
         sale_id: saleData.id,
         service_id: item.service_id,
-        description: item.description || 'Serviço',
+        description: item.description || item.service_name || 'Serviço',
         quantity: item.quantity,
         unit_price: item.unit_price,
         total_price: item.total
@@ -245,39 +310,37 @@ const Vendas = () => {
 
       if (itemsError) throw itemsError;
 
-      // Create accounts receivable entries based on installments
-      const installmentAmount = totalAmount / paymentInfo.installments;
-      const receivableEntries = [];
-
-      for (let i = 1; i <= paymentInfo.installments; i++) {
-        const description = paymentInfo.installments === 1 
-          ? `Venda ${formData.sale_number}` 
-          : `Venda ${formData.sale_number} - Parcela ${i}/${paymentInfo.installments}`;
-
-        receivableEntries.push({
+      // Create accounts receivable entries only for sales (not budgets)
+      if (saleType !== 'budget') {
+        const receivableEntries = installments.map((installment, index) => ({
           company_id: userProfile.company_id,
           customer_id: formData.client_id,
-          description,
-          amount: installmentAmount,
-          due_date: calculateInstallmentDate(i),
-          status: 'pending',
+          description: installments.length === 1 
+            ? `${saleType === 'sale' ? 'Venda' : 'Venda Recorrente'} ${formData.sale_number}` 
+            : `${saleType === 'sale' ? 'Venda' : 'Venda Recorrente'} ${formData.sale_number} - Parcela ${installment.number}/${installments.length}`,
+          amount: installment.amount,
+          due_date: installment.due_date,
+          status: 'pending' as const,
           payment_method: paymentInfo.payment_method as any,
-          category_id: formData.category_id || null,
-          cost_center_id: formData.cost_center_id || null,
-          notes: `Gerado automaticamente da venda ${formData.sale_number}`
-        });
+          notes: `Gerado automaticamente da ${saleType === 'sale' ? 'venda' : 'venda recorrente'} ${formData.sale_number}`
+        }));
+
+        const { error: receivableError } = await supabase
+          .from('accounts_receivable')
+          .insert(receivableEntries);
+
+        if (receivableError) throw receivableError;
       }
 
-      const { error: receivableError } = await supabase
-        .from('accounts_receivable')
-        .insert(receivableEntries);
-
-      if (receivableError) throw receivableError;
-
-      toast.success("Venda criada com sucesso!");
+      const saleTypeText = saleType === 'budget' ? 'Orçamento' : saleType === 'sale' ? 'Venda' : 'Venda Recorrente';
+      toast.success(`${saleTypeText} ${saleType === 'budget' ? 'criado' : 'criada'} com sucesso!`);
       
-      // Redirect to sales list or dashboard
-      navigate('/dashboard');
+      // Redirect based on sale type
+      if (saleType === 'budget') {
+        navigate('/faturamento');
+      } else {
+        navigate('/dashboard');
+      }
       
     } catch (error) {
       console.error('Error saving sale:', error);
@@ -313,7 +376,7 @@ const Vendas = () => {
             <Tabs value={saleType} onValueChange={setSaleType} className="mt-2">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="budget">Orçamento</TabsTrigger>
-                <TabsTrigger value="one-time">Venda avulsa</TabsTrigger>
+                <TabsTrigger value="sale">Venda avulsa</TabsTrigger>
                 <TabsTrigger value="recurring">Venda recorrente (contrato)</TabsTrigger>
               </TabsList>
             </Tabs>
@@ -422,7 +485,11 @@ const Vendas = () => {
                   <SelectValue placeholder="Selecione um vendedor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user1">Usuário do Sistema</SelectItem>
+                  {users.map(user => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.full_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -467,9 +534,9 @@ const Vendas = () => {
                             <SelectValue placeholder="Selecione um serviço" />
                           </SelectTrigger>
                           <SelectContent>
-                            {services.map(service => (
-                              <SelectItem key={service.id} value={service.id}>
-                                {service.name} {service.sku && `(${service.sku})`}
+                           {services.map(service => (
+                             <SelectItem key={service.id} value={service.id}>
+                               {service.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -641,23 +708,89 @@ const Vendas = () => {
                   type="date"
                   value={paymentInfo.due_date}
                   onChange={(e) => setPaymentInfo({...paymentInfo, due_date: e.target.value})}
+                  className="flex-1"
                 />
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-1" />
-                  Editar parcelas
-                </Button>
+                {paymentInfo.installments > 1 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowInstallments(!showInstallments)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    {showInstallments ? 'Ocultar parcelas' : 'Editar parcelas'}
+                  </Button>
+                )}
               </div>
             </div>
+
+            {/* Lista de parcelas editável */}
+            {showInstallments && paymentInfo.installments > 1 && (
+              <div className="col-span-full">
+                <Label>Parcelas</Label>
+                <div className="mt-2 space-y-2">
+                  {installments.map((installment, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 border rounded-lg">
+                      <span className="text-sm font-medium w-16">
+                        {installment.number}/{installments.length}
+                      </span>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          value={installment.amount}
+                          onChange={(e) => updateInstallment(index, 'amount', parseFloat(e.target.value) || 0)}
+                          placeholder="Valor"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          type="date"
+                          value={installment.due_date}
+                          onChange={(e) => updateInstallment(index, 'due_date', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Resumo */}
+      {/* Resumo e Ações */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex justify-between items-center text-lg font-semibold">
-            <span>Total da Venda:</span>
-            <span>R$ {getTotalAmount().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+          <div className="flex justify-between items-center mb-6">
+            <div className="text-lg font-semibold">
+              <div className="flex items-center gap-4">
+                <span>Total:</span>
+                <span className="text-2xl text-primary">
+                  R$ {getTotalAmount().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              {paymentInfo.installments > 1 && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  {paymentInfo.installments}x de R$ {(getTotalAmount() / paymentInfo.installments).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex gap-4 justify-end">
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSave} 
+              disabled={loading || saleItems.length === 0 || !formData.client_id}
+              className="min-w-[120px]"
+            >
+              {loading ? "Salvando..." : `Salvar ${
+                saleType === 'budget' ? 'Orçamento' : 
+                saleType === 'sale' ? 'Venda' : 'Venda Recorrente'
+              }`}
+            </Button>
           </div>
         </CardContent>
       </Card>
