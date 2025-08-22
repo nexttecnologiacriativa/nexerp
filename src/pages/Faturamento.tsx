@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 interface Sale {
   id: string;
@@ -49,6 +50,7 @@ interface BillingMetrics {
 }
 
 const Faturamento = () => {
+  const navigate = useNavigate();
   const [sales, setSales] = useState<Sale[]>([]);
   const [budgets, setBudgets] = useState<Sale[]>([]);
   const [activeTab, setActiveTab] = useState('sales');
@@ -145,7 +147,24 @@ const Faturamento = () => {
 
       // Calculate metrics for sales only (not budgets)
       const totalSales = actualSales.length;
-      const totalRevenue = actualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
+      
+      // Calcular receita total apenas de contratos pagos (cruzar com contas a receber pagas)
+      let paidRevenue = 0;
+      for (const sale of actualSales) {
+        // Verificar se há conta a receber paga para esta venda
+        const { data: paidReceivable } = await supabase
+          .from('accounts_receivable')
+          .select('amount')
+          .eq('company_id', companyId)
+          .eq('status', 'paid')
+          .ilike('description', `%${sale.sale_number}%`);
+        
+        if (paidReceivable && paidReceivable.length > 0) {
+          paidRevenue += Number(sale.net_amount);
+        }
+      }
+      
+      const totalRevenue = paidRevenue; // Apenas vendas com pagamento confirmado
       const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 
       // Calculate budget metrics
@@ -224,6 +243,14 @@ const Faturamento = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const handleViewSale = (saleId: string) => {
+    navigate(`/vendas?view=${saleId}`);
+  };
+
+  const handleEditSale = (saleId: string) => {
+    navigate(`/vendas?edit=${saleId}`);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
@@ -293,14 +320,14 @@ const Faturamento = () => {
             <CardTitle className="text-xs sm:text-sm font-medium">Receita Total</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
-              {formatCurrency(metrics.totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              apenas vendas efetivas
-            </p>
-          </CardContent>
+            <CardContent>
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
+                {formatCurrency(metrics.totalRevenue)}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                apenas contratos pagos
+              </p>
+            </CardContent>
         </Card>
 
         <Card>
@@ -320,7 +347,7 @@ const Faturamento = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">A Receber</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Em Negociação</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
@@ -328,7 +355,7 @@ const Faturamento = () => {
               {formatCurrency(metrics.pendingReceivables)}
             </div>
             <p className="text-xs text-muted-foreground">
-              valores pendentes
+              valores em negociação
             </p>
           </CardContent>
         </Card>
@@ -466,10 +493,20 @@ const Faturamento = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end space-x-1">
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleViewSale(sale.id)}
+                                  title="Visualizar venda"
+                                >
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button variant="outline" size="sm">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditSale(sale.id)}
+                                  title="Editar venda"
+                                >
                                   <Edit className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -612,16 +649,26 @@ const Faturamento = () => {
                                  budget.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end space-x-1">
-                                <Button variant="outline" size="sm">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button variant="outline" size="sm">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
+                             <TableCell className="text-right">
+                               <div className="flex justify-end space-x-1">
+                                 <Button 
+                                   variant="outline" 
+                                   size="sm"
+                                   onClick={() => handleViewSale(budget.id)}
+                                   title="Visualizar orçamento"
+                                 >
+                                   <Eye className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="sm"
+                                   onClick={() => handleEditSale(budget.id)}
+                                   title="Editar orçamento"
+                                 >
+                                   <Edit className="h-4 w-4" />
+                                 </Button>
+                               </div>
+                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
