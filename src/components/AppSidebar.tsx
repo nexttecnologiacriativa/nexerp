@@ -81,7 +81,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["Financeiro", "Cadastros"]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({
     isActive

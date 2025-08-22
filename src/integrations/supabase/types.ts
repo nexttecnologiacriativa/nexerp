@@ -32,6 +32,7 @@ export type Database = {
           parent_transaction_id: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          receipt_file_path: string | null
           recurrence_count: number | null
           recurrence_end_date: string | null
           recurrence_frequency: string | null
@@ -58,6 +59,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
@@ -84,6 +86,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
@@ -156,6 +159,7 @@ export type Database = {
           parent_transaction_id: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          receipt_file_path: string | null
           recurrence_count: number | null
           recurrence_end_date: string | null
           recurrence_frequency: string | null
@@ -181,6 +185,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null
@@ -206,6 +211,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
           recurrence_frequency?: string | null

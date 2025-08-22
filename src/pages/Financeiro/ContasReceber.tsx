@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
+import { FileUpload } from "@/components/FileUpload";
 
 interface AccountReceivable {
   id: string;
@@ -55,6 +56,7 @@ interface AccountReceivable {
     name: string;
     color: string;
   };
+  receipt_file_path?: string | null;
 }
 
 interface Customer {
@@ -93,6 +95,7 @@ const ContasReceber = () => {
     bank_account_id: "",
     category_id: "",
     subcategory_id: "",
+    receipt_file_path: "",
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -235,6 +238,7 @@ const ContasReceber = () => {
       bank_account_id: "",
       category_id: "",
       subcategory_id: "",
+      receipt_file_path: "",
     });
     setEditingAccount(null);
   };
@@ -277,6 +281,7 @@ const ContasReceber = () => {
         next_due_date: formData.is_recurring ? formData.due_date : null,
         recurrence_count: 0,
         parent_transaction_id: null,
+        receipt_file_path: formData.receipt_file_path || null,
       };
 
       let error;
@@ -472,6 +477,7 @@ const ContasReceber = () => {
       bank_account_id: account.bank_account_id || "",
       category_id: account.category_id || "",
       subcategory_id: account.subcategory_id || "",
+      receipt_file_path: account.receipt_file_path || "",
     });
     setIsDialogOpen(true);
   };
@@ -775,6 +781,15 @@ const ContasReceber = () => {
                     placeholder="Observações"
                     value={formData.notes}
                     onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  />
+                </div>
+                
+                <div className="col-span-2">
+                  <FileUpload
+                    onFileUploaded={(filePath) => setFormData({...formData, receipt_file_path: filePath})}
+                    currentFile={formData.receipt_file_path}
+                    companyId={user?.user_metadata?.company_id || 'temp'}
+                    accountId={editingAccount?.id}
                   />
                 </div>
               </div>
