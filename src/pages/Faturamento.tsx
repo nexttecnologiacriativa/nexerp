@@ -133,17 +133,11 @@ const Faturamento = () => {
       const totalSales = actualSales.length;
 
       // Calcular receita total apenas de contratos pagos (cruzar com contas a receber pagas)
-      let paidRevenue = 0;
-      for (const sale of actualSales) {
-        // Verificar se há conta a receber paga para esta venda
-        const {
-          data: paidReceivable
-        } = await supabase.from('accounts_receivable').select('amount').eq('company_id', companyId).eq('status', 'paid').ilike('description', `%${sale.sale_number}%`);
-        if (paidReceivable && paidReceivable.length > 0) {
-          paidRevenue += Number(sale.net_amount);
-        }
-      }
-      const totalRevenue = paidRevenue; // Apenas vendas com pagamento confirmado
+      const {
+        data: paidReceivables
+      } = await supabase.from('accounts_receivable').select('amount').eq('company_id', companyId).eq('status', 'paid');
+      
+      const totalRevenue = paidReceivables?.reduce((sum, receivable) => sum + Number(receivable.amount), 0) || 0;
       const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 
       // Calculate budget metrics
@@ -252,28 +246,28 @@ const Faturamento = () => {
       } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
       if (!profile?.company_id) return;
 
-      // Buscar contas a receber recorrentes relacionadas a esta venda
+      // Buscar TODAS as contas a receber relacionadas a esta venda (não apenas recorrentes)
       const {
-        data: recurrences
-      } = await supabase.from('accounts_receivable').select('*').eq('company_id', profile.company_id).eq('is_recurring', true).ilike('description', `%${sale.sale_number}%`).order('due_date', {
+        data: relatedReceivables
+      } = await supabase.from('accounts_receivable').select('*').eq('company_id', profile.company_id).ilike('description', `%${sale.sale_number}%`).order('due_date', {
         ascending: true
       });
       
-      if (recurrences && recurrences.length > 0) {
-        // Navegar para contas a receber com filtro específico para recorrências desta venda
-        navigate(`/financeiro/contas-receber?filter=${sale.sale_number}&recurring=true`);
+      if (relatedReceivables && relatedReceivables.length > 0) {
+        // Navegar para contas a receber com filtro específico para esta venda
+        navigate(`/financeiro/contas-receber?filter=${sale.sale_number}`);
       } else {
         toast({
-          title: "Nenhuma recorrência encontrada",
-          description: "Não há recorrências relacionadas a esta venda.",
+          title: "Nenhuma cobrança encontrada",
+          description: "Não há cobranças relacionadas a esta venda.",
           variant: "default"
         });
       }
     } catch (error) {
-      console.error('Error fetching recurrences:', error);
+      console.error('Error fetching receivables:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível buscar as recorrências.",
+        description: "Não foi possível buscar as cobranças.",
         variant: "destructive"
       });
     }
