@@ -25,6 +25,7 @@ import NotaFiscal from "./pages/NotaFiscal";
 import Relatorios from "./pages/Relatorios";
 import Planos from "./pages/Planos";
 import Vendas from "./pages/Vendas";
+import Faturamento from "./pages/Faturamento";
 import Layout from "./components/Layout";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,11 @@ const App = () => (
             <Route path="/vendas" element={
               <ProtectedRoute>
                 <Layout><Vendas /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/faturamento" element={
+              <ProtectedRoute>
+                <Layout><Faturamento /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/financeiro/contas-pagar" element={

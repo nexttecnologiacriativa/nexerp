@@ -15,6 +15,10 @@ const menuItems = [{
   url: "/vendas",
   icon: ShoppingCart
 }, {
+  title: "Faturamento",
+  url: "/faturamento",
+  icon: Receipt
+}, {
   title: "Financeiro",
   icon: DollarSign,
   subItems: [{

@@ -14,11 +14,12 @@ import { useToast } from '@/hooks/use-toast';
 interface User {
   id: string;
   full_name: string;
-  email: string;
   phone: string;
   role: 'admin' | 'user';
-  status: 'active' | 'inactive' | 'pending';
+  company_id: string;
+  avatar_url: string;
   created_at: string;
+  updated_at: string;
 }
 
 const Usuarios = () => {
@@ -144,7 +145,7 @@ const Usuarios = () => {
   const handleEdit = (user: User) => {
     setFormData({
       full_name: user.full_name || '',
-      email: user.email || '',
+      email: '',
       phone: user.phone || '',
       role: user.role || 'user'
     });
@@ -152,36 +153,20 @@ const Usuarios = () => {
     setDialogOpen(true);
   };
 
-  const handleStatusToggle = async (userId: string, currentStatus: string) => {
+  const handleStatusToggle = async (userId: string) => {
     try {
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('id', userId);
-
-      if (error) throw error;
-
       toast({
-        title: "Status atualizado!",
-        description: `Usuário ${newStatus === 'active' ? 'ativado' : 'desativado'} com sucesso.`,
+        title: "Funcionalidade em desenvolvimento",
+        description: "O controle de status será implementado em breve.",
+        variant: "default",
       });
-
-      fetchUsers();
     } catch (error) {
       console.error('Error updating user status:', error);
-      toast({
-        title: "Erro ao atualizar status",
-        description: "Não foi possível atualizar o status do usuário",
-        variant: "destructive",
-      });
     }
   };
 
   const filteredUsers = users.filter(user =>
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.phone?.includes(searchTerm)
   );
 
@@ -296,7 +281,7 @@ const Usuarios = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.status === 'active').length}
+              {users.length}
             </div>
             <p className="text-xs text-muted-foreground">
               usuários ativos
@@ -397,7 +382,7 @@ const Usuarios = () => {
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        <span>{user.email || '-'}</span>
+                        <span>-</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -413,11 +398,11 @@ const Usuarios = () => {
                     </TableCell>
                     <TableCell>
                       <Badge 
-                        variant={user.status === 'active' ? 'default' : 'secondary'}
+                        variant="default"
                         className="cursor-pointer"
-                        onClick={() => handleStatusToggle(user.id, user.status)}
+                        onClick={() => handleStatusToggle(user.id)}
                       >
-                        {user.status === 'active' ? 'Ativo' : 'Inativo'}
+                        Ativo
                       </Badge>
                     </TableCell>
                     <TableCell>

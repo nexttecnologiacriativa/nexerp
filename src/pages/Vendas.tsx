@@ -118,7 +118,7 @@ const Vendas = () => {
 
       const [customersData, servicesData, categoriesData, costCentersData] = await Promise.all([
         supabase.from('customers').select('id, name, email, phone').eq('status', 'active'),
-        supabase.from('services').select('id, name, price, sku').eq('status', 'active'),
+        supabase.from('services').select('id, name, price').eq('status', 'active'),
         supabase.from('categories').select('id, name').eq('status', 'active'),
         supabase.from('cost_centers').select('id, name').eq('status', 'active')
       ]);
@@ -218,10 +218,9 @@ const Vendas = () => {
           customer_id: formData.client_id,
           total_amount: totalAmount,
           discount_amount: discount,
-          tax,
-          net_amount: totalAmount - discount + tax,
+          net_amount: totalAmount - discount,
           sale_date: formData.sale_date,
-          invoice_number: formData.sale_number,
+          sale_number: formData.sale_number,
           notes: formData.notes,
           status: 'active'
         })
@@ -233,7 +232,8 @@ const Vendas = () => {
       // Create sale items
       const saleItemsData = saleItems.map(item => ({
         sale_id: saleData.id,
-        product_id: item.service_id,
+        service_id: item.service_id,
+        description: item.description || 'Serviço',
         quantity: item.quantity,
         unit_price: item.unit_price,
         total_price: item.total

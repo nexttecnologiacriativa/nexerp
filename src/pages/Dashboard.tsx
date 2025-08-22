@@ -11,9 +11,10 @@ import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface FinancialData {
-  totalReceivable: number;
-  totalPayable: number;
+  receivable: number;
+  payable: number;
   balance: number;
+  bankBalance: number;
   customers: number;
   products: number;
   sales: number;
@@ -30,9 +31,10 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [financialData, setFinancialData] = useState<FinancialData>({
-    totalReceivable: 0,
-    totalPayable: 0,
+    receivable: 0,
+    payable: 0,
     balance: 0,
+    bankBalance: 0,
     customers: 0,
     products: 0,
     sales: 0,
@@ -97,6 +99,13 @@ const Dashboard = () => {
         .eq('company_id', profile.company_id)
         .eq('status', 'pending');
 
+      // Fetch bank accounts balance
+      const { data: bankAccounts } = await supabase
+        .from('bank_accounts')
+        .select('balance, status')
+        .eq('company_id', profile.company_id)
+        .eq('status', 'active');
+
       // Fetch customers count
       const { count: customersCount } = await supabase
         .from('customers')
@@ -118,13 +127,15 @@ const Dashboard = () => {
         .eq('company_id', profile.company_id)
         .eq('status', 'active');
 
-      const totalReceivable = receivables?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
-      const totalPayable = payables?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
+      const totalReceivable = receivables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+      const totalPayable = payables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+      const totalBankBalance = bankAccounts?.reduce((sum, account) => sum + Number(account.balance), 0) || 0;
 
       setFinancialData({
-        totalReceivable,
-        totalPayable,
-        balance: totalReceivable - totalPayable,
+        receivable: totalReceivable,
+        payable: totalPayable,
+        balance: totalBankBalance + totalReceivable - totalPayable,
+        bankBalance: totalBankBalance,
         customers: customersCount || 0,
         products: productsCount || 0,
         sales: salesCount || 0,
@@ -260,7 +271,7 @@ const Dashboard = () => {
       </div>
 
       {/* Main Financial Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Contas a Receber</CardTitle>
@@ -268,7 +279,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(financialData.totalReceivable)}
+              {formatCurrency(financialData.receivable)}
             </div>
             <p className="text-xs text-muted-foreground">
               Valores pendentes de recebimento
@@ -283,10 +294,25 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(financialData.totalPayable)}
+              {formatCurrency(financialData.payable)}
             </div>
             <p className="text-xs text-muted-foreground">
               Valores pendentes de pagamento
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Saldo Bancário</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(financialData.bankBalance)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Saldo atual nas contas bancárias
             </p>
           </CardContent>
         </Card>
@@ -301,9 +327,7 @@ const Dashboard = () => {
               {formatCurrency(financialData.balance)}
             </div>
             <p className="text-xs text-muted-foreground">
-              <Badge variant={financialData.balance >= 0 ? "default" : "destructive"}>
-                {balanceStatus.label}
-              </Badge>
+              Bancário + Receber - Pagar
             </p>
           </CardContent>
         </Card>
