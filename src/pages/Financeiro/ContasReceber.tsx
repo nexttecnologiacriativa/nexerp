@@ -31,6 +31,7 @@ interface AccountReceivable {
   updated_at: string;
   cost_center_id: string | null;
   category_id: string | null;
+  subcategory_id: string | null;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check' | null;
   is_recurring: boolean;
   recurrence_frequency: string | null;
@@ -48,6 +49,10 @@ interface AccountReceivable {
     bank_name: string;
   };
   categories?: {
+    name: string;
+    color: string;
+  };
+  subcategories?: {
     name: string;
     color: string;
   };
@@ -92,10 +97,12 @@ const ContasReceber = () => {
     bank_account_id: "",
     cost_center_id: "",
     category_id: "",
+    subcategory_id: "",
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [costCenters, setCostCenters] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [subcategories, setSubcategories] = useState<any[]>([]);
 
   const fetchAccounts = async () => {
     try {
@@ -114,6 +121,10 @@ const ContasReceber = () => {
             name
           ),
           categories:category_id (
+            name,
+            color
+          ),
+          subcategories:subcategory_id (
             name,
             color
           )
@@ -200,6 +211,21 @@ const ContasReceber = () => {
     }
   };
 
+  const fetchSubcategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('subcategories')
+        .select('id, name, color, category_id')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      setSubcategories(data || []);
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchAccounts();
@@ -207,6 +233,7 @@ const ContasReceber = () => {
       fetchBankAccounts();
       fetchCostCenters();
       fetchCategories();
+      fetchSubcategories();
     }
   }, [user]);
 
@@ -232,6 +259,7 @@ const ContasReceber = () => {
       bank_account_id: "",
       cost_center_id: "",
       category_id: "",
+      subcategory_id: "",
     });
     setEditingAccount(null);
   };
@@ -271,6 +299,7 @@ const ContasReceber = () => {
         bank_account_id: formData.bank_account_id || null,
         cost_center_id: formData.cost_center_id || null,
         category_id: formData.category_id || null,
+        subcategory_id: formData.subcategory_id || null,
         next_due_date: formData.is_recurring ? formData.due_date : null,
         recurrence_count: 0,
         parent_transaction_id: null,
@@ -469,6 +498,7 @@ const ContasReceber = () => {
       bank_account_id: account.bank_account_id || "",
       cost_center_id: account.cost_center_id || "",
       category_id: account.category_id || "",
+      subcategory_id: account.subcategory_id || "",
     });
     setIsDialogOpen(true);
   };
@@ -638,7 +668,7 @@ const ContasReceber = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="category_id">Categoria</Label>
-                  <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value})}>
+                  <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value, subcategory_id: ""})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a categoria" />
                     </SelectTrigger>
@@ -651,6 +681,34 @@ const ContasReceber = () => {
                               style={{ backgroundColor: category.color }}
                             />
                             {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="subcategory_id">Subcategoria</Label>
+                  <Select 
+                    value={formData.subcategory_id} 
+                    onValueChange={(value) => setFormData({...formData, subcategory_id: value})}
+                    disabled={!formData.category_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a subcategoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subcategories
+                        .filter(sub => sub.category_id === formData.category_id)
+                        .map((subcategory) => (
+                        <SelectItem key={subcategory.id} value={subcategory.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: subcategory.color }}
+                            />
+                            {subcategory.name}
                           </div>
                         </SelectItem>
                       ))}
@@ -883,6 +941,7 @@ const ContasReceber = () => {
                 <TableHead>Cliente</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Subcategoria</TableHead>
                 <TableHead>Centro de Custos</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Vencimento</TableHead>
@@ -893,11 +952,11 @@ const ContasReceber = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Carregando...</TableCell>
+                  <TableCell colSpan={9} className="text-center">Carregando...</TableCell>
                 </TableRow>
               ) : filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Nenhuma conta encontrada</TableCell>
+                  <TableCell colSpan={9} className="text-center">Nenhuma conta encontrada</TableCell>
                 </TableRow>
               ) : (
                 filteredAccounts.map((account) => (
@@ -914,6 +973,19 @@ const ContasReceber = () => {
                             style={{ backgroundColor: account.categories.color }}
                           />
                           {account.categories.name}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {account.subcategories ? (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: account.subcategories.color }}
+                          />
+                          {account.subcategories.name}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>

@@ -37,6 +37,7 @@ export type Database = {
           recurrence_frequency: string | null
           recurrence_interval: number | null
           status: Database["public"]["Enums"]["payment_status"]
+          subcategory_id: string | null
           supplier_id: string | null
           updated_at: string
         }
@@ -62,6 +63,7 @@ export type Database = {
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
+          subcategory_id?: string | null
           supplier_id?: string | null
           updated_at?: string
         }
@@ -87,6 +89,7 @@ export type Database = {
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
+          subcategory_id?: string | null
           supplier_id?: string | null
           updated_at?: string
         }
@@ -110,6 +113,13 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_payable_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
           {
@@ -151,6 +161,7 @@ export type Database = {
           recurrence_frequency: string | null
           recurrence_interval: number | null
           status: Database["public"]["Enums"]["payment_status"]
+          subcategory_id: string | null
           updated_at: string
         }
         Insert: {
@@ -175,6 +186,7 @@ export type Database = {
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
+          subcategory_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -199,6 +211,7 @@ export type Database = {
           recurrence_frequency?: string | null
           recurrence_interval?: number | null
           status?: Database["public"]["Enums"]["payment_status"]
+          subcategory_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -221,6 +234,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounts_receivable_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
             referencedColumns: ["id"]
           },
           {
