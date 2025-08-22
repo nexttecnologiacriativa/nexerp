@@ -580,11 +580,10 @@ const Relatorios = () => {
       </Card>
 
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="financial">Financeiro</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="customers">Clientes</TabsTrigger>
-          <TabsTrigger value="products">Produtos</TabsTrigger>
           <TabsTrigger value="centers">Centros de Custos</TabsTrigger>
         </TabsList>
 
@@ -870,80 +869,6 @@ const Relatorios = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="products" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Produtos com Estoque Baixo</CardTitle>
-                <div className="flex space-x-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => exportToCSV(reportData?.products.lowStock || [], 'estoque-baixo')}
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Exportar
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {reportData?.products.lowStock.slice(0, 8).map((product: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-2 border rounded">
-                      <div>
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-muted-foreground">{product.sku}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-red-600">{product.stock_quantity}</div>
-                        <div className="text-xs text-muted-foreground">{product.unit_type}</div>
-                      </div>
-                    </div>
-                  ))}
-                  {reportData?.products.lowStock.length === 0 && (
-                    <p className="text-center text-muted-foreground py-4">
-                      Nenhum produto com estoque baixo
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumo do Inventário</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Total de Produtos</span>
-                    <span className="text-2xl font-bold">{reportData?.products.inventory.length || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Produtos Ativos</span>
-                    <span className="text-2xl font-bold text-green-600">
-                      {reportData?.products.inventory.filter(p => p.status === 'active').length || 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Estoque Baixo</span>
-                    <span className="text-2xl font-bold text-red-600">
-                      {reportData?.products.lowStock.length || 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Valor Total em Estoque</span>
-                    <span className="text-xl font-bold text-blue-600">
-                      R$ {reportData?.products.inventory.reduce((total: number, p: any) => 
-                        total + (p.price * p.stock_quantity), 0
-                      ).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         <TabsContent value="centers" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

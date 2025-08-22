@@ -29,6 +29,7 @@ interface AccountReceivable {
   company_id: string;
   created_at: string;
   updated_at: string;
+  cost_center_id: string | null;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check' | null;
   is_recurring: boolean;
   recurrence_frequency: string | null;
@@ -81,8 +82,10 @@ const ContasReceber = () => {
     recurrence_interval: 1,
     recurrence_end_date: "",
     bank_account_id: "",
+    cost_center_id: "",
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [costCenters, setCostCenters] = useState<any[]>([]);
 
   const fetchAccounts = async () => {
     try {
@@ -96,6 +99,9 @@ const ContasReceber = () => {
           bank_accounts:bank_account_id (
             name,
             bank_name
+          ),
+          cost_centers:cost_center_id (
+            name
           )
         `)
         .order('due_date', { ascending: true });
@@ -109,7 +115,7 @@ const ContasReceber = () => {
         return;
       }
 
-      setAccounts(existingAccounts || []);
+      setAccounts((existingAccounts as any[]) || []);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
@@ -150,11 +156,27 @@ const ContasReceber = () => {
     }
   };
 
+  const fetchCostCenters = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cost_centers')
+        .select('id, name, description')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      setCostCenters(data || []);
+    } catch (error) {
+      console.error('Error fetching cost centers:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchAccounts();
       fetchCustomers();
       fetchBankAccounts();
+      fetchCostCenters();
     }
   }, [user]);
 
@@ -178,6 +200,7 @@ const ContasReceber = () => {
       recurrence_interval: 1,
       recurrence_end_date: "",
       bank_account_id: "",
+      cost_center_id: "",
     });
     setEditingAccount(null);
   };
@@ -215,6 +238,7 @@ const ContasReceber = () => {
         recurrence_interval: formData.is_recurring ? formData.recurrence_interval : null,
         recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null,
         bank_account_id: formData.bank_account_id || null,
+        cost_center_id: formData.cost_center_id || null,
         next_due_date: formData.is_recurring ? formData.due_date : null,
         recurrence_count: 0,
         parent_transaction_id: null,
@@ -411,6 +435,7 @@ const ContasReceber = () => {
       recurrence_interval: account.recurrence_interval || 1,
       recurrence_end_date: account.recurrence_end_date || "",
       bank_account_id: account.bank_account_id || "",
+      cost_center_id: account.cost_center_id || "",
     });
     setIsDialogOpen(true);
   };
@@ -547,6 +572,37 @@ const ContasReceber = () => {
                   />
                 </div>
                 
+                <div className="space-y-2">
+                  <Label htmlFor="bank_account_id">Conta Bancária</Label>
+                  <Select value={formData.bank_account_id} onValueChange={(value) => setFormData({...formData, bank_account_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a conta bancária" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bankAccounts.map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name} - {account.bank_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cost_center_id">Centro de Custos</Label>
+                  <Select value={formData.cost_center_id} onValueChange={(value) => setFormData({...formData, cost_center_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o centro de custos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {costCenters.map((costCenter) => (
+                        <SelectItem key={costCenter.id} value={costCenter.id}>
+                          {costCenter.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
                 <div className="space-y-4 col-span-2 border rounded-lg p-4 bg-muted/30">
                   <div className="flex items-start space-x-3">
