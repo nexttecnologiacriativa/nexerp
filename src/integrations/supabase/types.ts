@@ -261,6 +261,7 @@ export type Database = {
       }
       categories: {
         Row: {
+          color: string | null
           company_id: string
           created_at: string
           description: string | null
@@ -270,6 +271,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          color?: string | null
           company_id: string
           created_at?: string
           description?: string | null
@@ -279,6 +281,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          color?: string | null
           company_id?: string
           created_at?: string
           description?: string | null
@@ -723,6 +726,50 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subcategories: {
+        Row: {
+          category_id: string
+          color: string | null
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: Database["public"]["Enums"]["status_type"]
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          color?: string | null
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: Database["public"]["Enums"]["status_type"]
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          color?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: Database["public"]["Enums"]["status_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_subcategories_category"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]

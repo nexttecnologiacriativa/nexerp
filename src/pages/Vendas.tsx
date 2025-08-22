@@ -50,6 +50,7 @@ interface Service {
 interface Category {
   id: string;
   name: string;
+  color?: string;
 }
 
 interface CostCenter {
@@ -165,7 +166,7 @@ const Vendas = () => {
       const [customersData, servicesData, categoriesData, costCentersData, usersData, salesData, bankAccountsData] = await Promise.all([
         supabase.from('customers').select('id, name, email, phone').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('services').select('id, name, price').eq('company_id', profileData.company_id).eq('status', 'active'),
-        supabase.from('categories').select('id, name').eq('company_id', profileData.company_id).eq('status', 'active'),
+        supabase.from('categories').select('id, name, color').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('cost_centers').select('id, name').eq('company_id', profileData.company_id).eq('status', 'active'),
         supabase.from('profiles').select('id, full_name').eq('company_id', profileData.company_id),
         supabase.from('sales').select('sale_number').eq('company_id', profileData.company_id).order('created_at', { ascending: false }).limit(1),
@@ -485,7 +486,13 @@ const Vendas = () => {
                 <SelectContent>
                   {categories.map(category => (
                     <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: category.color || '#3B82F6' }}
+                        />
+                        <span>{category.name}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -531,23 +538,52 @@ const Vendas = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="tag">Tag do sistema</Label>
-              <Select value={formData.tag} onValueChange={(value) => setFormData({...formData, tag: value})}>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Digite uma tag personalizada..."
+                  value={formData.tag}
+                  onChange={(e) => setFormData({...formData, tag: e.target.value})}
+                />
+                <Select value={formData.tag} onValueChange={(value) => setFormData({...formData, tag: value})}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Ou selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="alta_prioridade">Alta Prioridade</SelectItem>
+                    <SelectItem value="cliente_vip">Cliente VIP</SelectItem>
+                    <SelectItem value="projeto_especial">Projeto Especial</SelectItem>
+                    <SelectItem value="desconto_aplicado">Desconto Aplicado</SelectItem>
+                    <SelectItem value="pagamento_antecipado">Pagamento Antecipado</SelectItem>
+                    <SelectItem value="cliente_novo">Cliente Novo</SelectItem>
+                    <SelectItem value="renovacao">Renovação</SelectItem>
+                    <SelectItem value="upsell">Upsell</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Categoria */}
+            <div>
+              <Label htmlFor="category_id">Categoria</Label>
+              <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value})}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma tag" />
+                  <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="alta_prioridade">Alta Prioridade</SelectItem>
-                  <SelectItem value="cliente_vip">Cliente VIP</SelectItem>
-                  <SelectItem value="projeto_especial">Projeto Especial</SelectItem>
-                  <SelectItem value="desconto_aplicado">Desconto Aplicado</SelectItem>
-                  <SelectItem value="pagamento_antecipado">Pagamento Antecipado</SelectItem>
-                  <SelectItem value="cliente_novo">Cliente Novo</SelectItem>
-                  <SelectItem value="renovacao">Renovação</SelectItem>
-                  <SelectItem value="upsell">Upsell</SelectItem>
+                  {categories.map(category => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: category.color || '#3B82F6' }}
+                        />
+                        <span>{category.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div></div>
           </div>
         </CardContent>
       </Card>

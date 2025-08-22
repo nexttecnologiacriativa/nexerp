@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Search, Plus, Edit, Trash2, Tag } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Plus, Edit, Trash2, Tag, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -15,22 +17,51 @@ interface Category {
   id: string;
   name: string;
   description: string;
+  color: string;
   status: 'active' | 'inactive' | 'pending';
   created_at: string;
 }
 
+interface Subcategory {
+  id: string;
+  category_id: string;
+  name: string;
+  description: string;
+  color: string;
+  status: 'active' | 'inactive' | 'pending';
+  created_at: string;
+  category_name?: string;
+}
+
 const Categorias = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [subDialogOpen, setSubDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null);
+  const [activeTab, setActiveTab] = useState('categories');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    color: '#3B82F6',
   });
+
+  const [subFormData, setSubFormData] = useState({
+    name: '',
+    description: '',
+    color: '#6B7280',
+    category_id: '',
+  });
+
+  const colorOptions = [
+    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+    '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+  ];
 
   const fetchData = async () => {
     try {
@@ -61,15 +92,35 @@ const Categorias = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      // Fetch categories
+      const { data: categoriesData, error: categoriesError } = await supabase
         .from('categories')
         .select('*')
         .eq('company_id', profile.company_id)
         .order('name');
 
-      if (error) throw error;
+      if (categoriesError) throw categoriesError;
+      setCategories(categoriesData || []);
 
-      setCategories(data || []);
+      // Fetch subcategories with category names
+      const { data: subcategoriesData, error: subcategoriesError } = await supabase
+        .from('subcategories')
+        .select(`
+          *,
+          categories!inner(name)
+        `)
+        .eq('company_id', profile.company_id)
+        .order('name');
+
+      if (subcategoriesError) throw subcategoriesError;
+      
+      const formattedSubcategories = subcategoriesData?.map(sub => ({
+        ...sub,
+        category_name: sub.categories?.name || 'Categoria não encontrada'
+      })) || [];
+      
+      setSubcategories(formattedSubcategories);
+
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -90,8 +141,19 @@ const Categorias = () => {
     setFormData({
       name: '',
       description: '',
+      color: '#3B82F6',
     });
     setEditingCategory(null);
+  };
+
+  const resetSubForm = () => {
+    setSubFormData({
+      name: '',
+      description: '',
+      color: '#6B7280',
+      category_id: '',
+    });
+    setEditingSubcategory(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,6 +181,7 @@ const Categorias = () => {
       const categoryData = {
         name: formData.name,
         description: formData.description,
+        color: formData.color,
         company_id: profile.company_id,
       };
 
@@ -160,13 +223,93 @@ const Categorias = () => {
     }
   };
 
+  const handleSubSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.company_id) {
+        toast({
+          title: "Erro",
+          description: "Usuário não está vinculado a uma empresa",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const subcategoryData = {
+        name: subFormData.name,
+        description: subFormData.description,
+        color: subFormData.color,
+        category_id: subFormData.category_id,
+        company_id: profile.company_id,
+      };
+
+      if (editingSubcategory) {
+        const { error } = await supabase
+          .from('subcategories')
+          .update(subcategoryData)
+          .eq('id', editingSubcategory.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Subcategoria atualizada!",
+          description: "As informações foram atualizadas com sucesso.",
+        });
+      } else {
+        const { error } = await supabase
+          .from('subcategories')
+          .insert([subcategoryData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Subcategoria cadastrada!",
+          description: "A nova subcategoria foi adicionada com sucesso.",
+        });
+      }
+
+      setSubDialogOpen(false);
+      resetSubForm();
+      fetchData();
+    } catch (error) {
+      console.error('Error saving subcategory:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar as informações",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleEdit = (category: Category) => {
     setFormData({
       name: category.name,
       description: category.description || '',
+      color: category.color || '#3B82F6',
     });
     setEditingCategory(category);
     setDialogOpen(true);
+  };
+
+  const handleEditSub = (subcategory: Subcategory) => {
+    setSubFormData({
+      name: subcategory.name,
+      description: subcategory.description || '',
+      color: subcategory.color || '#6B7280',
+      category_id: subcategory.category_id,
+    });
+    setEditingSubcategory(subcategory);
+    setSubDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -196,9 +339,42 @@ const Categorias = () => {
     }
   };
 
+  const handleDeleteSub = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta subcategoria?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('subcategories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Subcategoria excluída!",
+        description: "A subcategoria foi removida com sucesso.",
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting subcategory:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir a subcategoria",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     category.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredSubcategories = subcategories.filter(subcategory =>
+    subcategory.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    subcategory.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    subcategory.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -206,134 +382,366 @@ const Categorias = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Categorias</h1>
-          <p className="text-muted-foreground">Gerencie as categorias de produtos e serviços</p>
+          <p className="text-muted-foreground">Gerencie as categorias e subcategorias de produtos e serviços</p>
         </div>
-        
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Categoria
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingCategory ? 'Atualize as informações' : 'Preencha as informações da nova categoria'}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingCategory ? 'Atualizar' : 'Salvar'}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Categorias</CardTitle>
-          <CardDescription>
-            Visualize e gerencie todas as categorias cadastradas
-          </CardDescription>
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou descrição..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : filteredCategories.length === 0 ? (
-            <div className="text-center py-10">
-              <Tag className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-sm font-semibold">Nenhuma categoria encontrada</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Comece cadastrando a primeira categoria da sua empresa.
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCategories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>{category.description || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant={category.status === 'active' ? 'default' : 'secondary'}>
-                        {category.status === 'active' ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(category)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(category.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="categories">Categorias</TabsTrigger>
+          <TabsTrigger value="subcategories">Subcategorias</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="categories">
+          <div className="flex justify-between items-center mb-6">
+            
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetForm}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Categoria
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingCategory ? 'Atualize as informações' : 'Preencha as informações da nova categoria'}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Descrição</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="color">Cor</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="color"
+                        type="color"
+                        value={formData.color}
+                        onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
+                        className="w-20 h-10"
+                      />
+                      <div className="flex space-x-1">
+                        {colorOptions.map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            className="w-6 h-6 rounded border-2 border-gray-300 hover:border-gray-500"
+                            style={{ backgroundColor: color }}
+                            onClick={() => setFormData(prev => ({ ...prev, color }))}
+                          />
+                        ))}
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit">
+                      {editingCategory ? 'Atualizar' : 'Salvar'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de Categorias</CardTitle>
+              <CardDescription>
+                Visualize e gerencie todas as categorias cadastradas
+              </CardDescription>
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome ou descrição..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : filteredCategories.length === 0 ? (
+                <div className="text-center py-10">
+                  <Tag className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-2 text-sm font-semibold">Nenhuma categoria encontrada</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Comece cadastrando a primeira categoria da sua empresa.
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cor</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCategories.map((category) => (
+                      <TableRow key={category.id}>
+                        <TableCell>
+                          <div 
+                            className="w-6 h-6 rounded-full border"
+                            style={{ backgroundColor: category.color || '#3B82F6' }}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell>{category.description || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={category.status === 'active' ? 'default' : 'secondary'}>
+                            {category.status === 'active' ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(category)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(category.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="subcategories">
+          <div className="flex justify-between items-center mb-6">
+            
+            <Dialog open={subDialogOpen} onOpenChange={setSubDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={resetSubForm}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nova Subcategoria
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingSubcategory ? 'Editar Subcategoria' : 'Nova Subcategoria'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {editingSubcategory ? 'Atualize as informações' : 'Preencha as informações da nova subcategoria'}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <form onSubmit={handleSubSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category_id">Categoria Principal *</Label>
+                    <Select value={subFormData.category_id} onValueChange={(value) => setSubFormData(prev => ({ ...prev, category_id: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            <div className="flex items-center space-x-2">
+                              <div 
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: category.color || '#3B82F6' }}
+                              />
+                              <span>{category.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sub_name">Nome *</Label>
+                    <Input
+                      id="sub_name"
+                      value={subFormData.name}
+                      onChange={(e) => setSubFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sub_description">Descrição</Label>
+                    <Textarea
+                      id="sub_description"
+                      value={subFormData.description}
+                      onChange={(e) => setSubFormData(prev => ({ ...prev, description: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sub_color">Cor</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        id="sub_color"
+                        type="color"
+                        value={subFormData.color}
+                        onChange={(e) => setSubFormData(prev => ({ ...prev, color: e.target.value }))}
+                        className="w-20 h-10"
+                      />
+                      <div className="flex space-x-1">
+                        {colorOptions.map(color => (
+                          <button
+                            key={color}
+                            type="button"
+                            className="w-6 h-6 rounded border-2 border-gray-300 hover:border-gray-500"
+                            style={{ backgroundColor: color }}
+                            onClick={() => setSubFormData(prev => ({ ...prev, color }))}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2 pt-4">
+                    <Button type="button" variant="outline" onClick={() => setSubDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit">
+                      {editingSubcategory ? 'Atualizar' : 'Salvar'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Lista de Subcategorias</CardTitle>
+              <CardDescription>
+                Visualize e gerencie todas as subcategorias cadastradas
+              </CardDescription>
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, descrição ou categoria..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : filteredSubcategories.length === 0 ? (
+                <div className="text-center py-10">
+                  <Tag className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-2 text-sm font-semibold">Nenhuma subcategoria encontrada</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Comece cadastrando a primeira subcategoria.
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cor</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSubcategories.map((subcategory) => (
+                      <TableRow key={subcategory.id}>
+                        <TableCell>
+                          <div 
+                            className="w-6 h-6 rounded-full border"
+                            style={{ backgroundColor: subcategory.color || '#6B7280' }}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{subcategory.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {subcategory.category_name}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{subcategory.description || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={subcategory.status === 'active' ? 'default' : 'secondary'}>
+                            {subcategory.status === 'active' ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditSub(subcategory)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteSub(subcategory.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
