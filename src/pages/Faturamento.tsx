@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -271,6 +271,77 @@ const Faturamento = () => {
       });
     }
   };
+
+  const handleDeleteSale = async (sale: Sale) => {
+    if (!confirm(`Tem certeza que deseja excluir a venda ${sale.sale_number}? Esta ação também excluirá todas as cobranças relacionadas e não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const {
+        data: profile
+      } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
+      if (!profile?.company_id) return;
+
+      // Primeiro, excluir todas as cobranças relacionadas no contas a receber
+      const { error: receivablesError } = await supabase
+        .from('accounts_receivable')
+        .delete()
+        .eq('company_id', profile.company_id)
+        .ilike('description', `%${sale.sale_number}%`);
+
+      if (receivablesError) {
+        console.error('Error deleting receivables:', receivablesError);
+        toast({
+          title: "Erro ao excluir cobranças",
+          description: "Não foi possível excluir as cobranças relacionadas.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Depois, excluir a venda
+      const { error: saleError } = await supabase
+        .from('sales')
+        .delete()
+        .eq('id', sale.id)
+        .eq('company_id', profile.company_id);
+
+      if (saleError) {
+        console.error('Error deleting sale:', saleError);
+        toast({
+          title: "Erro ao excluir venda",
+          description: "Não foi possível excluir a venda.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Atualizar a lista após exclusão
+      await fetchBillingData();
+
+      toast({
+        title: "Venda excluída",
+        description: `A venda ${sale.sale_number} e suas cobranças foram excluídas com sucesso.`,
+        variant: "default"
+      });
+
+    } catch (error) {
+      console.error('Error deleting sale:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir a venda.",
+        variant: "destructive"
+      });
+    }
+  };
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -482,19 +553,22 @@ const Faturamento = () => {
                                  {sale.payment_method || 'Não informado'}
                                </Badge>
                              </TableCell>
-                             <TableCell className="text-right">
-                               <div className="flex justify-end space-x-1">
-                                 <Button variant="outline" size="sm" onClick={() => handleViewReceivables(sale)} title="Ver cobranças no contas a receber">
-                                   <RefreshCw className="h-4 w-4" />
-                                 </Button>
-                                 <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
-                                   <Eye className="h-4 w-4" />
-                                 </Button>
-                                 <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
-                                   <Edit className="h-4 w-4" />
-                                 </Button>
-                               </div>
-                             </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-1">
+                                  <Button variant="outline" size="sm" onClick={() => handleViewReceivables(sale)} title="Ver cobranças no contas a receber">
+                                    <RefreshCw className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleDeleteSale(sale)} title="Excluir venda" className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
                           </TableRow>)}
                       </TableBody>
                     </Table>
@@ -630,6 +704,9 @@ const Faturamento = () => {
                                  </Button>
                                  <Button variant="outline" size="sm" onClick={() => handleEditSale(budget.id)} title="Editar orçamento">
                                    <Edit className="h-4 w-4" />
+                                 </Button>
+                                 <Button variant="outline" size="sm" onClick={() => handleDeleteSale(budget)} title="Excluir orçamento" className="text-destructive hover:text-destructive">
+                                   <Trash2 className="h-4 w-4" />
                                  </Button>
                                </div>
                              </TableCell>
