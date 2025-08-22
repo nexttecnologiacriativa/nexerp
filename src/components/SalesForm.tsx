@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { CalendarIcon, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
 interface SaleItem {
@@ -76,8 +75,12 @@ interface Installment {
   due_date: string;
 }
 
-const Vendas = () => {
-  const navigate = useNavigate();
+interface SalesFormProps {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -175,7 +178,6 @@ const Vendas = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Usuário não autenticado');
-        navigate('/auth');
         return;
       }
 
@@ -404,12 +406,7 @@ const Vendas = () => {
       const saleTypeText = saleType === 'budget' ? 'Orçamento' : saleType === 'sale' ? 'Venda' : 'Venda Recorrente';
       toast.success(`${saleTypeText} ${saleType === 'budget' ? 'criado' : 'criada'} com sucesso!`);
       
-      // Redirect based on sale type
-      if (saleType === 'budget') {
-        navigate('/faturamento');
-      } else {
-        navigate('/dashboard');
-      }
+      onSuccess?.();
       
     } catch (error) {
       console.error('Error saving sale:', error);
@@ -420,17 +417,11 @@ const Vendas = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Nova Venda {formData.sale_number}</h1>
+          <h2 className="text-2xl font-bold">Nova Venda {formData.sale_number}</h2>
           <p className="text-muted-foreground">Cadastre uma nova venda</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/dashboard')}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? 'Salvando...' : 'Salvar Venda'}
-          </Button>
         </div>
       </div>
 
@@ -968,7 +959,7 @@ const Vendas = () => {
           </div>
           
           <div className="flex gap-4 justify-end">
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+            <Button variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
             <Button 
@@ -988,4 +979,4 @@ const Vendas = () => {
   );
 };
 
-export default Vendas;
+export default SalesForm;

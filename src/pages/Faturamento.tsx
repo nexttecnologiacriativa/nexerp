@@ -6,12 +6,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
+import SalesForm from '@/components/SalesForm';
 interface Sale {
   id: string;
   sale_number: string;
@@ -41,6 +43,7 @@ const Faturamento = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [budgets, setBudgets] = useState<Sale[]>([]);
   const [activeTab, setActiveTab] = useState('sales');
+  const [showSalesForm, setShowSalesForm] = useState(false);
   const [metrics, setMetrics] = useState<BillingMetrics>({
     totalSales: 0,
     totalRevenue: 0,
@@ -366,6 +369,27 @@ const Faturamento = () => {
               <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
             </SelectContent>
           </Select>
+          
+          <Dialog open={showSalesForm} onOpenChange={setShowSalesForm}>
+            <DialogTrigger asChild>
+              <Button className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Venda
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Nova Venda</DialogTitle>
+              </DialogHeader>
+              <SalesForm 
+                onSuccess={() => {
+                  setShowSalesForm(false);
+                  fetchBillingData();
+                }}
+                onCancel={() => setShowSalesForm(false)}
+              />
+            </DialogContent>
+          </Dialog>
           
           <Button variant="outline" className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
