@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2, Plus } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2, Plus, PiggyBank } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -203,10 +203,13 @@ const Faturamento = () => {
     return matchesSearch && matchesStatus;
   });
   const handleViewSale = (saleId: string) => {
-    navigate(`/vendas?view=${saleId}`);
+    // Por enquanto só abre um novo formulário - implementar visualização depois
+    setShowSalesForm(true);
   };
+
   const handleEditSale = (saleId: string) => {
-    navigate(`/vendas?edit=${saleId}`);
+    // Por enquanto só abre um novo formulário - implementar edição depois  
+    setShowSalesForm(true);
   };
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -236,7 +239,7 @@ const Faturamento = () => {
     }
     return 'Avulsa';
   };
-  const handleViewReceivables = async (sale: Sale) => {
+  const handleViewRecurrences = async (sale: Sale) => {
     try {
       const {
         data: {
@@ -249,27 +252,28 @@ const Faturamento = () => {
       } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
       if (!profile?.company_id) return;
 
-      // Buscar contas a receber relacionadas a esta venda
+      // Buscar contas a receber recorrentes relacionadas a esta venda
       const {
-        data: receivables
-      } = await supabase.from('accounts_receivable').select('*').eq('company_id', profile.company_id).ilike('description', `%${sale.sale_number}%`).order('due_date', {
+        data: recurrences
+      } = await supabase.from('accounts_receivable').select('*').eq('company_id', profile.company_id).eq('is_recurring', true).ilike('description', `%${sale.sale_number}%`).order('due_date', {
         ascending: true
       });
-      if (receivables && receivables.length > 0) {
-        // Navegar para contas a receber com filtro aplicado
-        navigate(`/financeiro/contas-receber?filter=${sale.sale_number}`);
+      
+      if (recurrences && recurrences.length > 0) {
+        // Navegar para contas a receber com filtro específico para recorrências desta venda
+        navigate(`/financeiro/contas-receber?filter=${sale.sale_number}&recurring=true`);
       } else {
         toast({
-          title: "Nenhuma cobrança encontrada",
-          description: "Não há cobranças relacionadas a esta venda.",
+          title: "Nenhuma recorrência encontrada",
+          description: "Não há recorrências relacionadas a esta venda.",
           variant: "default"
         });
       }
     } catch (error) {
-      console.error('Error fetching receivables:', error);
+      console.error('Error fetching recurrences:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível buscar as cobranças.",
+        description: "Não foi possível buscar as recorrências.",
         variant: "destructive"
       });
     }
@@ -354,8 +358,8 @@ const Faturamento = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Faturamento</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Indicadores de vendas e gestão de faturamento</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Vendas e Orçamentos</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Indicadores de vendas e gestão de orçamentos</p>
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
@@ -386,7 +390,9 @@ const Faturamento = () => {
                   setShowSalesForm(false);
                   fetchBillingData();
                 }}
-                onCancel={() => setShowSalesForm(false)}
+                onCancel={() => {
+                  setShowSalesForm(false);
+                }}
               />
             </DialogContent>
           </Dialog>
@@ -579,15 +585,15 @@ const Faturamento = () => {
                              </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end space-x-1">
-                                  <Button variant="outline" size="sm" onClick={() => handleViewReceivables(sale)} title="Ver cobranças no contas a receber">
-                                    <RefreshCw className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
+                                   <Button variant="outline" size="sm" onClick={() => handleViewRecurrences(sale)} title="Ver recorrências desta venda">
+                                     <PiggyBank className="h-4 w-4" />
+                                   </Button>
+                                   <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
+                                     <Eye className="h-4 w-4" />
+                                   </Button>
+                                   <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
+                                     <Edit className="h-4 w-4" />
+                                   </Button>
                                   <Button variant="outline" size="sm" onClick={() => handleDeleteSale(sale)} title="Excluir venda" className="text-destructive hover:text-destructive">
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
@@ -723,12 +729,12 @@ const Faturamento = () => {
                             </TableCell>
                              <TableCell className="text-right">
                                <div className="flex justify-end space-x-1">
-                                 <Button variant="outline" size="sm" onClick={() => handleViewSale(budget.id)} title="Visualizar orçamento">
-                                   <Eye className="h-4 w-4" />
-                                 </Button>
-                                 <Button variant="outline" size="sm" onClick={() => handleEditSale(budget.id)} title="Editar orçamento">
-                                   <Edit className="h-4 w-4" />
-                                 </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleViewSale(budget.id)} title="Visualizar orçamento">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleEditSale(budget.id)} title="Editar orçamento">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
                                  <Button variant="outline" size="sm" onClick={() => handleDeleteSale(budget)} title="Excluir orçamento" className="text-destructive hover:text-destructive">
                                    <Trash2 className="h-4 w-4" />
                                  </Button>

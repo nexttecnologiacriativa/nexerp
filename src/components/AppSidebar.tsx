@@ -11,7 +11,7 @@ const menuItems = [{
   url: "/dashboard",
   icon: LayoutDashboard
 }, {
-  title: "Faturamento",
+  title: "Vendas e Orçamentos",
   url: "/faturamento",
   icon: Receipt
 }, {
