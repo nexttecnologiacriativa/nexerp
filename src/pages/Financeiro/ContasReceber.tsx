@@ -30,6 +30,7 @@ interface AccountReceivable {
   created_at: string;
   updated_at: string;
   cost_center_id: string | null;
+  category_id: string | null;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check' | null;
   is_recurring: boolean;
   recurrence_frequency: string | null;
@@ -45,6 +46,13 @@ interface AccountReceivable {
   bank_accounts?: {
     name: string;
     bank_name: string;
+  };
+  categories?: {
+    name: string;
+    color: string;
+  };
+  cost_centers?: {
+    name: string;
   };
 }
 
@@ -83,9 +91,11 @@ const ContasReceber = () => {
     recurrence_end_date: "",
     bank_account_id: "",
     cost_center_id: "",
+    category_id: "",
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [costCenters, setCostCenters] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   const fetchAccounts = async () => {
     try {
@@ -102,6 +112,10 @@ const ContasReceber = () => {
           ),
           cost_centers:cost_center_id (
             name
+          ),
+          categories:category_id (
+            name,
+            color
           )
         `)
         .order('due_date', { ascending: true });
@@ -171,12 +185,28 @@ const ContasReceber = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name, color')
+        .eq('status', 'active')
+        .order('name');
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchAccounts();
       fetchCustomers();
       fetchBankAccounts();
       fetchCostCenters();
+      fetchCategories();
     }
   }, [user]);
 
@@ -201,6 +231,7 @@ const ContasReceber = () => {
       recurrence_end_date: "",
       bank_account_id: "",
       cost_center_id: "",
+      category_id: "",
     });
     setEditingAccount(null);
   };
@@ -239,6 +270,7 @@ const ContasReceber = () => {
         recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null,
         bank_account_id: formData.bank_account_id || null,
         cost_center_id: formData.cost_center_id || null,
+        category_id: formData.category_id || null,
         next_due_date: formData.is_recurring ? formData.due_date : null,
         recurrence_count: 0,
         parent_transaction_id: null,
@@ -436,6 +468,7 @@ const ContasReceber = () => {
       recurrence_end_date: account.recurrence_end_date || "",
       bank_account_id: account.bank_account_id || "",
       cost_center_id: account.cost_center_id || "",
+      category_id: account.category_id || "",
     });
     setIsDialogOpen(true);
   };
@@ -598,6 +631,27 @@ const ContasReceber = () => {
                       {costCenters.map((costCenter) => (
                         <SelectItem key={costCenter.id} value={costCenter.id}>
                           {costCenter.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category_id">Categoria</Label>
+                  <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.name}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -828,6 +882,8 @@ const ContasReceber = () => {
               <TableRow>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Centro de Custos</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Status</TableHead>
@@ -837,19 +893,35 @@ const ContasReceber = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">Carregando...</TableCell>
+                  <TableCell colSpan={8} className="text-center">Carregando...</TableCell>
                 </TableRow>
               ) : filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">Nenhuma conta encontrada</TableCell>
+                  <TableCell colSpan={8} className="text-center">Nenhuma conta encontrada</TableCell>
                 </TableRow>
               ) : (
                 filteredAccounts.map((account) => (
                   <TableRow key={account.id}>
                     <TableCell className="font-medium">
-                      {account.customers.name || 'N/A'}
+                      {account.customers?.name || 'N/A'}
                     </TableCell>
                     <TableCell>{account.description}</TableCell>
+                    <TableCell>
+                      {account.categories ? (
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: account.categories.color }}
+                          />
+                          {account.categories.name}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {account.cost_centers?.name || <span className="text-muted-foreground">-</span>}
+                    </TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.amount)}
                     </TableCell>

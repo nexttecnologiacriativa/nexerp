@@ -425,7 +425,7 @@ const Relatorios = () => {
       };
     });
 
-    // Agregar despesas por centro de custos
+    // Agregar despesas por centro de custos (APENAS CONTAS PAGAS)
     paidPayables.forEach((expense: any) => {
       if (expense.cost_center_id && costCenterExpenses[expense.cost_center_id]) {
         costCenterExpenses[expense.cost_center_id].amount += Number(expense.amount) || 0;

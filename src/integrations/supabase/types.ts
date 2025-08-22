@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           amount: number
           bank_account_id: string | null
+          category_id: string | null
           company_id: string
           cost_center_id: string | null
           created_at: string
@@ -42,6 +43,7 @@ export type Database = {
         Insert: {
           amount: number
           bank_account_id?: string | null
+          category_id?: string | null
           company_id: string
           cost_center_id?: string | null
           created_at?: string
@@ -66,6 +68,7 @@ export type Database = {
         Update: {
           amount?: number
           bank_account_id?: string | null
+          category_id?: string | null
           company_id?: string
           cost_center_id?: string | null
           created_at?: string
@@ -88,6 +91,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "accounts_payable_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "accounts_payable_company_id_fkey"
             columns: ["company_id"]
@@ -122,6 +132,7 @@ export type Database = {
         Row: {
           amount: number
           bank_account_id: string | null
+          category_id: string | null
           company_id: string
           created_at: string
           customer_id: string | null
@@ -145,6 +156,7 @@ export type Database = {
         Insert: {
           amount: number
           bank_account_id?: string | null
+          category_id?: string | null
           company_id: string
           created_at?: string
           customer_id?: string | null
@@ -168,6 +180,7 @@ export type Database = {
         Update: {
           amount?: number
           bank_account_id?: string | null
+          category_id?: string | null
           company_id?: string
           created_at?: string
           customer_id?: string | null
@@ -189,6 +202,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "accounts_receivable_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "accounts_receivable_company_id_fkey"
             columns: ["company_id"]
