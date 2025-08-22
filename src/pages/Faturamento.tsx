@@ -6,27 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Calendar,
-  FileText,
-  Eye,
-  Edit,
-  Search,
-  Filter,
-  Download,
-  RefreshCw,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
-
 interface Sale {
   id: string;
   sale_number: string;
@@ -41,7 +26,6 @@ interface Sale {
   created_at: string;
   notes?: string;
 }
-
 interface BillingMetrics {
   totalSales: number;
   totalRevenue: number;
@@ -52,7 +36,6 @@ interface BillingMetrics {
   totalBudgets: number;
   budgetValue: number;
 }
-
 const Faturamento = () => {
   const navigate = useNavigate();
   const [sales, setSales] = useState<Sale[]>([]);
@@ -72,28 +55,27 @@ const Faturamento = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState('current_month');
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     fetchBillingData();
   }, [periodFilter]);
-
   const fetchBillingData = async () => {
     try {
       setLoading(true);
-      
+
       // Get user's company_id
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user.id)
-        .single();
-
+      const {
+        data: profile
+      } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
       if (!profile?.company_id) return;
-
       const companyId = profile.company_id;
 
       // Date filters
@@ -101,7 +83,6 @@ const Faturamento = () => {
       const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
       let dateFilter = '';
       switch (periodFilter) {
         case 'current_month':
@@ -118,56 +99,47 @@ const Faturamento = () => {
       }
 
       // Fetch all sales and separate by type
-      const { data: allSalesData, error: salesError } = await supabase
-        .from('sales')
-        .select(`
+      const {
+        data: allSalesData,
+        error: salesError
+      } = await supabase.from('sales').select(`
           *,
           customers!inner(name)
-        `)
-        .eq('company_id', companyId)
-        .gte('sale_date', dateFilter)
-        .order('sale_date', { ascending: false });
-
+        `).eq('company_id', companyId).gte('sale_date', dateFilter).order('sale_date', {
+        ascending: false
+      });
       if (salesError) throw salesError;
-
       const formattedData = allSalesData?.map(sale => ({
         ...sale,
         customer_name: sale.customers?.name || 'Cliente não informado'
       })) || [];
 
       // Separate sales from budgets based on sale_number prefix or notes
-      const actualSales = formattedData.filter(sale => 
-        !sale.sale_number?.startsWith('ORC') && // Orçamentos não começam com ORC
-        !sale.notes?.toLowerCase().includes('orçamento') // Ou não têm "orçamento" nas notas
+      const actualSales = formattedData.filter(sale => !sale.sale_number?.startsWith('ORC') &&
+      // Orçamentos não começam com ORC
+      !sale.notes?.toLowerCase().includes('orçamento') // Ou não têm "orçamento" nas notas
       );
-      
-      const budgetData = formattedData.filter(sale => 
-        sale.sale_number?.startsWith('ORC') || // Orçamentos começam com ORC
-        sale.notes?.toLowerCase().includes('orçamento') // Ou têm "orçamento" nas notas
+      const budgetData = formattedData.filter(sale => sale.sale_number?.startsWith('ORC') ||
+      // Orçamentos começam com ORC
+      sale.notes?.toLowerCase().includes('orçamento') // Ou têm "orçamento" nas notas
       );
-
       setSales(actualSales);
       setBudgets(budgetData);
 
       // Calculate metrics for sales only (not budgets)
       const totalSales = actualSales.length;
-      
+
       // Calcular receita total apenas de contratos pagos (cruzar com contas a receber pagas)
       let paidRevenue = 0;
       for (const sale of actualSales) {
         // Verificar se há conta a receber paga para esta venda
-        const { data: paidReceivable } = await supabase
-          .from('accounts_receivable')
-          .select('amount')
-          .eq('company_id', companyId)
-          .eq('status', 'paid')
-          .ilike('description', `%${sale.sale_number}%`);
-        
+        const {
+          data: paidReceivable
+        } = await supabase.from('accounts_receivable').select('amount').eq('company_id', companyId).eq('status', 'paid').ilike('description', `%${sale.sale_number}%`);
         if (paidReceivable && paidReceivable.length > 0) {
           paidRevenue += Number(sale.net_amount);
         }
       }
-      
       const totalRevenue = paidRevenue; // Apenas vendas com pagamento confirmado
       const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 
@@ -176,29 +148,18 @@ const Faturamento = () => {
       const budgetValue = budgetData.reduce((sum, budget) => sum + Number(budget.net_amount), 0);
 
       // Fetch pending receivables
-      const { data: receivables } = await supabase
-        .from('accounts_receivable')
-        .select('amount')
-        .eq('company_id', companyId)
-        .eq('status', 'pending');
-
+      const {
+        data: receivables
+      } = await supabase.from('accounts_receivable').select('amount').eq('company_id', companyId).eq('status', 'pending');
       const pendingReceivables = receivables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
 
       // Calculate monthly growth for sales only (compare with previous period)
-      const { data: previousSales } = await supabase
-        .from('sales')
-        .select('net_amount, sale_number, notes')
-        .eq('company_id', companyId)
-        .gte('sale_date', lastMonth.toISOString())
-        .lte('sale_date', lastMonthEnd.toISOString());
-
-      const previousActualSales = previousSales?.filter(sale => 
-        !sale.sale_number?.startsWith('ORC') && 
-        !sale.notes?.toLowerCase().includes('orçamento')
-      ) || [];
-
+      const {
+        data: previousSales
+      } = await supabase.from('sales').select('net_amount, sale_number, notes').eq('company_id', companyId).gte('sale_date', lastMonth.toISOString()).lte('sale_date', lastMonthEnd.toISOString());
+      const previousActualSales = previousSales?.filter(sale => !sale.sale_number?.startsWith('ORC') && !sale.notes?.toLowerCase().includes('orçamento')) || [];
       const previousRevenue = previousActualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
-      const monthlyGrowth = previousRevenue > 0 ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+      const monthlyGrowth = previousRevenue > 0 ? (totalRevenue - previousRevenue) / previousRevenue * 100 : 0;
 
       // Find top customer from actual sales only
       const customerSales = actualSales.reduce((acc, sale) => {
@@ -206,10 +167,7 @@ const Faturamento = () => {
         acc[customer] = (acc[customer] || 0) + Number(sale.net_amount);
         return acc;
       }, {} as Record<string, number>);
-
-      const topCustomer = Object.entries(customerSales)
-        .sort(([,a], [,b]) => b - a)[0]?.[0] || '-';
-
+      const topCustomer = Object.entries(customerSales).sort(([, a], [, b]) => b - a)[0]?.[0] || '-';
       setMetrics({
         totalSales,
         totalRevenue,
@@ -220,54 +178,51 @@ const Faturamento = () => {
         totalBudgets,
         budgetValue
       });
-
     } catch (error) {
       console.error('Error fetching billing data:', error);
       toast({
         title: "Erro ao carregar dados",
         description: "Não foi possível carregar os dados de faturamento",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const filteredSales = sales.filter(sale => {
-    const matchesSearch = sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) || sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
   const filteredBudgets = budgets.filter(budget => {
-    const matchesSearch = budget.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         budget.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = budget.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) || budget.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || budget.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
   const handleViewSale = (saleId: string) => {
     navigate(`/vendas?view=${saleId}`);
   };
-
   const handleEditSale = (saleId: string) => {
     navigate(`/vendas?edit=${saleId}`);
   };
-
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
-
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'active': return 'default';
-      case 'cancelled': return 'destructive';
-      case 'pending': return 'secondary';
-      default: return 'outline';
+      case 'active':
+        return 'default';
+      case 'cancelled':
+        return 'destructive';
+      case 'pending':
+        return 'secondary';
+      default:
+        return 'outline';
     }
   };
-
   const getSaleType = (sale: Sale) => {
     if (sale.sale_number?.startsWith('ORC') || sale.notes?.toLowerCase().includes('orçamento')) {
       return 'Orçamento';
@@ -278,28 +233,25 @@ const Faturamento = () => {
     }
     return 'Avulsa';
   };
-
   const handleViewReceivables = async (sale: Sale) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: {
+          user
+        }
+      } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', user.id)
-        .single();
-
+      const {
+        data: profile
+      } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
       if (!profile?.company_id) return;
 
       // Buscar contas a receber relacionadas a esta venda
-      const { data: receivables } = await supabase
-        .from('accounts_receivable')
-        .select('*')
-        .eq('company_id', profile.company_id)
-        .ilike('description', `%${sale.sale_number}%`)
-        .order('due_date', { ascending: true });
-
+      const {
+        data: receivables
+      } = await supabase.from('accounts_receivable').select('*').eq('company_id', profile.company_id).ilike('description', `%${sale.sale_number}%`).order('due_date', {
+        ascending: true
+      });
       if (receivables && receivables.length > 0) {
         // Navegar para contas a receber com filtro aplicado
         navigate(`/financeiro/contas-receber?filter=${sale.sale_number}`);
@@ -307,7 +259,7 @@ const Faturamento = () => {
         toast({
           title: "Nenhuma cobrança encontrada",
           description: "Não há cobranças relacionadas a esta venda.",
-          variant: "default",
+          variant: "default"
         });
       }
     } catch (error) {
@@ -315,21 +267,16 @@ const Faturamento = () => {
       toast({
         title: "Erro",
         description: "Não foi possível buscar as cobranças.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
+    return <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -360,7 +307,7 @@ const Faturamento = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total de Vendas</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
@@ -419,11 +366,7 @@ const Faturamento = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">Crescimento</CardTitle>
-            {metrics.monthlyGrowth >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />
-            )}
+            {metrics.monthlyGrowth >= 0 ? <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" /> : <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />}
           </CardHeader>
           <CardContent>
             <div className={`text-xl sm:text-2xl font-bold ${metrics.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -471,12 +414,7 @@ const Faturamento = () => {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                   <div className="flex items-center space-x-2 flex-1">
                     <Search className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por número da venda ou cliente..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full sm:max-w-sm"
-                    />
+                    <Input placeholder="Buscar por número da venda ou cliente..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:max-w-sm" />
                   </div>
                   
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -493,16 +431,13 @@ const Faturamento = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredSales.length === 0 ? (
-                  <div className="text-center py-10">
+                {filteredSales.length === 0 ? <div className="text-center py-10">
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="mt-2 text-sm font-semibold">Nenhuma venda encontrada</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Não há vendas efetivas para o período e filtros selecionados.
                     </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
+                  </div> : <div className="overflow-x-auto">
                      <Table>
                        <TableHeader>
                          <TableRow>
@@ -517,8 +452,7 @@ const Faturamento = () => {
                          </TableRow>
                        </TableHeader>
                        <TableBody>
-                         {filteredSales.map((sale) => (
-                           <TableRow key={sale.id}>
+                         {filteredSales.map(sale => <TableRow key={sale.id}>
                              <TableCell className="font-medium">
                                {sale.sale_number}
                              </TableCell>
@@ -528,7 +462,9 @@ const Faturamento = () => {
                                </Badge>
                              </TableCell>
                              <TableCell>
-                               {format(new Date(sale.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
+                               {format(new Date(sale.sale_date), 'dd/MM/yyyy', {
+                          locale: ptBR
+                        })}
                              </TableCell>
                              <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
                                {sale.customer_name}
@@ -538,8 +474,7 @@ const Faturamento = () => {
                              </TableCell>
                              <TableCell>
                                <Badge variant={getStatusVariant(sale.status)} className="text-xs">
-                                 {sale.status === 'active' ? 'Ativo' : 
-                                  sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                                 {sale.status === 'active' ? 'Ativo' : sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
                                </Badge>
                              </TableCell>
                              <TableCell>
@@ -549,38 +484,21 @@ const Faturamento = () => {
                              </TableCell>
                              <TableCell className="text-right">
                                <div className="flex justify-end space-x-1">
-                                 <Button 
-                                   variant="outline" 
-                                   size="sm"
-                                   onClick={() => handleViewReceivables(sale)}
-                                   title="Ver cobranças no contas a receber"
-                                 >
+                                 <Button variant="outline" size="sm" onClick={() => handleViewReceivables(sale)} title="Ver cobranças no contas a receber">
                                    <RefreshCw className="h-4 w-4" />
                                  </Button>
-                                 <Button 
-                                   variant="outline" 
-                                   size="sm"
-                                   onClick={() => handleViewSale(sale.id)}
-                                   title="Visualizar venda"
-                                 >
+                                 <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
                                    <Eye className="h-4 w-4" />
                                  </Button>
-                                 <Button 
-                                   variant="outline" 
-                                   size="sm"
-                                   onClick={() => handleEditSale(sale.id)}
-                                   title="Editar venda"
-                                 >
+                                 <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
                                    <Edit className="h-4 w-4" />
                                  </Button>
                                </div>
                              </TableCell>
-                          </TableRow>
-                        ))}
+                          </TableRow>)}
                       </TableBody>
                     </Table>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -643,12 +561,7 @@ const Faturamento = () => {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                   <div className="flex items-center space-x-2 flex-1">
                     <Search className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por número do orçamento ou cliente..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full sm:max-w-sm"
-                    />
+                    <Input placeholder="Buscar por número do orçamento ou cliente..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:max-w-sm" />
                   </div>
                   
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -665,16 +578,13 @@ const Faturamento = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredBudgets.length === 0 ? (
-                  <div className="text-center py-10">
+                {filteredBudgets.length === 0 ? <div className="text-center py-10">
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="mt-2 text-sm font-semibold">Nenhum orçamento encontrado</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Não há orçamentos para o período e filtros selecionados.
                     </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
+                  </div> : <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -689,13 +599,14 @@ const Faturamento = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredBudgets.map((budget) => (
-                          <TableRow key={budget.id}>
+                        {filteredBudgets.map(budget => <TableRow key={budget.id}>
                             <TableCell className="font-medium">
                               {budget.sale_number}
                             </TableCell>
                             <TableCell>
-                              {format(new Date(budget.sale_date), 'dd/MM/yyyy', { locale: ptBR })}
+                              {format(new Date(budget.sale_date), 'dd/MM/yyyy', {
+                          locale: ptBR
+                        })}
                             </TableCell>
                             <TableCell className="max-w-[150px] truncate" title={budget.customer_name}>
                               {budget.customer_name}
@@ -709,43 +620,28 @@ const Faturamento = () => {
                             </TableCell>
                             <TableCell>
                               <Badge variant={getStatusVariant(budget.status)} className="text-xs">
-                                {budget.status === 'active' ? 'Ativo' : 
-                                 budget.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
+                                {budget.status === 'active' ? 'Ativo' : budget.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
                               </Badge>
                             </TableCell>
                              <TableCell className="text-right">
                                <div className="flex justify-end space-x-1">
-                                 <Button 
-                                   variant="outline" 
-                                   size="sm"
-                                   onClick={() => handleViewSale(budget.id)}
-                                   title="Visualizar orçamento"
-                                 >
+                                 <Button variant="outline" size="sm" onClick={() => handleViewSale(budget.id)} title="Visualizar orçamento">
                                    <Eye className="h-4 w-4" />
                                  </Button>
-                                 <Button 
-                                   variant="outline" 
-                                   size="sm"
-                                   onClick={() => handleEditSale(budget.id)}
-                                   title="Editar orçamento"
-                                 >
+                                 <Button variant="outline" size="sm" onClick={() => handleEditSale(budget.id)} title="Editar orçamento">
                                    <Edit className="h-4 w-4" />
                                  </Button>
                                </div>
                              </TableCell>
-                          </TableRow>
-                        ))}
+                          </TableRow>)}
                       </TableBody>
                     </Table>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Faturamento;
