@@ -44,7 +44,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await signUp(signupData.email, signupData.password, signupData.fullName);
+    const { error } = await signUp(signupData.email, signupData.password, signupData.fullName, signupData.company);
     
     if (!error) {
       navigate("/dashboard");

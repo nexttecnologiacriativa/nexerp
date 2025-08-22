@@ -8,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, companyName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, companyName?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
@@ -88,7 +88,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            full_name: fullName
+            full_name: fullName,
+            company_name: companyName || 'Minha Empresa'
           }
         }
       });
