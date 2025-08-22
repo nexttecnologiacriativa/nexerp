@@ -34,7 +34,9 @@ import {
   Package,
   Receipt,
   Calendar,
-  Eye
+  Eye,
+  Landmark,
+  PiggyBank
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,6 +63,14 @@ interface ReportData {
     topSelling: any[];
     inventory: any[];
     lowStock: any[];
+  };
+  banks: {
+    accounts: any[];
+    totalBalance: number;
+  };
+  costCenters: {
+    expenses: any[];
+    total: number;
   };
 }
 
@@ -214,6 +224,28 @@ const Relatorios = () => {
         console.error('Error fetching products:', productsError);
       }
 
+      // Fetch contas bancárias
+      const { data: bankAccounts, error: bankError } = await supabase
+        .from('bank_accounts')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('status', 'active');
+
+      if (bankError) {
+        console.error('Error fetching bank accounts:', bankError);
+      }
+
+      // Fetch centros de custos e suas despesas
+      const { data: costCenters, error: costCentersError } = await supabase
+        .from('cost_centers')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('status', 'active');
+
+      if (costCentersError) {
+        console.error('Error fetching cost centers:', costCentersError);
+      }
+
       console.log('Fetched data:', {
         allReceivables: allReceivables?.length || 0,
         paidReceivables: paidReceivables?.length || 0,
@@ -221,7 +253,9 @@ const Relatorios = () => {
         paidPayables: paidPayables?.length || 0,
         sales: sales?.length || 0,
         customers: customers?.length || 0,
-        products: products?.length || 0
+        products: products?.length || 0,
+        bankAccounts: bankAccounts?.length || 0,
+        costCenters: costCenters?.length || 0
       });
 
       // Processar dados para gráficos
@@ -233,6 +267,8 @@ const Relatorios = () => {
         sales: sales || [],
         customers: customers || [],
         products: products || [],
+        bankAccounts: bankAccounts || [],
+        costCenters: costCenters || [],
         startDate,
         endDate
       });
@@ -251,7 +287,7 @@ const Relatorios = () => {
   };
 
   const processReportData = (data: any): ReportData => {
-    const { receivables, paidReceivables, payables, paidPayables, sales, customers, products, startDate, endDate } = data;
+    const { receivables, paidReceivables, payables, paidPayables, sales, customers, products, bankAccounts, costCenters, startDate, endDate } = data;
 
     // Processar dados mensais
     const monthlyData = [];
@@ -373,6 +409,35 @@ const Relatorios = () => {
       .sort((a: any, b: any) => (a.stock_quantity || 0) - (b.stock_quantity || 0))
       .slice(0, 10);
 
+    // Processar dados dos bancos
+    const totalBankBalance = bankAccounts.reduce((sum: number, account: any) => {
+      return sum + (Number(account.balance) || 0);
+    }, 0);
+
+    // Processar despesas por centro de custos
+    const costCenterExpenses: { [key: string]: { name: string, amount: number } } = {};
+    
+    // Inicializar centros de custos
+    costCenters.forEach((center: any) => {
+      costCenterExpenses[center.id] = {
+        name: center.name,
+        amount: 0
+      };
+    });
+
+    // Agregar despesas por centro de custos
+    paidPayables.forEach((expense: any) => {
+      if (expense.cost_center_id && costCenterExpenses[expense.cost_center_id]) {
+        costCenterExpenses[expense.cost_center_id].amount += Number(expense.amount) || 0;
+      }
+    });
+
+    const costCenterData = Object.values(costCenterExpenses)
+      .filter(center => center.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
+    const totalCostCenterExpenses = costCenterData.reduce((sum, center) => sum + center.amount, 0);
+
     return {
       financial: {
         revenue: monthlyData,
@@ -393,6 +458,14 @@ const Relatorios = () => {
         topSelling: topProducts,
         inventory: products,
         lowStock: lowStockProducts
+      },
+      banks: {
+        accounts: bankAccounts,
+        totalBalance: totalBankBalance
+      },
+      costCenters: {
+        expenses: costCenterData,
+        total: totalCostCenterExpenses
       }
     };
   };
@@ -507,50 +580,51 @@ const Relatorios = () => {
       </Card>
 
       <Tabs defaultValue="financial" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="financial">Financeiro</TabsTrigger>
           <TabsTrigger value="sales">Vendas</TabsTrigger>
           <TabsTrigger value="customers">Clientes</TabsTrigger>
           <TabsTrigger value="products">Produtos</TabsTrigger>
+          <TabsTrigger value="centers">Centros de Custos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="financial" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+                <CardTitle className="text-sm font-medium">Receita Recebida</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  R$ {reportData?.financial.revenue.reduce((sum, item) => sum + item.receitas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <div className="text-2xl font-bold text-green-600">
+                  R$ {reportData?.financial.revenue.reduce((sum, item) => sum + item.receitasPagas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingUp className="mr-1 h-3 w-3" />
-                  +12% em relação ao período anterior
+                  apenas valores recebidos
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Despesas Total</CardTitle>
+                <CardTitle className="text-sm font-medium">Despesas Pagas</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  R$ {reportData?.financial.expenses.reduce((sum, item) => sum + item.despesas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <div className="text-2xl font-bold text-red-600">
+                  R$ {reportData?.financial.expenses.reduce((sum, item) => sum + item.despesasPagas, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingDown className="mr-1 h-3 w-3" />
-                  -5% em relação ao período anterior
+                  apenas valores pagos
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
+                <CardTitle className="text-sm font-medium">Lucro Líquido Real</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -559,7 +633,23 @@ const Relatorios = () => {
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingUp className="mr-1 h-3 w-3" />
-                  +25% em relação ao período anterior
+                  receitas - despesas pagas
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Saldo em Bancos</CardTitle>
+                <Landmark className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  R$ {reportData?.banks.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <PiggyBank className="mr-1 h-3 w-3" />
+                  total em {reportData?.banks.accounts.length} conta(s)
                 </div>
               </CardContent>
             </Card>
@@ -571,14 +661,14 @@ const Relatorios = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {reportData?.financial.revenue.reduce((sum, item) => sum + item.receitas, 0) > 0 
-                    ? ((reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) / reportData?.financial.revenue.reduce((sum, item) => sum + item.receitas, 0)) * 100).toFixed(1)
+                  {reportData?.financial.revenue.reduce((sum, item) => sum + item.receitasPagas, 0) > 0 
+                    ? ((reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) / reportData?.financial.revenue.reduce((sum, item) => sum + item.receitasPagas, 0)) * 100).toFixed(1)
                     : '0.0'
                   }%
                 </div>
                 <div className="flex items-center text-xs text-muted-foreground">
                   <TrendingUp className="mr-1 h-3 w-3" />
-                  +3.2% em relação ao período anterior
+                  baseado em valores reais
                 </div>
               </CardContent>
             </Card>
@@ -609,8 +699,8 @@ const Relatorios = () => {
                       formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, '']}
                     />
                     <Legend />
-                    <Bar dataKey="receitas" fill="#8884d8" name="Receitas" />
-                    <Bar dataKey="despesas" fill="#82ca9d" name="Despesas" />
+                    <Bar dataKey="receitasPagas" fill="#8884d8" name="Receitas Recebidas" />
+                    <Bar dataKey="despesasPagas" fill="#82ca9d" name="Despesas Pagas" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -850,6 +940,97 @@ const Relatorios = () => {
                     </span>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="centers" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Centros</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{reportData?.costCenters.expenses.length || 0}</div>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  centros com despesas
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Despesas</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  R$ {reportData?.costCenters.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <TrendingDown className="mr-1 h-3 w-3" />
+                  por centro de custos
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Despesas por Centro de Custos</CardTitle>
+                <div className="flex space-x-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => exportToCSV(reportData?.costCenters.expenses || [], 'despesas-centros-custos')}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={reportData?.costCenters.expenses || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, '']}
+                    />
+                    <Bar dataKey="amount" fill="#ff7300" name="Despesas" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribuição por Centro</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={reportData?.costCenters.expenses || []}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="amount"
+                    >
+                      {reportData?.costCenters.expenses?.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, '']} />
+                  </PieChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
