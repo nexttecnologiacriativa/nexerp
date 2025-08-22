@@ -76,14 +76,6 @@ const ContasReceber = () => {
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      fetchAccounts();
-      fetchCustomers();
-      fetchBankAccounts();
-    }
-  }, [user]);
-
   const fetchAccounts = async () => {
     try {
       const { data: existingAccounts, error: existingError } = await supabase
@@ -149,6 +141,14 @@ const ContasReceber = () => {
       console.error('Error fetching bank accounts:', error);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchAccounts();
+      fetchCustomers();
+      fetchBankAccounts();
+    }
+  }, [user]);
 
   const resetForm = () => {
     setFormData({
