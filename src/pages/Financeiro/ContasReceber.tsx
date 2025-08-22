@@ -29,7 +29,6 @@ interface AccountReceivable {
   company_id: string;
   created_at: string;
   updated_at: string;
-  cost_center_id: string | null;
   category_id: string | null;
   subcategory_id: string | null;
   payment_method: 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check' | null;
@@ -55,9 +54,6 @@ interface AccountReceivable {
   subcategories?: {
     name: string;
     color: string;
-  };
-  cost_centers?: {
-    name: string;
   };
 }
 
@@ -95,12 +91,10 @@ const ContasReceber = () => {
     recurrence_interval: 1,
     recurrence_end_date: "",
     bank_account_id: "",
-    cost_center_id: "",
     category_id: "",
     subcategory_id: "",
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-  const [costCenters, setCostCenters] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [subcategories, setSubcategories] = useState<any[]>([]);
 
@@ -116,9 +110,6 @@ const ContasReceber = () => {
           bank_accounts:bank_account_id (
             name,
             bank_name
-          ),
-          cost_centers:cost_center_id (
-            name
           ),
           categories:category_id (
             name,
@@ -181,20 +172,6 @@ const ContasReceber = () => {
     }
   };
 
-  const fetchCostCenters = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('cost_centers')
-        .select('id, name, description')
-        .eq('status', 'active')
-        .order('name');
-
-      if (error) throw error;
-      setCostCenters(data || []);
-    } catch (error) {
-      console.error('Error fetching cost centers:', error);
-    }
-  };
 
   const fetchCategories = async () => {
     try {
@@ -231,7 +208,6 @@ const ContasReceber = () => {
       fetchAccounts();
       fetchCustomers();
       fetchBankAccounts();
-      fetchCostCenters();
       fetchCategories();
       fetchSubcategories();
     }
@@ -257,7 +233,6 @@ const ContasReceber = () => {
       recurrence_interval: 1,
       recurrence_end_date: "",
       bank_account_id: "",
-      cost_center_id: "",
       category_id: "",
       subcategory_id: "",
     });
@@ -297,7 +272,6 @@ const ContasReceber = () => {
         recurrence_interval: formData.is_recurring ? formData.recurrence_interval : null,
         recurrence_end_date: formData.is_recurring && formData.recurrence_end_date ? formData.recurrence_end_date : null,
         bank_account_id: formData.bank_account_id || null,
-        cost_center_id: formData.cost_center_id || null,
         category_id: formData.category_id || null,
         subcategory_id: formData.subcategory_id || null,
         next_due_date: formData.is_recurring ? formData.due_date : null,
@@ -496,7 +470,6 @@ const ContasReceber = () => {
       recurrence_interval: account.recurrence_interval || 1,
       recurrence_end_date: account.recurrence_end_date || "",
       bank_account_id: account.bank_account_id || "",
-      cost_center_id: account.cost_center_id || "",
       category_id: account.category_id || "",
       subcategory_id: account.subcategory_id || "",
     });
@@ -651,21 +624,6 @@ const ContasReceber = () => {
                   </Select>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="cost_center_id">Centro de Custos</Label>
-                  <Select value={formData.cost_center_id} onValueChange={(value) => setFormData({...formData, cost_center_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o centro de custos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {costCenters.map((costCenter) => (
-                        <SelectItem key={costCenter.id} value={costCenter.id}>
-                          {costCenter.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="category_id">Categoria</Label>
                   <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value, subcategory_id: ""})}>
@@ -942,7 +900,6 @@ const ContasReceber = () => {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Subcategoria</TableHead>
-                <TableHead>Centro de Custos</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Vencimento</TableHead>
                 <TableHead>Status</TableHead>
@@ -990,9 +947,6 @@ const ContasReceber = () => {
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      {account.cost_centers?.name || <span className="text-muted-foreground">-</span>}
                     </TableCell>
                     <TableCell>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.amount)}
