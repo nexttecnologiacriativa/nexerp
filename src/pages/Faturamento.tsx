@@ -399,7 +399,7 @@ const Faturamento = () => {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
@@ -450,40 +450,25 @@ const Faturamento = () => {
           </CardHeader>
           <CardContent>
             <div className="text-lg sm:text-xl lg:text-2xl font-bold text-yellow-600 break-all">
+              {formatCurrency(metrics.budgetValue)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              orçamentos em negociação
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">A Receber</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600 break-all">
               {formatCurrency(metrics.pendingReceivables)}
             </div>
             <p className="text-xs text-muted-foreground">
-              valores em negociação
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Crescimento</CardTitle>
-            {metrics.monthlyGrowth >= 0 ? <TrendingUp className="h-4 w-4 text-green-600 flex-shrink-0" /> : <TrendingDown className="h-4 w-4 text-red-600 flex-shrink-0" />}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-xl sm:text-2xl font-bold ${metrics.monthlyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {metrics.monthlyGrowth.toFixed(1)}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              vs. período anterior
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Melhor Cliente</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm sm:text-base font-bold truncate" title={metrics.topCustomer}>
-              {metrics.topCustomer}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              maior faturamento
+              vendas ainda não recebidas
             </p>
           </CardContent>
         </Card>
@@ -534,18 +519,18 @@ const Faturamento = () => {
                     </p>
                   </div> : <div className="overflow-x-auto">
                      <Table>
-                       <TableHeader>
-                         <TableRow>
-                           <TableHead className="min-w-[100px]">Número</TableHead>
-                           <TableHead className="min-w-[80px]">Tipo</TableHead>
-                           <TableHead className="min-w-[100px]">Data</TableHead>
-                           <TableHead className="min-w-[150px]">Cliente</TableHead>
-                           <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
-                           <TableHead className="min-w-[80px]">Status</TableHead>
-                           <TableHead className="min-w-[120px]">Tag</TableHead>
-                           <TableHead className="min-w-[120px]">Ações</TableHead>
-                         </TableRow>
-                       </TableHeader>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[100px]">Número</TableHead>
+                            <TableHead className="min-w-[80px]">Tipo</TableHead>
+                            <TableHead className="min-w-[100px]">Data</TableHead>
+                            <TableHead className="min-w-[150px]">Cliente</TableHead>
+                            <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
+                            <TableHead className="min-w-[80px]">Status</TableHead>
+                            <TableHead className="min-w-[120px]">Tags</TableHead>
+                            <TableHead className="min-w-[120px]">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
                        <TableBody>
                          {filteredSales.map(sale => <TableRow key={sale.id}>
                              <TableCell className="font-medium">
@@ -572,11 +557,35 @@ const Faturamento = () => {
                                  {sale.status === 'active' ? 'Ativo' : sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
                                </Badge>
                              </TableCell>
-                             <TableCell>
-                               <Badge variant="secondary" className="text-xs">
-                                 {sale.payment_method || 'Não informado'}
-                               </Badge>
-                             </TableCell>
+                              <TableCell>
+                                {/* Extrair tags das notas */}
+                                {(() => {
+                                  const notesContent = sale.notes || '';
+                                  const tagsMatch = notesContent.match(/Tags:\s*(.+)/);
+                                  const tags = tagsMatch ? tagsMatch[1].split(',').map(tag => tag.trim()) : [];
+                                  
+                                  return (
+                                    <div className="flex flex-wrap gap-1">
+                                      {tags.length > 0 ? (
+                                        tags.slice(0, 2).map((tag, index) => (
+                                          <Badge key={index} variant="secondary" className="text-xs">
+                                            {tag}
+                                          </Badge>
+                                        ))
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs">
+                                          Sem tags
+                                        </Badge>
+                                      )}
+                                      {tags.length > 2 && (
+                                        <Badge variant="outline" className="text-xs">
+                                          +{tags.length - 2}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end space-x-1">
                                    <Button variant="outline" size="sm" onClick={() => handleViewRecurrences(sale)} title="Ver recorrências desta venda">
