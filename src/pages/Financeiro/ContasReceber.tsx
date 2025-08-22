@@ -14,6 +14,7 @@ import { Plus, Search, Edit, Trash2, Check, Calendar, DollarSign, ChevronLeft, C
 import { useToast } from "@/hooks/use-toast";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useSearchParams } from "react-router-dom";
 
 interface AccountReceivable {
   id: string;
@@ -54,6 +55,7 @@ interface Customer {
 const ContasReceber = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [accounts, setAccounts] = useState<AccountReceivable[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,9 @@ const ContasReceber = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"monthly" | "all">("all");
+  
+  // Pegar filtro da URL para filtrar por venda específica
+  const saleFilter = searchParams.get('filter');
 
   const [formData, setFormData] = useState({
     customer_id: "",
@@ -152,6 +157,13 @@ const ContasReceber = () => {
       fetchBankAccounts();
     }
   }, [user]);
+
+  // Aplicar filtro da URL quando disponível
+  useEffect(() => {
+    if (saleFilter) {
+      setSearchTerm(saleFilter);
+    }
+  }, [saleFilter]);
 
   const resetForm = () => {
     setFormData({
@@ -447,8 +459,15 @@ const ContasReceber = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Contas a Receber</h1>
-          <p className="text-muted-foreground">Gerencie suas contas a receber</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Contas a Receber {saleFilter && `- ${saleFilter}`}
+          </h1>
+          <p className="text-muted-foreground">
+            {saleFilter 
+              ? `Cobranças relacionadas à venda ${saleFilter}` 
+              : "Gerencie suas contas a receber"
+            }
+          </p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
