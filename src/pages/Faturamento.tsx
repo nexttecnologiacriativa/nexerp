@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Search, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2, Plus, PiggyBank } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2, Plus, PiggyBank, FileDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -55,7 +55,6 @@ const Faturamento = () => {
     budgetValue: 0
   });
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [periodFilter, setPeriodFilter] = useState('current_month');
   const {
@@ -187,14 +186,12 @@ const Faturamento = () => {
     }
   };
   const filteredSales = sales.filter(sale => {
-    const matchesSearch = sale.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) || sale.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesStatus;
   });
   const filteredBudgets = budgets.filter(budget => {
-    const matchesSearch = budget.sale_number.toLowerCase().includes(searchTerm.toLowerCase()) || budget.customer_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || budget.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesStatus;
   });
   const handleViewSale = (saleId: string) => {
     // Por enquanto só abre um novo formulário - implementar visualização depois
@@ -343,6 +340,113 @@ const Faturamento = () => {
       });
     }
   };
+
+  const handleGeneratePDF = (item: Sale, type: 'sale' | 'budget') => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const title = type === 'sale' ? 'Venda' : 'Orçamento';
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${title} - ${item.sale_number}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 20px;
+              color: #333;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+            }
+            .info-grid { 
+              display: grid; 
+              grid-template-columns: 1fr 1fr; 
+              gap: 20px; 
+              margin-bottom: 30px;
+            }
+            .info-item { 
+              margin-bottom: 10px; 
+            }
+            .label { 
+              font-weight: bold; 
+              color: #666;
+            }
+            .value { 
+              margin-left: 10px;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              font-size: 12px;
+              color: #666;
+            }
+            @media print {
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${title} #${item.sale_number}</h1>
+            <p>Data: ${format(new Date(item.sale_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+          </div>
+          
+          <div class="info-grid">
+            <div>
+              <div class="info-item">
+                <span class="label">Cliente:</span>
+                <span class="value">${item.customer_name || 'Não informado'}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Status:</span>
+                <span class="value">${item.status === 'active' ? 'Ativo' : item.status === 'cancelled' ? 'Cancelado' : 'Pendente'}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Tipo:</span>
+                <span class="value">${getSaleType(item)}</span>
+              </div>
+            </div>
+            
+            <div>
+              <div class="info-item">
+                <span class="label">Valor Total:</span>
+                <span class="value">${formatCurrency(Number(item.total_amount))}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Desconto:</span>
+                <span class="value">${item.discount_amount > 0 ? formatCurrency(Number(item.discount_amount)) : 'Nenhum'}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Valor Líquido:</span>
+                <span class="value"><strong>${formatCurrency(Number(item.net_amount))}</strong></span>
+              </div>
+            </div>
+          </div>
+
+          ${item.notes ? `
+            <div style="margin-top: 20px;">
+              <div class="label">Observações:</div>
+              <div style="margin-top: 10px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+                ${item.notes}
+              </div>
+            </div>
+          ` : ''}
+          
+          <div class="footer">
+            <p>Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -491,14 +595,9 @@ const Faturamento = () => {
                   Vendas efetivas (avulsa e recorrente) realizadas no período
                 </CardDescription>
                 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-                  <div className="flex items-center space-x-2 flex-1">
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar por número da venda ou cliente..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:max-w-sm" />
-                  </div>
-                  
+                <div className="flex justify-end">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-48">
+                    <SelectTrigger className="w-48">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -586,22 +685,25 @@ const Faturamento = () => {
                                   );
                                 })()}
                               </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-1">
-                                   <Button variant="outline" size="sm" onClick={() => handleViewRecurrences(sale)} title="Ver recorrências desta venda">
-                                     <PiggyBank className="h-4 w-4" />
+                               <TableCell className="text-right">
+                                 <div className="flex justify-end space-x-1">
+                                    <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(sale, 'sale')} title="Gerar PDF da venda">
+                                      <FileDown className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleViewRecurrences(sale)} title="Ver recorrências desta venda">
+                                      <PiggyBank className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                   <Button variant="outline" size="sm" onClick={() => handleDeleteSale(sale)} title="Excluir venda" className="text-destructive hover:text-destructive">
+                                     <Trash2 className="h-4 w-4" />
                                    </Button>
-                                   <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
-                                     <Eye className="h-4 w-4" />
-                                   </Button>
-                                   <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
-                                     <Edit className="h-4 w-4" />
-                                   </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleDeleteSale(sale)} title="Excluir venda" className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
+                                 </div>
+                               </TableCell>
                           </TableRow>)}
                       </TableBody>
                     </Table>
@@ -665,14 +767,9 @@ const Faturamento = () => {
                   Orçamentos que podem se transformar em vendas efetivas
                 </CardDescription>
                 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-                  <div className="flex items-center space-x-2 flex-1">
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar por número do orçamento ou cliente..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:max-w-sm" />
-                  </div>
-                  
+                <div className="flex justify-end">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-48">
+                    <SelectTrigger className="w-48">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -732,6 +829,9 @@ const Faturamento = () => {
                             </TableCell>
                              <TableCell className="text-right">
                                <div className="flex justify-end space-x-1">
+                                  <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(budget, 'budget')} title="Gerar PDF do orçamento">
+                                    <FileDown className="h-4 w-4" />
+                                  </Button>
                                   <Button variant="outline" size="sm" onClick={() => handleViewSale(budget.id)} title="Visualizar orçamento">
                                     <Eye className="h-4 w-4" />
                                   </Button>
