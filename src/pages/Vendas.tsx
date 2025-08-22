@@ -99,7 +99,8 @@ const Vendas = () => {
     cost_center_id: "",
     salesperson: "",
     status: "approved",
-    notes: ""
+    notes: "",
+    tag: ""
   });
 
   // Load data on component mount
@@ -317,7 +318,7 @@ const Vendas = () => {
           net_amount: totalAmount - discount,
           sale_date: formData.sale_date,
           sale_number: formData.sale_number,
-          notes: formData.notes,
+          notes: formData.tag ? `${formData.notes}\n\nTag: ${formData.tag}` : formData.notes,
           status: 'active'
         })
         .select()
@@ -437,16 +438,11 @@ const Vendas = () => {
             {/* Número da venda */}
             <div>
               <Label htmlFor="sale_number">Número da venda *</Label>
-              <div className="relative">
-                <Input
-                  id="sale_number"
-                  value={formData.sale_number}
-                  onChange={(e) => setFormData({...formData, sale_number: e.target.value})}
-                />
-                <Button size="sm" variant="ghost" className="absolute right-1 top-1 h-8 w-8 p-0">
-                  <CalendarIcon className="h-4 w-4" />
-                </Button>
-              </div>
+              <Input
+                id="sale_number"
+                value={formData.sale_number}
+                onChange={(e) => setFormData({...formData, sale_number: e.target.value})}
+              />
             </div>
 
             {/* Cliente */}
@@ -529,6 +525,29 @@ const Vendas = () => {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Tag do sistema */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="tag">Tag do sistema</Label>
+              <Select value={formData.tag} onValueChange={(value) => setFormData({...formData, tag: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma tag" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alta_prioridade">Alta Prioridade</SelectItem>
+                  <SelectItem value="cliente_vip">Cliente VIP</SelectItem>
+                  <SelectItem value="projeto_especial">Projeto Especial</SelectItem>
+                  <SelectItem value="desconto_aplicado">Desconto Aplicado</SelectItem>
+                  <SelectItem value="pagamento_antecipado">Pagamento Antecipado</SelectItem>
+                  <SelectItem value="cliente_novo">Cliente Novo</SelectItem>
+                  <SelectItem value="renovacao">Renovação</SelectItem>
+                  <SelectItem value="upsell">Upsell</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div></div>
           </div>
         </CardContent>
       </Card>
@@ -646,7 +665,8 @@ const Vendas = () => {
           <CardTitle>Informações de pagamento</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          {/* Primeira linha */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             {/* Forma de pagamento */}
             <div>
               <Label htmlFor="payment_method">Forma de pagamento</Label>
@@ -703,7 +723,10 @@ const Vendas = () => {
                 <span className="ml-1 text-sm">%</span>
               </div>
             </div>
+          </div>
 
+          {/* Segunda linha */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Valor a receber */}
             <div>
               <Label htmlFor="amount">Valor a receber</Label>
@@ -770,39 +793,39 @@ const Vendas = () => {
                 )}
               </div>
             </div>
-
-            {/* Lista de parcelas editável */}
-            {showInstallments && paymentInfo.installments > 1 && (
-              <div className="col-span-full">
-                <Label>Parcelas</Label>
-                <div className="mt-2 space-y-2">
-                  {installments.map((installment, index) => (
-                    <div key={index} className="flex items-center gap-2 p-3 border rounded-lg">
-                      <span className="text-sm font-medium w-16">
-                        {installment.number}/{installments.length}
-                      </span>
-                      <div className="flex-1">
-                        <Input
-                          type="number"
-                          value={installment.amount}
-                          onChange={(e) => updateInstallment(index, 'amount', parseFloat(e.target.value) || 0)}
-                          placeholder="Valor"
-                          step="0.01"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Input
-                          type="date"
-                          value={installment.due_date}
-                          onChange={(e) => updateInstallment(index, 'due_date', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Lista de parcelas editável */}
+          {showInstallments && paymentInfo.installments > 1 && (
+            <div className="mt-4">
+              <Label>Parcelas</Label>
+              <div className="mt-2 space-y-2">
+                {installments.map((installment, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 border rounded-lg">
+                    <span className="text-sm font-medium w-16">
+                      {installment.number}/{installments.length}
+                    </span>
+                    <div className="flex-1">
+                      <Input
+                        type="number"
+                        value={installment.amount}
+                        onChange={(e) => updateInstallment(index, 'amount', parseFloat(e.target.value) || 0)}
+                        placeholder="Valor"
+                        step="0.01"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        type="date"
+                        value={installment.due_date}
+                        onChange={(e) => updateInstallment(index, 'due_date', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
