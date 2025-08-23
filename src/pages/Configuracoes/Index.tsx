@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Building2, User, Bell, Lock, Palette, Database, Save } from 'lucide-react';
+import { Building2, User, Bell, Lock, Palette, Database, Save, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -491,64 +492,206 @@ const Configuracoes = () => {
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações de Segurança</CardTitle>
-              <CardDescription>
-                Gerencie a segurança da sua conta
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-medium">Alterar Senha</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Mantenha sua conta segura com uma senha forte
-                  </p>
-                  <Button variant="outline" className="mt-2">
-                    Alterar Senha
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Password Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Lock className="mr-2 h-5 w-5" />
+                  Gestão de Senha
+                </CardTitle>
+                <CardDescription>
+                  Mantenha sua conta protegida com uma senha segura
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="current_password">Senha Atual</Label>
+                  <Input
+                    id="current_password"
+                    type="password"
+                    placeholder="Digite sua senha atual"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new_password">Nova Senha</Label>
+                  <Input
+                    id="new_password"
+                    type="password"
+                    placeholder="Digite a nova senha"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm_password">Confirmar Nova Senha</Label>
+                  <Input
+                    id="confirm_password"
+                    type="password"
+                    placeholder="Confirme a nova senha"
+                  />
+                </div>
+                <Button className="w-full">
+                  Alterar Senha
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Two-Factor Authentication */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Lock className="mr-2 h-5 w-5" />
+                  Autenticação de Dois Fatores (2FA)
+                </CardTitle>
+                <CardDescription>
+                  Adicione uma camada extra de segurança
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Status do 2FA</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Autenticação de dois fatores está desabilitada
+                    </p>
+                  </div>
+                  <Switch />
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full">
+                    Configurar Aplicativo Autenticador
+                  </Button>
+                  <Button variant="outline" className="w-full">
+                    Configurar SMS
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
 
-                <Separator />
-
-                <div>
-                  <h4 className="text-sm font-medium">Autenticação de Dois Fatores</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Adicione uma camada extra de segurança à sua conta
-                  </p>
-                  <Button variant="outline" className="mt-2">
-                    Configurar 2FA
-                  </Button>
+            {/* Active Sessions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Bell className="mr-2 h-5 w-5" />
+                  Sessões Ativas
+                </CardTitle>
+                <CardDescription>
+                  Monitore onde você está conectado
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Sessão Atual</p>
+                      <p className="text-xs text-muted-foreground">Chrome • São Paulo, Brasil</p>
+                      <p className="text-xs text-muted-foreground">Última atividade: agora</p>
+                    </div>
+                    <Badge>Ativa</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Firefox • Desktop</p>
+                      <p className="text-xs text-muted-foreground">Rio de Janeiro, Brasil</p>
+                      <p className="text-xs text-muted-foreground">Última atividade: 2 horas atrás</p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Encerrar
+                    </Button>
+                  </div>
                 </div>
+                <Button variant="destructive" className="w-full">
+                  Encerrar Todas as Outras Sessões
+                </Button>
+              </CardContent>
+            </Card>
 
-                <Separator />
-
-                <div>
-                  <h4 className="text-sm font-medium">Sessões Ativas</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Gerencie onde você está logado
-                  </p>
-                  <Button variant="outline" className="mt-2">
-                    Ver Sessões
-                  </Button>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="text-sm font-medium">Backup de Dados</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Baixe uma cópia dos seus dados
-                  </p>
-                  <Button variant="outline" className="mt-2">
+            {/* Data & Privacy */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Database className="mr-2 h-5 w-5" />
+                  Dados e Privacidade
+                </CardTitle>
+                <CardDescription>
+                  Gerencie seus dados pessoais
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start">
                     <Database className="mr-2 h-4 w-4" />
-                    Solicitar Backup
+                    Exportar Dados Pessoais
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start">
+                    <Database className="mr-2 h-4 w-4" />
+                    Solicitar Backup Completo
+                  </Button>
+                  <Separator />
+                  <Button variant="destructive" className="w-full justify-start">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir Conta Permanentemente
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            {/* Security Alerts */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Bell className="mr-2 h-5 w-5" />
+                  Alertas de Segurança
+                </CardTitle>
+                <CardDescription>
+                  Configure notificações de segurança
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Login de novo dispositivo</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Notificar quando houver login de um novo dispositivo
+                      </p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Tentativas de login suspeitas</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Alertar sobre tentativas de acesso suspeitas
+                      </p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Alterações na conta</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Notificar sobre mudanças importantes na conta
+                      </p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Relatório semanal de segurança</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Receber resumo semanal das atividades de segurança
+                      </p>
+                    </div>
+                    <Switch />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
