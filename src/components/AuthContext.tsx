@@ -2,14 +2,16 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import * as OTPAuth from 'otpauth';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; requiresTwoFactor?: boolean; tempSession?: any }>;
   signUp: (email: string, password: string, fullName: string, companyName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  verifyTwoFactor: (code: string, tempSession: any) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,9 +54,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const verifyTOTP = (token: string, secret: string) => {
+    const totp = new OTPAuth.TOTP({
+      issuer: 'NexERP',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: secret,
+    });
+
+    const delta = totp.validate({ token, window: 1 });
+    return delta !== null;
+  };
+
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -65,14 +80,61 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao NexERP",
-        });
+        return { error };
       }
+
+      // Verificar se o usuário tem 2FA ativado
+      if (data.user?.user_metadata?.two_factor_enabled) {
+        // Fazer logout temporário
+        await supabase.auth.signOut();
+        
+        return { 
+          error: null, 
+          requiresTwoFactor: true, 
+          tempSession: { email, password, user: data.user }
+        };
+      }
+
+      toast({
+        title: "Login realizado com sucesso!",
+        description: "Bem-vindo ao NexERP",
+      });
       
+      return { error: null };
+    } catch (error) {
       return { error };
+    }
+  };
+
+  const verifyTwoFactor = async (code: string, tempSession: any) => {
+    try {
+      // Verificar o código TOTP
+      const secret = tempSession.user?.user_metadata?.totp_secret;
+      if (!secret || !verifyTOTP(code, secret)) {
+        toast({
+          title: "Código inválido",
+          description: "Verifique o código e tente novamente",
+          variant: "destructive",
+        });
+        return { error: new Error('Código inválido') };
+      }
+
+      // Fazer login novamente se o código estiver correto
+      const { error } = await supabase.auth.signInWithPassword({
+        email: tempSession.email,
+        password: tempSession.password,
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      toast({
+        title: "Login realizado com sucesso!",
+        description: "Bem-vindo ao NexERP",
+      });
+
+      return { error: null };
     } catch (error) {
       return { error };
     }
@@ -136,6 +198,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signIn,
     signUp,
     signOut,
+    verifyTwoFactor,
   };
 
   return (

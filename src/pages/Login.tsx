@@ -7,20 +7,65 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, Building2, Mail, Lock } from "lucide-react";
 import Logo from "@/components/Logo";
+import { useAuth } from "@/components/AuthContext";
+import { TwoFactorDialog } from "@/components/TwoFactorDialog";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { signIn, verifyTwoFactor } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [tempSession, setTempSession] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     company: ""
   });
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login
-    navigate("/dashboard");
+    if (!formData.email || !formData.password) return;
+
+    setLoading(true);
+    try {
+      const result = await signIn(formData.email, formData.password);
+      
+      if (result.requiresTwoFactor) {
+        setTempSession(result.tempSession);
+        setShowTwoFactor(true);
+      } else if (!result.error) {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTwoFactorVerify = async (code: string) => {
+    if (!tempSession) return false;
+
+    try {
+      const result = await verifyTwoFactor(code, tempSession);
+      if (!result.error) {
+        setShowTwoFactor(false);
+        setTempSession(null);
+        navigate("/dashboard");
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      return false;
+    }
+  };
+
+  const handleTwoFactorCancel = () => {
+    setShowTwoFactor(false);
+    setTempSession(null);
   };
 
   return (
@@ -107,8 +152,14 @@ const Login = () => {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" variant="premium" className="w-full" size="lg">
-                Entrar no Sistema
+              <Button 
+                type="submit" 
+                variant="premium" 
+                className="w-full" 
+                size="lg"
+                disabled={loading || !formData.email || !formData.password}
+              >
+                {loading ? 'Entrando...' : 'Entrar no Sistema'}
               </Button>
 
               <Separator />
@@ -131,6 +182,14 @@ const Login = () => {
           © 2024 NexERP. Todos os direitos reservados.
         </div>
       </div>
+
+      {/* Two Factor Dialog */}
+      <TwoFactorDialog
+        isOpen={showTwoFactor}
+        onVerify={handleTwoFactorVerify}
+        onCancel={handleTwoFactorCancel}
+        loading={loading}
+      />
     </div>
   );
 };
