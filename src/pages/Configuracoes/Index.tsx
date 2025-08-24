@@ -11,6 +11,7 @@ import { Building2, User, Bell, Lock, Palette, Database, Save, Trash2 } from 'lu
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { TwoFactorSetup } from '@/components/TwoFactorSetup';
 
 interface Company {
   id: string;
@@ -156,7 +157,19 @@ const Configuracoes = () => {
 
   useEffect(() => {
     fetchData();
+    checkTwoFactorStatus();
   }, []);
+
+  const checkTwoFactorStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.two_factor_enabled) {
+        setTwoFactorEnabled(true);
+      }
+    } catch (error) {
+      console.error('Error checking 2FA status:', error);
+    }
+  };
 
   const handleProfileSave = async () => {
     try {
@@ -736,56 +749,10 @@ const Configuracoes = () => {
             </Card>
 
             {/* Two-Factor Authentication */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Lock className="mr-2 h-5 w-5" />
-                  Autenticação de Dois Fatores (2FA)
-                </CardTitle>
-                <CardDescription>
-                  Adicione uma camada extra de segurança
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Status do 2FA</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Autenticação de dois fatores está {twoFactorEnabled ? 'habilitada' : 'desabilitada'}
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={twoFactorEnabled}
-                    onCheckedChange={handleToggle2FA}
-                  />
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    disabled={!twoFactorEnabled}
-                    onClick={() => toast({
-                      title: "Em desenvolvimento",
-                      description: "Esta funcionalidade será implementada em breve",
-                    })}
-                  >
-                    Configurar Aplicativo Autenticador
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    disabled={!twoFactorEnabled}
-                    onClick={() => toast({
-                      title: "Em desenvolvimento",
-                      description: "Esta funcionalidade será implementada em breve",
-                    })}
-                  >
-                    Configurar SMS
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <TwoFactorSetup 
+              isEnabled={twoFactorEnabled}
+              onToggle={setTwoFactorEnabled}
+            />
 
             {/* Active Sessions */}
             <Card>
