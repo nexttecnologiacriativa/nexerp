@@ -8,12 +8,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff, Building2, Mail, Lock, User } from "lucide-react";
 import Logo from "@/components/Logo";
+import { TwoFactorDialog } from "@/components/TwoFactorDialog";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, verifyTwoFactor } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [tempSession, setTempSession] = useState<any>(null);
   
   const [loginData, setLoginData] = useState({
     email: "",
@@ -29,15 +32,46 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginData.email || !loginData.password) return;
+
     setLoading(true);
-    
-    const { error } = await signIn(loginData.email, loginData.password);
-    
-    if (!error) {
-      navigate("/dashboard");
+    try {
+      const result = await signIn(loginData.email, loginData.password);
+      
+      if (result.requiresTwoFactor) {
+        setTempSession(result.tempSession);
+        setShowTwoFactor(true);
+      } else if (!result.error) {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
+  };
+
+  const handleTwoFactorVerify = async (code: string) => {
+    if (!tempSession) return false;
+
+    try {
+      const result = await verifyTwoFactor(code, tempSession);
+      if (!result.error) {
+        setShowTwoFactor(false);
+        setTempSession(null);
+        navigate("/dashboard");
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('2FA verification error:', error);
+      return false;
+    }
+  };
+
+  const handleTwoFactorCancel = () => {
+    setShowTwoFactor(false);
+    setTempSession(null);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -220,6 +254,14 @@ const Auth = () => {
           © 2024 NexERP. Todos os direitos reservados.
         </div>
       </div>
+
+      {/* Two Factor Dialog */}
+      <TwoFactorDialog
+        isOpen={showTwoFactor}
+        onVerify={handleTwoFactorVerify}
+        onCancel={handleTwoFactorCancel}
+        loading={loading}
+      />
     </div>
   );
 };
