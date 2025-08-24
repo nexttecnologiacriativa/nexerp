@@ -73,88 +73,82 @@ const Dashboard = () => {
         return;
       }
 
-      // Fetch ALL receivables for flow calculation
-      const { data: allReceivables } = await supabase
-        .from('accounts_receivable')
-        .select('amount, status')
-        .eq('company_id', profile.company_id);
+      // Execute all queries in parallel for better performance
+      const [
+        receivablesResult,
+        payablesResult,
+        bankAccountsResult,
+        customersResult,
+        productsResult,
+        servicesResult,
+        salesResult
+      ] = await Promise.all([
+        // Receivables
+        supabase
+          .from('accounts_receivable')
+          .select('amount, status')
+          .eq('company_id', profile.company_id)
+          .eq('status', 'pending'),
+        
+        // Payables
+        supabase
+          .from('accounts_payable')
+          .select('amount, status')
+          .eq('company_id', profile.company_id)
+          .eq('status', 'pending'),
+        
+        // Bank accounts
+        supabase
+          .from('bank_accounts')
+          .select('balance, status')
+          .eq('company_id', profile.company_id)
+          .eq('status', 'active'),
+        
+        // Customers count
+        supabase
+          .from('customers')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', profile.company_id)
+          .eq('status', 'active'),
+        
+        // Products count
+        supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', profile.company_id)
+          .eq('status', 'active'),
+        
+        // Services count
+        supabase
+          .from('services')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', profile.company_id)
+          .eq('status', 'active'),
+        
+        // Sales count
+        supabase
+          .from('sales')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', profile.company_id)
+          .eq('status', 'active')
+      ]);
 
-      // Fetch ALL payables for flow calculation  
-      const { data: allPayables } = await supabase
-        .from('accounts_payable')
-        .select('amount, status')
-        .eq('company_id', profile.company_id);
-
-      // Fetch pending receivables for display
-      const { data: receivables } = await supabase
-        .from('accounts_receivable')
-        .select('amount, status')
-        .eq('company_id', profile.company_id)
-        .eq('status', 'pending');
-
-      // Fetch pending payables for display
-      const { data: payables } = await supabase
-        .from('accounts_payable')
-        .select('amount, status')
-        .eq('company_id', profile.company_id)
-        .eq('status', 'pending');
-
-      // Fetch bank accounts balance
-      const { data: bankAccounts } = await supabase
-        .from('bank_accounts')
-        .select('balance, status')
-        .eq('company_id', profile.company_id)
-        .eq('status', 'active');
-
-      // Fetch customers count
-      const { count: customersCount } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', profile.company_id)
-        .eq('status', 'active');
-
-      // Fetch products count
-      const { count: productsCount } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', profile.company_id)
-        .eq('status', 'active');
-
-      // Fetch services count
-      const { count: servicesCount } = await supabase
-        .from('services')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', profile.company_id)
-        .eq('status', 'active');
-
-      // Fetch sales count
-      const { count: salesCount } = await supabase
-        .from('sales')
-        .select('*', { count: 'exact', head: true })
-        .eq('company_id', profile.company_id)
-        .eq('status', 'active');
-
-      const totalReceivable = receivables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-      const totalPayable = payables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
-      const totalBankBalance = bankAccounts?.reduce((sum, account) => sum + Number(account.balance), 0) || 0;
+      const totalReceivable = receivablesResult.data?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+      const totalPayable = payablesResult.data?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+      const totalBankBalance = bankAccountsResult.data?.reduce((sum, account) => sum + Number(account.balance), 0) || 0;
 
       setFinancialData({
         receivable: totalReceivable,
         payable: totalPayable,
         balance: totalBankBalance + totalReceivable - totalPayable,
         bankBalance: totalBankBalance,
-        customers: customersCount || 0,
-        products: (productsCount || 0) + (servicesCount || 0),
-        sales: salesCount || 0,
+        customers: customersResult.count || 0,
+        products: (productsResult.count || 0) + (servicesResult.count || 0),
+        sales: salesResult.count || 0,
       });
 
-      // Calculate flow with ALL accounts (receivable - payable)
-      const allReceivableTotal = allReceivables?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
-      const allPayableTotal = allPayables?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
-      const monthlyFlow = allReceivableTotal - allPayableTotal;
-
-      // Fetch monthly data for trend analysis
-      await fetchMonthlyTrends(profile.company_id);
+      // Fetch monthly trends in parallel
+      fetchMonthlyTrends(profile.company_id);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -170,39 +164,44 @@ const Dashboard = () => {
 
   const fetchMonthlyTrends = async (companyId: string) => {
     try {
-      const months = [];
-      for (let i = 5; i >= 0; i--) {
+      // Simplify to only get last 3 months for better performance
+      const monthsPromises = [];
+      for (let i = 2; i >= 0; i--) {
         const date = subMonths(new Date(), i);
         const startDate = startOfMonth(date);
         const endDate = endOfMonth(date);
 
-        // Fetch ALL receivables for the month
-        const { data: income } = await supabase
-          .from('accounts_receivable')
-          .select('amount')
-          .eq('company_id', companyId)
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
+        // Execute both queries in parallel for each month
+        const monthPromise = Promise.all([
+          supabase
+            .from('accounts_receivable')
+            .select('amount')
+            .eq('company_id', companyId)
+            .gte('created_at', startDate.toISOString())
+            .lte('created_at', endDate.toISOString()),
+          
+          supabase
+            .from('accounts_payable')
+            .select('amount')
+            .eq('company_id', companyId)
+            .gte('created_at', startDate.toISOString())
+            .lte('created_at', endDate.toISOString())
+        ]).then(([incomeResult, expensesResult]) => {
+          const monthIncome = incomeResult.data?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
+          const monthExpenses = expensesResult.data?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
 
-        // Fetch ALL payables for the month
-        const { data: expenses } = await supabase
-          .from('accounts_payable')
-          .select('amount')
-          .eq('company_id', companyId)
-          .gte('created_at', startDate.toISOString())
-          .lte('created_at', endDate.toISOString());
-
-        const monthIncome = income?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
-        const monthExpenses = expenses?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
-
-        months.push({
-          month: format(date, 'MMM/yyyy', { locale: ptBR }),
-          income: monthIncome,
-          expenses: monthExpenses,
-          balance: monthIncome - monthExpenses,
+          return {
+            month: format(date, 'MMM/yyyy', { locale: ptBR }),
+            income: monthIncome,
+            expenses: monthExpenses,
+            balance: monthIncome - monthExpenses,
+          };
         });
+
+        monthsPromises.push(monthPromise);
       }
 
+      const months = await Promise.all(monthsPromises);
       setMonthlyData(months);
     } catch (error) {
       console.error('Error fetching monthly trends:', error);

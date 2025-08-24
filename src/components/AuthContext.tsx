@@ -85,9 +85,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Verificar se o usuário tem 2FA ativado
       if (data.user?.user_metadata?.two_factor_enabled) {
-        // Fazer logout temporário
-        await supabase.auth.signOut();
-        
+        // Não fazer logout, apenas retornar indicador de 2FA necessário
         return { 
           error: null, 
           requiresTwoFactor: true, 
