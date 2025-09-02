@@ -18,7 +18,7 @@ import Fornecedores from "./pages/Cadastros/Fornecedores";
 import Servicos from "./pages/Cadastros/Servicos";
 import CentroCustos from "./pages/Cadastros/CentroCustos";
 import Categorias from "./pages/Cadastros/Categorias";
-import Bancos from "./pages/Cadastros/Bancos";
+import Bancos from "./pages/Financeiro/Bancos";
 import Configuracoes from "./pages/Configuracoes/Index";
 import Usuarios from "./pages/Usuarios/Index";
 import NotaFiscal from "./pages/NotaFiscal";
@@ -90,7 +90,7 @@ const App = () => (
                 <Layout><Categorias /></Layout>
               </ProtectedRoute>
             } />
-            <Route path="/cadastros/bancos" element={
+            <Route path="/financeiro/bancos" element={
               <ProtectedRoute>
                 <Layout><Bancos /></Layout>
               </ProtectedRoute>

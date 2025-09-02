@@ -29,6 +29,10 @@ const menuItems = [{
     title: "Fluxo de Caixa",
     url: "/financeiro/fluxo-caixa",
     icon: BarChart3
+  }, {
+    title: "Bancos",
+    url: "/financeiro/bancos",
+    icon: CreditCard
   }]
 }, {
   title: "Cadastros",
@@ -53,10 +57,6 @@ const menuItems = [{
     title: "Categorias",
     url: "/cadastros/categorias",
     icon: Tag
-  }, {
-    title: "Bancos",
-    url: "/cadastros/bancos",
-    icon: CreditCard
   }]
 }, {
   title: "Relatórios",
