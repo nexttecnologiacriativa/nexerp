@@ -79,7 +79,9 @@ const FluxoCaixa = () => {
           amount,
           payment_date,
           status,
-          customers:customer_id (name)
+          customers:customer_id (name),
+          categories:category_id (name),
+          subcategories:subcategory_id (name)
         `)
         .eq('status', 'paid')
         .gte('payment_date', startDate.toISOString().split('T')[0])
@@ -94,7 +96,9 @@ const FluxoCaixa = () => {
           amount,
           payment_date,
           status,
-          suppliers:supplier_id (name)
+          suppliers:supplier_id (name),
+          categories:category_id (name),
+          subcategories:subcategory_id (name)
         `)
         .eq('status', 'paid')
         .gte('payment_date', startDate.toISOString().split('T')[0])
@@ -111,7 +115,7 @@ const FluxoCaixa = () => {
           type: "income",
           amount: item.amount,
           status: item.status,
-          category: item.customers?.name || 'Cliente'
+          category: item.subcategories?.name || item.categories?.name || 'Sem categoria'
         });
       });
 
@@ -123,7 +127,7 @@ const FluxoCaixa = () => {
           type: "expense",
           amount: item.amount,
           status: item.status,
-          category: item.suppliers?.name || 'Fornecedor'
+          category: item.subcategories?.name || item.categories?.name || 'Sem categoria'
         });
       });
 
