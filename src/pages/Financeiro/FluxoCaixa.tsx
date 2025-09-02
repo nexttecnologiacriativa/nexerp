@@ -352,8 +352,8 @@ const FluxoCaixa = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
@@ -369,8 +369,8 @@ const FluxoCaixa = () => {
                     <TableCell>
                       {format(new Date(entry.date), 'dd/MM/yyyy', { locale: ptBR })}
                     </TableCell>
-                    <TableCell>{entry.description}</TableCell>
                     <TableCell>{entry.category}</TableCell>
+                    <TableCell>{entry.description}</TableCell>
                     <TableCell>
                       <Badge variant={entry.type === 'income' ? 'default' : 'destructive'}>
                         {entry.type === 'income' ? 'Receita' : 'Despesa'}
