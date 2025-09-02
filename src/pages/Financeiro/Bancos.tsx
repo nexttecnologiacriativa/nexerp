@@ -7,9 +7,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, Edit, Trash2, CreditCard } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Plus, Edit, Trash2, CreditCard, History, ArrowUpRight, ArrowDownLeft, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface BankAccount {
   id: string;
@@ -22,12 +25,29 @@ interface BankAccount {
   created_at: string;
 }
 
+interface BankTransaction {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  status: 'pending' | 'paid' | 'cancelled' | 'overdue';
+  customer_name?: string;
+  supplier_name?: string;
+  category_name?: string;
+  subcategory_name?: string;
+}
+
 const Bancos = () => {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [transactions, setTransactions] = useState<BankTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('current-month');
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -88,9 +108,132 @@ const Bancos = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    if (!selectedAccount) return;
+    
+    try {
+      setTransactionsLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile?.company_id) return;
+
+      let startDate, endDate;
+      const now = new Date();
+      
+      switch (selectedPeriod) {
+        case 'current-month':
+          startDate = startOfMonth(now);
+          endDate = endOfMonth(now);
+          break;
+        case 'last-month':
+          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          startDate = startOfMonth(lastMonth);
+          endDate = endOfMonth(lastMonth);
+          break;
+        case 'last-3-months':
+          startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+          endDate = endOfMonth(now);
+          break;
+        default:
+          startDate = startOfMonth(now);
+          endDate = endOfMonth(now);
+      }
+
+      // Buscar contas a receber
+      const { data: receivables } = await supabase
+        .from('accounts_receivable')
+        .select(`
+          id,
+          description,
+          amount,
+          due_date,
+          payment_date,
+          status,
+          customers(name),
+          categories(name),
+          subcategories(name)
+        `)
+        .eq('company_id', profile.company_id)
+        .eq('bank_account_id', selectedAccount)
+        .gte('due_date', format(startDate, 'yyyy-MM-dd'))
+        .lte('due_date', format(endDate, 'yyyy-MM-dd'))
+        .order('due_date', { ascending: false });
+
+      // Buscar contas a pagar
+      const { data: payables } = await supabase
+        .from('accounts_payable')
+        .select(`
+          id,
+          description,
+          amount,
+          due_date,
+          payment_date,
+          status,
+          suppliers(name),
+          categories(name),
+          subcategories(name)
+        `)
+        .eq('company_id', profile.company_id)
+        .eq('bank_account_id', selectedAccount)
+        .gte('due_date', format(startDate, 'yyyy-MM-dd'))
+        .lte('due_date', format(endDate, 'yyyy-MM-dd'))
+        .order('due_date', { ascending: false });
+
+      const allTransactions: BankTransaction[] = [
+        ...(receivables || []).map(item => ({
+          id: item.id,
+          date: item.payment_date || item.due_date,
+          description: item.description,
+          amount: item.amount,
+          type: 'income' as const,
+          status: item.status,
+          customer_name: item.customers?.name,
+          category_name: item.categories?.name,
+          subcategory_name: item.subcategories?.name,
+        })),
+        ...(payables || []).map(item => ({
+          id: item.id,
+          date: item.payment_date || item.due_date,
+          description: item.description,
+          amount: item.amount,
+          type: 'expense' as const,
+          status: item.status,
+          supplier_name: item.suppliers?.name,
+          category_name: item.categories?.name,
+          subcategory_name: item.subcategories?.name,
+        })),
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setTransactions(allTransactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      toast({
+        title: "Erro ao carregar extrato",
+        description: "Não foi possível carregar as movimentações",
+        variant: "destructive",
+      });
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectedAccount) {
+      fetchTransactions();
+    }
+  }, [selectedAccount, selectedPeriod]);
 
   const resetForm = () => {
     setFormData({
@@ -226,12 +369,43 @@ const Bancos = () => {
     return types[type as keyof typeof types] || type;
   };
 
+  const getStatusLabel = (status: string) => {
+    const statuses = {
+      pending: 'Em Aberto',
+      paid: 'Pago',
+      cancelled: 'Cancelado',
+      overdue: 'Vencido'
+    };
+    return statuses[status as keyof typeof statuses] || status;
+  };
+
+  const getPeriodLabel = (period: string) => {
+    const periods = {
+      'current-month': 'Mês Atual',
+      'last-month': 'Mês Anterior',
+      'last-3-months': 'Últimos 3 Meses'
+    };
+    return periods[period as keyof typeof periods] || period;
+  };
+
+  const getSummaryData = () => {
+    const incomeOpen = transactions.filter(t => t.type === 'income' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
+    const incomePaid = transactions.filter(t => t.type === 'income' && t.status === 'paid').reduce((sum, t) => sum + t.amount, 0);
+    const expenseOpen = transactions.filter(t => t.type === 'expense' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
+    const expensePaid = transactions.filter(t => t.type === 'expense' && t.status === 'paid').reduce((sum, t) => sum + t.amount, 0);
+    const totalPeriod = incomePaid - expensePaid;
+
+    return { incomeOpen, incomePaid, expenseOpen, expensePaid, totalPeriod };
+  };
+  
+  const selectedAccountData = bankAccounts.find(acc => acc.id === selectedAccount);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Contas Bancárias</h1>
-          <p className="text-muted-foreground">Gerencie as contas bancárias da sua empresa</p>
+          <p className="text-muted-foreground">Gerencie as contas bancárias e visualize extratos</p>
         </div>
         
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -327,7 +501,21 @@ const Bancos = () => {
         </Dialog>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <Tabs defaultValue="accounts" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="accounts">
+            <CreditCard className="mr-2 h-4 w-4" />
+            Contas Bancárias
+          </TabsTrigger>
+          <TabsTrigger value="statement">
+            <History className="mr-2 h-4 w-4" />
+            Extrato
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="accounts" className="space-y-6">
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Contas</CardTitle>
@@ -364,9 +552,9 @@ const Bancos = () => {
             <p className="text-xs text-muted-foreground">contas ativas</p>
           </CardContent>
         </Card>
-      </div>
+          </div>
 
-      <Card>
+          <Card>
         <CardHeader>
           <CardTitle>Lista de Contas Bancárias</CardTitle>
           <CardDescription>
@@ -446,8 +634,214 @@ const Bancos = () => {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="statement" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="account-select">Conta Bancária</Label>
+              <Select value={selectedAccount} onValueChange={setSelectedAccount}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map(account => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} - {account.bank_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="period-select">Período</Label>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current-month">Mês Atual</SelectItem>
+                  <SelectItem value="last-month">Mês Anterior</SelectItem>
+                  <SelectItem value="last-3-months">Últimos 3 Meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {selectedAccount && selectedAccountData && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    {selectedAccountData.name}
+                  </CardTitle>
+                  <CardDescription>
+                    {selectedAccountData.bank_name} • {getPeriodLabel(selectedPeriod)}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-5">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Receitas em aberto</p>
+                            <p className="text-lg font-bold text-green-600">
+                              R$ {getSummaryData().incomeOpen.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <ArrowUpRight className="h-4 w-4 text-green-600" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Receitas realizadas</p>
+                            <p className="text-lg font-bold text-green-600">
+                              R$ {getSummaryData().incomePaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <ArrowUpRight className="h-4 w-4 text-green-600" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Despesas em aberto</p>
+                            <p className="text-lg font-bold text-red-600">
+                              R$ {getSummaryData().expenseOpen.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <ArrowDownLeft className="h-4 w-4 text-red-600" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Despesas realizadas</p>
+                            <p className="text-lg font-bold text-red-600">
+                              R$ {getSummaryData().expensePaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <ArrowDownLeft className="h-4 w-4 text-red-600" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total do período</p>
+                            <p className={`text-lg font-bold ${getSummaryData().totalPeriod >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              R$ {getSummaryData().totalPeriod.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Extrato de Movimentações</CardTitle>
+                  <CardDescription>
+                    Histórico detalhado das transações da conta selecionada
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {transactionsLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <div className="text-center py-10">
+                      <History className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <h3 className="mt-2 text-sm font-semibold">Nenhuma movimentação encontrada</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Não há transações para o período selecionado.
+                      </p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead>Situação</TableHead>
+                          <TableHead>Valor (R$)</TableHead>
+                          <TableHead>Categoria</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {transactions.map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell>
+                              {format(new Date(transaction.date), 'dd/MM/yyyy', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {transaction.type === 'income' ? (
+                                  <ArrowUpRight className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <ArrowDownLeft className="h-4 w-4 text-red-600" />
+                                )}
+                                <div>
+                                  <p className="font-medium">{transaction.description}</p>
+                                  {transaction.customer_name && (
+                                    <p className="text-sm text-muted-foreground">Cliente: {transaction.customer_name}</p>
+                                  )}
+                                  {transaction.supplier_name && (
+                                    <p className="text-sm text-muted-foreground">Fornecedor: {transaction.supplier_name}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  transaction.status === 'paid' ? 'default' : 
+                                  transaction.status === 'pending' ? 'secondary' : 'destructive'
+                                }
+                              >
+                                {getStatusLabel(transaction.status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
+                                {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {transaction.subcategory_name || transaction.category_name || 'Sem categoria'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
