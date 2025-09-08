@@ -394,8 +394,11 @@ const Bancos = () => {
     const expenseOpen = transactions.filter(t => t.type === 'expense' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
     const expensePaid = transactions.filter(t => t.type === 'expense' && t.status === 'paid').reduce((sum, t) => sum + t.amount, 0);
     const totalPeriod = incomePaid - expensePaid;
+    
+    // Calcular saldo: saldo inicial da conta + receitas pagas - despesas pagas
+    const currentBalance = (selectedAccountData?.balance || 0) + incomePaid - expensePaid;
 
-    return { incomeOpen, incomePaid, expenseOpen, expensePaid, totalPeriod };
+    return { incomeOpen, incomePaid, expenseOpen, expensePaid, totalPeriod, currentBalance };
   };
   
   const selectedAccountData = bankAccounts.find(acc => acc.id === selectedAccount);
@@ -684,7 +687,7 @@ const Bancos = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 md:grid-cols-5">
+                  <div className="grid gap-4 md:grid-cols-6">
                     <Card>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -737,6 +740,20 @@ const Bancos = () => {
                             </p>
                           </div>
                           <ArrowDownLeft className="h-4 w-4 text-red-600" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Saldo</p>
+                            <p className={`text-lg font-bold ${getSummaryData().currentBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                              R$ {getSummaryData().currentBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <CreditCard className="h-4 w-4 text-blue-600" />
                         </div>
                       </CardContent>
                     </Card>
