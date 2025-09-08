@@ -78,7 +78,7 @@ const ContasPagar = () => {
   const [editingAccount, setEditingAccount] = useState<AccountPayable | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"monthly" | "all">("all");
+  const [viewMode, setViewMode] = useState<"monthly" | "all">("monthly");
 
   const [formData, setFormData] = useState({
     supplier_id: "",
