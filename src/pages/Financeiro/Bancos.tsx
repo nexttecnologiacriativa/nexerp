@@ -8,11 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Edit, Trash2, CreditCard, History, ArrowUpRight, ArrowDownLeft, Calendar } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Search, Plus, Edit, Trash2, CreditCard, History, ArrowUpRight, ArrowDownLeft, Calendar, ChevronDown, ChevronLeft, ChevronRight, CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfDay, endOfDay, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface BankAccount {
   id: string;
@@ -47,7 +50,10 @@ const Bancos = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('current-month');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('Por Mês');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -108,6 +114,41 @@ const Bancos = () => {
     }
   };
 
+  const getDateRange = () => {
+    const now = new Date();
+    
+    switch (selectedPeriod) {
+      case 'Por Mês':
+        return {
+          startDate: startOfMonth(currentMonth),
+          endDate: endOfMonth(currentMonth)
+        };
+      case 'Hoje':
+        return {
+          startDate: startOfDay(now),
+          endDate: endOfDay(now)
+        };
+      case 'Este Ano':
+        return {
+          startDate: startOfYear(now),
+          endDate: endOfYear(now)
+        };
+      case 'Personalizado':
+        if (customStartDate && customEndDate) {
+          return {
+            startDate: startOfDay(customStartDate),
+            endDate: endOfDay(customEndDate)
+          };
+        }
+        return {
+          startDate: startOfMonth(now),
+          endDate: endOfMonth(now)
+        };
+      default: // 'Todas'
+        return null;
+    }
+  };
+
   const fetchTransactions = async () => {
     if (!selectedAccount) return;
     
@@ -125,30 +166,10 @@ const Bancos = () => {
 
       if (!profile?.company_id) return;
 
-      let startDate, endDate;
-      const now = new Date();
-      
-      switch (selectedPeriod) {
-        case 'current-month':
-          startDate = startOfMonth(now);
-          endDate = endOfMonth(now);
-          break;
-        case 'last-month':
-          const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          startDate = startOfMonth(lastMonth);
-          endDate = endOfMonth(lastMonth);
-          break;
-        case 'last-3-months':
-          startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-          endDate = endOfMonth(now);
-          break;
-        default:
-          startDate = startOfMonth(now);
-          endDate = endOfMonth(now);
-      }
+      const dateRange = getDateRange();
 
-      // Buscar contas a receber
-      const { data: receivables } = await supabase
+      // Base query para contas a receber
+      let receivablesQuery = supabase
         .from('accounts_receivable')
         .select(`
           id,
@@ -157,18 +178,15 @@ const Bancos = () => {
           due_date,
           payment_date,
           status,
+          bank_account_id,
           customers(name),
           categories(name),
           subcategories(name)
         `)
-        .eq('company_id', profile.company_id)
-        .eq('bank_account_id', selectedAccount)
-        .gte('due_date', format(startDate, 'yyyy-MM-dd'))
-        .lte('due_date', format(endDate, 'yyyy-MM-dd'))
-        .order('due_date', { ascending: false });
+        .eq('company_id', profile.company_id);
 
-      // Buscar contas a pagar
-      const { data: payables } = await supabase
+      // Base query para contas a pagar
+      let payablesQuery = supabase
         .from('accounts_payable')
         .select(`
           id,
@@ -177,18 +195,41 @@ const Bancos = () => {
           due_date,
           payment_date,
           status,
+          bank_account_id,
           suppliers(name),
           categories(name),
           subcategories(name)
         `)
-        .eq('company_id', profile.company_id)
-        .eq('bank_account_id', selectedAccount)
-        .gte('due_date', format(startDate, 'yyyy-MM-dd'))
-        .lte('due_date', format(endDate, 'yyyy-MM-dd'))
-        .order('due_date', { ascending: false });
+        .eq('company_id', profile.company_id);
+
+      // Filtrar por conta bancária se existir transações com essa conta
+      // Primeiro, vamos buscar todas as transações da empresa e depois filtrar por conta
+      if (dateRange) {
+        receivablesQuery = receivablesQuery
+          .gte('due_date', format(dateRange.startDate, 'yyyy-MM-dd'))
+          .lte('due_date', format(dateRange.endDate, 'yyyy-MM-dd'));
+        
+        payablesQuery = payablesQuery
+          .gte('due_date', format(dateRange.startDate, 'yyyy-MM-dd'))
+          .lte('due_date', format(dateRange.endDate, 'yyyy-MM-dd'));
+      }
+
+      const [{ data: allReceivables }, { data: allPayables }] = await Promise.all([
+        receivablesQuery.order('due_date', { ascending: false }),
+        payablesQuery.order('due_date', { ascending: false })
+      ]);
+
+      // Filtrar transações que estão vinculadas à conta bancária selecionada
+      const receivables = (allReceivables || []).filter(item => 
+        item.bank_account_id === selectedAccount
+      );
+
+      const payables = (allPayables || []).filter(item => 
+        item.bank_account_id === selectedAccount
+      );
 
       const allTransactions: BankTransaction[] = [
-        ...(receivables || []).map(item => ({
+        ...receivables.map(item => ({
           id: item.id,
           date: item.payment_date || item.due_date,
           description: item.description,
@@ -199,7 +240,7 @@ const Bancos = () => {
           category_name: item.categories?.name,
           subcategory_name: item.subcategories?.name,
         })),
-        ...(payables || []).map(item => ({
+        ...payables.map(item => ({
           id: item.id,
           date: item.payment_date || item.due_date,
           description: item.description,
@@ -233,7 +274,7 @@ const Bancos = () => {
     if (selectedAccount) {
       fetchTransactions();
     }
-  }, [selectedAccount, selectedPeriod]);
+  }, [selectedAccount, selectedPeriod, currentMonth, customStartDate, customEndDate]);
 
   const resetForm = () => {
     setFormData({
@@ -380,13 +421,146 @@ const Bancos = () => {
   };
 
   const getPeriodLabel = (period: string) => {
-    const periods = {
-      'current-month': 'Mês Atual',
-      'last-month': 'Mês Anterior',
-      'last-3-months': 'Últimos 3 Meses'
-    };
-    return periods[period as keyof typeof periods] || period;
+    switch (period) {
+      case 'Por Mês':
+        return `${format(currentMonth, 'MMMM yyyy', { locale: ptBR })}`;
+      case 'Hoje':
+        return 'Hoje';
+      case 'Este Ano':
+        return 'Este Ano';
+      case 'Personalizado':
+        if (customStartDate && customEndDate) {
+          return `${format(customStartDate, 'dd/MM/yyyy')} - ${format(customEndDate, 'dd/MM/yyyy')}`;
+        }
+        return 'Personalizado';
+      default:
+        return 'Todas';
+    }
   };
+
+  const handlePreviousMonth = () => {
+    setCurrentMonth(prev => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth(prev => addMonths(prev, 1));
+  };
+
+  const renderPeriodSelector = () => (
+    <div className="space-y-2">
+      <Label>Período</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            {getPeriodLabel(selectedPeriod)}
+            <ChevronDown className="ml-2 h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-0" align="start">
+          <div className="p-4 space-y-2">
+            <div className="space-y-1">
+              {['Por Mês', 'Hoje', 'Este Ano', 'Todas', 'Personalizado'].map((option) => (
+                <button
+                  key={option}
+                  onClick={() => {
+                    setSelectedPeriod(option);
+                    if (option === 'Por Mês') {
+                      setCurrentMonth(new Date());
+                    }
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground",
+                    selectedPeriod === option && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+
+            {selectedPeriod === 'Por Mês' && (
+              <div className="border-t pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousMonth}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium">
+                    {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextMonth}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {selectedPeriod === 'Personalizado' && (
+              <div className="border-t pt-3 space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Data Inicial</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !customStartDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customStartDate ? format(customStartDate, "dd/MM/yyyy") : "Selecionar data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={customStartDate}
+                        onSelect={setCustomStartDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Data Final</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !customEndDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customEndDate ? format(customEndDate, "dd/MM/yyyy") : "Selecionar data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={customEndDate}
+                        onSelect={setCustomEndDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 
   const getSummaryData = () => {
     const incomeOpen = transactions.filter(t => t.type === 'income' && t.status === 'pending').reduce((sum, t) => sum + t.amount, 0);
@@ -659,19 +833,7 @@ const Bancos = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="period-select">Período</Label>
-              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current-month">Mês Atual</SelectItem>
-                  <SelectItem value="last-month">Mês Anterior</SelectItem>
-                  <SelectItem value="last-3-months">Últimos 3 Meses</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {renderPeriodSelector()}
           </div>
 
           {selectedAccount && selectedAccountData && (
@@ -797,60 +959,75 @@ const Bancos = () => {
                     </div>
                   ) : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Situação</TableHead>
-                          <TableHead>Valor (R$)</TableHead>
-                          <TableHead>Categoria</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {transactions.map((transaction) => (
-                          <TableRow key={transaction.id}>
-                            <TableCell>
-                              {format(new Date(transaction.date), 'dd/MM/yyyy', { locale: ptBR })}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {transaction.type === 'income' ? (
-                                  <ArrowUpRight className="h-4 w-4 text-green-600" />
-                                ) : (
-                                  <ArrowDownLeft className="h-4 w-4 text-red-600" />
-                                )}
-                                <div>
-                                  <p className="font-medium">{transaction.description}</p>
-                                  {transaction.customer_name && (
-                                    <p className="text-sm text-muted-foreground">Cliente: {transaction.customer_name}</p>
-                                  )}
-                                  {transaction.supplier_name && (
-                                    <p className="text-sm text-muted-foreground">Fornecedor: {transaction.supplier_name}</p>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={
-                                  transaction.status === 'paid' ? 'default' : 
-                                  transaction.status === 'pending' ? 'secondary' : 'destructive'
-                                }
-                              >
-                                {getStatusLabel(transaction.status)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <span className={transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                                {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              {transaction.subcategory_name || transaction.category_name || 'Sem categoria'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
+                       <TableHeader>
+                         <TableRow>
+                           <TableHead>Data</TableHead>
+                           <TableHead>Tipo</TableHead>
+                           <TableHead>Descrição</TableHead>
+                           <TableHead>Categoria</TableHead>
+                           <TableHead>Status</TableHead>
+                           <TableHead>Valor</TableHead>
+                         </TableRow>
+                       </TableHeader>
+                       <TableBody>
+                         {transactions.map((transaction) => (
+                           <TableRow key={transaction.id}>
+                             <TableCell>
+                               {format(new Date(transaction.date), 'dd/MM/yyyy', { locale: ptBR })}
+                             </TableCell>
+                             <TableCell>
+                               <div className="flex items-center gap-2">
+                                 {transaction.type === 'income' ? (
+                                   <ArrowUpRight className="h-4 w-4 text-green-600" />
+                                 ) : (
+                                   <ArrowDownLeft className="h-4 w-4 text-red-600" />
+                                 )}
+                                 <span className="text-sm font-medium">
+                                   {transaction.type === 'income' ? 'Receita' : 'Despesa'}
+                                 </span>
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               <div>
+                                 <p className="font-medium">{transaction.description}</p>
+                                 {transaction.customer_name && (
+                                   <p className="text-sm text-muted-foreground">Cliente: {transaction.customer_name}</p>
+                                 )}
+                                 {transaction.supplier_name && (
+                                   <p className="text-sm text-muted-foreground">Fornecedor: {transaction.supplier_name}</p>
+                                 )}
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               <div>
+                                 <p className="text-sm">
+                                   {transaction.category_name || 'Sem categoria'}
+                                 </p>
+                                 {transaction.subcategory_name && (
+                                   <p className="text-xs text-muted-foreground">
+                                     {transaction.subcategory_name}
+                                   </p>
+                                 )}
+                               </div>
+                             </TableCell>
+                             <TableCell>
+                               <Badge 
+                                 variant={
+                                   transaction.status === 'paid' ? 'default' : 
+                                   transaction.status === 'pending' ? 'secondary' : 'destructive'
+                                 }
+                               >
+                                 {getStatusLabel(transaction.status)}
+                               </Badge>
+                             </TableCell>
+                             <TableCell>
+                               <span className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                 {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                               </span>
+                             </TableCell>
+                           </TableRow>
+                         ))}
+                       </TableBody>
                     </Table>
                   )}
                 </CardContent>
