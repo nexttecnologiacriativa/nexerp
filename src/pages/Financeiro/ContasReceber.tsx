@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2, Check, Calendar, DollarSign, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
@@ -76,7 +76,9 @@ const ContasReceber = () => {
   const [editingAccount, setEditingAccount] = useState<AccountReceivable | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"monthly" | "all">("all");
+  const [periodFilter, setPeriodFilter] = useState<"monthly" | "today" | "year" | "all" | "custom">("monthly");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   
   // Pegar filtro da URL para filtrar por venda específica
   const saleFilter = searchParams.get('filter');
@@ -499,15 +501,38 @@ const ContasReceber = () => {
                          account.customers.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || account.status === statusFilter;
     
-    let matchesMonth = true;
-    if (viewMode === "monthly") {
-      const accountDate = new Date(account.due_date);
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
-      matchesMonth = isWithinInterval(accountDate, { start: monthStart, end: monthEnd });
+    // Filtro por período
+    let matchesPeriod = true;
+    const accountDate = new Date(account.due_date);
+    
+    switch (periodFilter) {
+      case "monthly":
+        const monthStart = startOfMonth(currentMonth);
+        const monthEnd = endOfMonth(currentMonth);
+        matchesPeriod = isWithinInterval(accountDate, { start: monthStart, end: monthEnd });
+        break;
+      case "today":
+        matchesPeriod = isToday(accountDate);
+        break;
+      case "year":
+        const yearStart = startOfYear(new Date());
+        const yearEnd = endOfYear(new Date());
+        matchesPeriod = isWithinInterval(accountDate, { start: yearStart, end: yearEnd });
+        break;
+      case "custom":
+        if (customStartDate && customEndDate) {
+          const customStart = new Date(customStartDate);
+          const customEnd = new Date(customEndDate);
+          matchesPeriod = isWithinInterval(accountDate, { start: customStart, end: customEnd });
+        }
+        break;
+      case "all":
+      default:
+        matchesPeriod = true;
+        break;
     }
     
-    return matchesSearch && matchesStatus && matchesMonth;
+    return matchesSearch && matchesStatus && matchesPeriod;
   });
 
   const totalPending = accounts
@@ -867,15 +892,26 @@ const ContasReceber = () => {
               <CardTitle>Lista de Contas a Receber</CardTitle>
               <CardDescription>Gerencie suas contas a receber</CardDescription>
             </div>
-            <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "monthly" | "all")}>
-              <TabsList>
-                <TabsTrigger value="all">Todas</TabsTrigger>
-                <TabsTrigger value="monthly">Por Mês</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex flex-col space-y-2">
+                <Label className="text-sm font-medium">Período</Label>
+                <Select value={periodFilter} onValueChange={(value) => setPeriodFilter(value as typeof periodFilter)}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Por Mês</SelectItem>
+                    <SelectItem value="today">Hoje</SelectItem>
+                    <SelectItem value="year">Este Ano</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
-          {viewMode === "monthly" && (
+          {periodFilter === "monthly" && (
             <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg">
               <Button
                 variant="outline"
@@ -894,6 +930,31 @@ const ContasReceber = () => {
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
+            </div>
+          )}
+
+          {periodFilter === "custom" && (
+            <div className="flex flex-col sm:flex-row gap-4 bg-muted/30 p-4 rounded-lg">
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="start-date" className="text-sm font-medium">Data Inicial</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
+              <div className="flex flex-col space-y-2">
+                <Label htmlFor="end-date" className="text-sm font-medium">Data Final</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-auto"
+                />
+              </div>
             </div>
           )}
 
