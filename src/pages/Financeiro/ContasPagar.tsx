@@ -37,6 +37,10 @@ interface AccountPayable {
   recurrence_end_date: string | null;
   parent_transaction_id: string | null;
   receipt_file_path: string | null;
+  bank_account_id: string | null;
+  cost_center_id: string | null;
+  category_id: string | null;
+  subcategory_id: string | null;
 }
 
 interface Supplier {
