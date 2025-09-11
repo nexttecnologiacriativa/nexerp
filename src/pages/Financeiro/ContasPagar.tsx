@@ -699,10 +699,12 @@ const ContasPagar = () => {
                         ))}
                         <SelectItem 
                           value="__add_new__" 
-                          className="flex items-center text-primary font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          className="flex items-center justify-start text-primary font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
-                          <span>Cadastrar Fornecedor</span>
+                          <div className="flex items-center">
+                            <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                            <span className="leading-none">Cadastrar Fornecedor</span>
+                          </div>
                         </SelectItem>
                       </SelectContent>
                     </Select>
