@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Plus, Edit, Trash2, Tag, Palette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 
 interface Category {
   id: string;
@@ -44,6 +46,9 @@ const Categorias = () => {
   const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null);
   const [activeTab, setActiveTab] = useState('categories');
   const { toast } = useToast();
+  
+  // Hook para modal de confirmação
+  const confirmDialog = useConfirmDialog();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -681,6 +686,18 @@ const Categorias = () => {
           ))
         )}
       </div>
+
+      {/* Modal de confirmação para exclusão */}
+      <ConfirmDialog
+        open={confirmDialog.isOpen}
+        onOpenChange={confirmDialog.handleClose}
+        title={confirmDialog.options.title}
+        description={confirmDialog.options.description}
+        confirmText={confirmDialog.options.confirmText}
+        cancelText={confirmDialog.options.cancelText}
+        variant={confirmDialog.options.variant}
+        onConfirm={confirmDialog.handleConfirm}
+      />
     </div>
   );
 };

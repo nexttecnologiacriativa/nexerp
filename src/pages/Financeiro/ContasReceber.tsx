@@ -16,6 +16,8 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterva
 import { ptBR } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 interface AccountReceivable {
   id: string;
@@ -137,6 +139,9 @@ const ContasReceber = () => {
   // Estado para modal de confirmação de subcategoria
   const [isSubcategoryConfirmOpen, setIsSubcategoryConfirmOpen] = useState(false);
   const [newCategoryData, setNewCategoryData] = useState<{ id: string; name: string } | null>(null);
+  
+  // Hook para modal de confirmação
+  const confirmDialog = useConfirmDialog();
   
   // Pegar filtro da URL para filtrar por venda específica
   const saleFilter = searchParams.get('filter');
@@ -766,29 +771,32 @@ const ContasReceber = () => {
       }
 
       // Confirmar exclusão da conta específica
-      if (!confirm(`Tem certeza que deseja excluir apenas esta conta?`)) {
-        return;
-      }
+      await confirmDialog.confirm({
+        title: "Confirmação de exclusão",
+        description: "Tem certeza que deseja excluir apenas esta conta?",
+        confirmText: "Excluir",
+        variant: "destructive"
+      }, async () => {
+        // Deletar apenas a conta específica
+        const { error } = await supabase
+          .from('accounts_receivable')
+          .delete()
+          .eq('id', id);
 
-      // Deletar apenas a conta específica
-      const { error } = await supabase
-        .from('accounts_receivable')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        toast({
-          title: "Erro ao excluir conta",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Conta excluída!",
-          description: "Conta removida com sucesso",
-        });
-        fetchAccounts();
-      }
+        if (error) {
+          toast({
+            title: "Erro ao excluir conta",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Conta excluída!",
+            description: "Conta removida com sucesso",
+          });
+          fetchAccounts();
+        }
+      });
     } catch (error) {
       console.error('Error deleting account:', error);
     }
@@ -1444,6 +1452,18 @@ const ContasReceber = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Modal de confirmação para exclusão */}
+          <ConfirmDialog
+            open={confirmDialog.isOpen}
+            onOpenChange={confirmDialog.handleClose}
+            title={confirmDialog.options.title}
+            description={confirmDialog.options.description}
+            confirmText={confirmDialog.options.confirmText}
+            cancelText={confirmDialog.options.cancelText}
+            variant={confirmDialog.options.variant}
+            onConfirm={confirmDialog.handleConfirm}
+          />
 
           {/* Quick-add Subcategory Dialog */}
           <Dialog open={isSubcategoryDialogOpen} onOpenChange={setIsSubcategoryDialogOpen}>

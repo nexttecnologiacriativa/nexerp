@@ -31,6 +31,9 @@ const Clientes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  
+  // Hook para modal de confirmação
+  const confirmDialog = useConfirmDialog();
 
   const [formData, setFormData] = useState({
     name: "",
