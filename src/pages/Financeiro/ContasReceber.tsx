@@ -133,6 +133,10 @@ const ContasReceber = () => {
     color: "#6B7280",
     category_id: "",
   });
+
+  // Estado para modal de confirmação de subcategoria
+  const [isSubcategoryConfirmOpen, setIsSubcategoryConfirmOpen] = useState(false);
+  const [newCategoryData, setNewCategoryData] = useState<{ id: string; name: string } | null>(null);
   
   // Pegar filtro da URL para filtrar por venda específica
   const saleFilter = searchParams.get('filter');
@@ -438,11 +442,8 @@ const ContasReceber = () => {
       });
 
       // Opcionalmente oferecer criar subcategoria
-      const shouldCreateSubcategory = confirm("Deseja criar uma subcategoria para esta categoria agora?");
-      if (shouldCreateSubcategory) {
-        setSubcategoryFormData(prev => ({ ...prev, category_id: data.id }));
-        setIsSubcategoryDialogOpen(true);
-      }
+      setNewCategoryData({ id: data.id, name: data.name });
+      setIsSubcategoryConfirmOpen(true);
     } catch (error: any) {
       toast({
         title: "Erro ao cadastrar categoria",
@@ -1404,6 +1405,43 @@ const ContasReceber = () => {
                   <Button type="submit">Cadastrar</Button>
                 </DialogFooter>
               </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Modal de confirmação para subcategoria */}
+          <Dialog open={isSubcategoryConfirmOpen} onOpenChange={setIsSubcategoryConfirmOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Deseja adicionar uma subcategoria?</DialogTitle>
+                <DialogDescription>
+                  Você criou a categoria <strong>{newCategoryData?.name}</strong>. Deseja cadastrar uma subcategoria para ela agora ou continuar sem subcategoria?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsSubcategoryConfirmOpen(false);
+                    setNewCategoryData(null);
+                  }}
+                >
+                  Continuar sem subcategoria
+                </Button>
+                <Button 
+                  type="button"
+                  onClick={() => {
+                    setIsSubcategoryConfirmOpen(false);
+                    if (newCategoryData) {
+                      setSubcategoryFormData(prev => ({ ...prev, category_id: newCategoryData.id }));
+                      setIsSubcategoryDialogOpen(true);
+                    }
+                    setNewCategoryData(null);
+                  }}
+                >
+                  Cadastrar Subcategoria
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
 
