@@ -801,7 +801,7 @@ const ContasPagar = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="supplier-email">Email</Label>
+                    <Label htmlFor="supplier-email">Email *</Label>
                     <Input
                       id="supplier-email"
                       type="email"
@@ -829,7 +829,7 @@ const ContasPagar = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="supplier-document">Documento</Label>
+                    <Label htmlFor="supplier-document">Documento *</Label>
                     <Input
                       id="supplier-document"
                       value={supplierFormData.document}
@@ -839,7 +839,7 @@ const ContasPagar = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="supplier-phone">Telefone</Label>
+                  <Label htmlFor="supplier-phone">Telefone *</Label>
                   <Input
                     id="supplier-phone"
                     value={supplierFormData.phone}
