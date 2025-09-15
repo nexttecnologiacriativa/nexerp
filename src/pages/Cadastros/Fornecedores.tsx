@@ -264,12 +264,13 @@ const Fornecedores = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    required
                   />
                 </div>
               </div>
@@ -292,21 +293,23 @@ const Fornecedores = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="document">Documento</Label>
+                  <Label htmlFor="document">Documento *</Label>
                   <Input
                     id="document"
                     value={formData.document}
                     onChange={(e) => setFormData(prev => ({ ...prev, document: e.target.value }))}
+                    required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
+                <Label htmlFor="phone">Telefone *</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  required
                 />
               </div>
 
