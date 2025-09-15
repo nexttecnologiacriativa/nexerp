@@ -986,7 +986,7 @@ const ContasReceber = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="document_number">Número do Documento</Label>
+                  <Label htmlFor="document_number">Número do Documento *</Label>
                   <Input
                     id="document_number"
                     placeholder="Número do documento"
@@ -996,7 +996,7 @@ const ContasReceber = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="bank_account_id">Conta Bancária</Label>
+                  <Label htmlFor="bank_account_id">Conta Bancária *</Label>
                   <Select value={formData.bank_account_id} onValueChange={(value) => {
                     if (value === "__add_new__") {
                       setIsBankAccountDialogOpen(true);
@@ -1255,7 +1255,7 @@ const ContasReceber = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customer_document">Documento</Label>
+                    <Label htmlFor="customer_document">Documento *</Label>
                     <Input
                       id="customer_document"
                       placeholder="CPF/CNPJ"
@@ -1274,7 +1274,7 @@ const ContasReceber = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customer_phone">Telefone</Label>
+                    <Label htmlFor="customer_phone">Telefone *</Label>
                     <Input
                       id="customer_phone"
                       placeholder="(11) 99999-9999"
