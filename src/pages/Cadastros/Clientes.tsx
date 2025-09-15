@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Customer {
   id: string;
@@ -170,30 +172,39 @@ const Clientes = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este cliente?")) return;
+    await confirmDialog.confirm(
+      {
+        title: "Confirmação de exclusão",
+        description: "Tem certeza que deseja excluir este cliente?",
+        confirmText: "Excluir",
+        cancelText: "Cancelar",
+        variant: "destructive"
+      },
+      async () => {
+        try {
+          const { error } = await supabase
+            .from('customers')
+            .delete()
+            .eq('id', id);
 
-    try {
-      const { error } = await supabase
-        .from('customers')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        toast({
-          title: "Erro ao excluir cliente",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Cliente excluído!",
-          description: "Cliente removido com sucesso",
-        });
-        fetchCustomers();
+          if (error) {
+            toast({
+              title: "Erro ao excluir cliente",
+              description: error.message,
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Cliente excluído!",
+              description: "Cliente removido com sucesso",
+            });
+            fetchCustomers();
+          }
+        } catch (error) {
+          console.error('Error deleting customer:', error);
+        }
       }
-    } catch (error) {
-      console.error('Error deleting customer:', error);
-    }
+    );
   };
 
   const filteredCustomers = customers.filter(customer =>
@@ -381,6 +392,17 @@ const Clientes = () => {
           </Table>
         </CardContent>
       </Card>
+      
+      <ConfirmDialog
+        open={confirmDialog.isOpen}
+        onOpenChange={confirmDialog.handleClose}
+        onConfirm={confirmDialog.handleConfirm}
+        title={confirmDialog.options.title}
+        description={confirmDialog.options.description}
+        confirmText={confirmDialog.options.confirmText}
+        cancelText={confirmDialog.options.cancelText}
+        variant={confirmDialog.options.variant}
+      />
     </div>
   );
 };
