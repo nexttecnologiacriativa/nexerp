@@ -440,7 +440,7 @@ export type Database = {
           created_at: string
           document: string
           document_type: Database["public"]["Enums"]["document_type"] | null
-          email: string | null
+          email: string
           id: string
           name: string
           phone: string
@@ -456,7 +456,7 @@ export type Database = {
           created_at?: string
           document: string
           document_type?: Database["public"]["Enums"]["document_type"] | null
-          email?: string | null
+          email: string
           id?: string
           name: string
           phone: string
@@ -472,7 +472,7 @@ export type Database = {
           created_at?: string
           document?: string
           document_type?: Database["public"]["Enums"]["document_type"] | null
-          email?: string | null
+          email?: string
           id?: string
           name?: string
           phone?: string

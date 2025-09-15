@@ -248,12 +248,13 @@ const Clientes = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="email">E-mail</Label>
+                  <Label htmlFor="email">E-mail *</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    required
                   />
                 </div>
                 
