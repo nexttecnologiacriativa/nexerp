@@ -216,6 +216,8 @@ const Faturamento = () => {
         return 'destructive';
       case 'pending':
         return 'secondary';
+      case 'overdue':
+        return 'destructive';
       default:
         return 'outline';
     }
@@ -605,6 +607,7 @@ const Faturamento = () => {
                       <SelectItem value="active">Ativo</SelectItem>
                       <SelectItem value="cancelled">Cancelado</SelectItem>
                       <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="overdue">Atrasado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -651,11 +654,11 @@ const Faturamento = () => {
                              <TableCell className="font-medium">
                                {formatCurrency(Number(sale.net_amount))}
                              </TableCell>
-                             <TableCell>
-                               <Badge variant={getStatusVariant(sale.status)} className="text-xs">
-                                 {sale.status === 'active' ? 'Ativo' : sale.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
-                               </Badge>
-                             </TableCell>
+                              <TableCell>
+                                <Badge variant={getStatusVariant(sale.status)} className="text-xs">
+                                  {sale.status === 'active' ? 'Ativo' : sale.status === 'cancelled' ? 'Cancelado' : sale.status === 'overdue' ? 'Atrasado' : 'Pendente'}
+                                </Badge>
+                              </TableCell>
                               <TableCell>
                                 {/* Extrair tags das notas */}
                                 {(() => {
@@ -777,6 +780,7 @@ const Faturamento = () => {
                       <SelectItem value="active">Ativo</SelectItem>
                       <SelectItem value="cancelled">Cancelado</SelectItem>
                       <SelectItem value="pending">Pendente</SelectItem>
+                      <SelectItem value="overdue">Atrasado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -822,11 +826,11 @@ const Faturamento = () => {
                             <TableCell className="font-medium">
                               {formatCurrency(Number(budget.net_amount))}
                             </TableCell>
-                            <TableCell>
-                              <Badge variant={getStatusVariant(budget.status)} className="text-xs">
-                                {budget.status === 'active' ? 'Ativo' : budget.status === 'cancelled' ? 'Cancelado' : 'Pendente'}
-                              </Badge>
-                            </TableCell>
+                             <TableCell>
+                               <Badge variant={getStatusVariant(budget.status)} className="text-xs">
+                                 {budget.status === 'active' ? 'Ativo' : budget.status === 'cancelled' ? 'Cancelado' : budget.status === 'overdue' ? 'Atrasado' : 'Pendente'}
+                               </Badge>
+                             </TableCell>
                              <TableCell className="text-right">
                                <div className="flex justify-end space-x-1">
                                   <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(budget, 'budget')} title="Gerar PDF do orçamento">

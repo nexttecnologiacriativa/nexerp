@@ -586,22 +586,39 @@ const ContasPagar = () => {
     setIsDialogOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
+  // Função para determinar o status real baseado na data de vencimento
+  const getActualStatus = (account: AccountPayable) => {
+    if (account.status === 'pending') {
+      const today = new Date();
+      const dueDate = new Date(account.due_date);
+      today.setHours(0, 0, 0, 0);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      if (dueDate < today) {
+        return 'overdue';
+      }
+    }
+    return account.status;
+  };
+
+  const getStatusBadge = (account: AccountPayable) => {
+    const actualStatus = getActualStatus(account);
     const statusConfig = {
       pending: { label: "Pendente", variant: "secondary" as const },
       paid: { label: "Pago", variant: "default" as const },
-      overdue: { label: "Vencido", variant: "destructive" as const },
+      overdue: { label: "Atrasado", variant: "destructive" as const },
       cancelled: { label: "Cancelado", variant: "outline" as const },
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[actualStatus as keyof typeof statusConfig] || statusConfig.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const filteredAccounts = accounts.filter(account => {
     const matchesSearch = account.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          account.suppliers.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || account.status === statusFilter;
+    const actualStatus = getActualStatus(account);
+    const matchesStatus = statusFilter === "all" || actualStatus === statusFilter;
     
     // Filtro por período
     let matchesPeriod = true;
@@ -645,7 +662,7 @@ const ContasPagar = () => {
     .reduce((sum, account) => sum + account.amount, 0);
 
   const totalOverdue = accounts
-    .filter(account => account.status === 'overdue')
+    .filter(account => getActualStatus(account) === 'overdue')
     .reduce((sum, account) => sum + account.amount, 0);
     
   const totalValue = totalPending + totalPaid + totalOverdue;
@@ -974,7 +991,7 @@ const ContasPagar = () => {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="paid">Pago</SelectItem>
-                  <SelectItem value="overdue">Vencido</SelectItem>
+                  <SelectItem value="overdue">Atrasado</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -1067,11 +1084,11 @@ const ContasPagar = () => {
                         {format(new Date(account.due_date), "dd/MM/yyyy")}
                       </TableCell>
                       <TableCell>
-                        {getStatusBadge(account.status)}
+                        {getStatusBadge(account)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {account.status === 'pending' && (
+                          {(account.status === 'pending' || getActualStatus(account) === 'overdue') && (
                             <Button
                               variant="ghost"
                               size="sm"
