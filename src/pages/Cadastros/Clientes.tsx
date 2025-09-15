@@ -258,11 +258,12 @@ const Clientes = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
+                  <Label htmlFor="phone">Telefone *</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    required
                   />
                 </div>
                 
@@ -283,11 +284,12 @@ const Clientes = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="document">Documento</Label>
+                  <Label htmlFor="document">Documento *</Label>
                   <Input
                     id="document"
                     value={formData.document}
                     onChange={(e) => setFormData({...formData, document: e.target.value})}
+                    required
                   />
                 </div>
                 

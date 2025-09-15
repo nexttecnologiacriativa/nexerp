@@ -438,12 +438,12 @@ export type Database = {
           city: string | null
           company_id: string
           created_at: string
-          document: string | null
+          document: string
           document_type: Database["public"]["Enums"]["document_type"] | null
           email: string | null
           id: string
           name: string
-          phone: string | null
+          phone: string
           state: string | null
           status: Database["public"]["Enums"]["status_type"]
           updated_at: string
@@ -454,12 +454,12 @@ export type Database = {
           city?: string | null
           company_id: string
           created_at?: string
-          document?: string | null
+          document: string
           document_type?: Database["public"]["Enums"]["document_type"] | null
           email?: string | null
           id?: string
           name: string
-          phone?: string | null
+          phone: string
           state?: string | null
           status?: Database["public"]["Enums"]["status_type"]
           updated_at?: string
@@ -470,12 +470,12 @@ export type Database = {
           city?: string | null
           company_id?: string
           created_at?: string
-          document?: string | null
+          document?: string
           document_type?: Database["public"]["Enums"]["document_type"] | null
           email?: string | null
           id?: string
           name?: string
-          phone?: string | null
+          phone?: string
           state?: string | null
           status?: Database["public"]["Enums"]["status_type"]
           updated_at?: string
