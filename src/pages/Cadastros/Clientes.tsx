@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -229,6 +230,14 @@ const Clientes = () => {
     customer.document?.includes(searchTerm)
   );
 
+  const pessoaFisicaCustomers = filteredCustomers.filter(customer => 
+    customer.document_type === "cpf"
+  );
+
+  const pessoaJuridicaCustomers = filteredCustomers.filter(customer => 
+    customer.document_type === "cnpj"
+  );
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -391,51 +400,110 @@ const Clientes = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Responsável</TableHead>
-                <TableHead>Cidade</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center">Carregando...</TableCell>
-                </TableRow>
-              ) : filteredCustomers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center">Nenhum cliente encontrado</TableCell>
-                </TableRow>
-              ) : (
-                  filteredCustomers.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="font-medium">{customer.name}</TableCell>
-                      <TableCell>{customer.email}</TableCell>
-                      <TableCell>{customer.phone}</TableCell>
-                      <TableCell>{customer.document}</TableCell>
-                      <TableCell>{customer.responsible || "-"}</TableCell>
-                      <TableCell>{customer.city}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(customer)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(customer.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+          <Tabs defaultValue="pessoa-fisica" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="pessoa-fisica">Pessoa Física</TabsTrigger>
+              <TabsTrigger value="pessoa-juridica">Pessoa Jurídica</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="pessoa-fisica" className="mt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>CPF</TableHead>
+                    <TableHead>Cidade</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center">Carregando...</TableCell>
+                    </TableRow>
+                  ) : pessoaFisicaCustomers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center">
+                        {searchTerm ? "Nenhum cliente pessoa física encontrado" : "Nenhum cliente pessoa física cadastrado"}
                       </TableCell>
                     </TableRow>
-                  ))
-              )}
-            </TableBody>
-          </Table>
+                  ) : (
+                    pessoaFisicaCustomers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell>{customer.email}</TableCell>
+                        <TableCell>{customer.phone}</TableCell>
+                        <TableCell>{customer.document}</TableCell>
+                        <TableCell>{customer.city || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(customer)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(customer.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+            
+            <TabsContent value="pessoa-juridica" className="mt-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome Fantasia</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>CNPJ</TableHead>
+                    <TableHead>Responsável</TableHead>
+                    <TableHead>Cidade</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center">Carregando...</TableCell>
+                    </TableRow>
+                  ) : pessoaJuridicaCustomers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center">
+                        {searchTerm ? "Nenhum cliente pessoa jurídica encontrado" : "Nenhum cliente pessoa jurídica cadastrado"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pessoaJuridicaCustomers.map((customer) => (
+                      <TableRow key={customer.id}>
+                        <TableCell className="font-medium">{customer.name}</TableCell>
+                        <TableCell>{customer.email}</TableCell>
+                        <TableCell>{customer.phone}</TableCell>
+                        <TableCell>{customer.document}</TableCell>
+                        <TableCell>{customer.responsible || "-"}</TableCell>
+                        <TableCell>{customer.city || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(customer)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDelete(customer.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
       
