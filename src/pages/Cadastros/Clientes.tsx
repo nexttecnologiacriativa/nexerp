@@ -20,6 +20,7 @@ interface Customer {
   phone: string;
   document: string;
   document_type: "cpf" | "cnpj" | "passport";
+  responsible?: string;
   city: string;
   state: string;
   status: string;
@@ -38,11 +39,13 @@ const Clientes = () => {
   const confirmDialog = useConfirmDialog();
 
   const [formData, setFormData] = useState({
+    personType: "fisica" as "fisica" | "juridica",
     name: "",
     email: "",
     phone: "",
     document: "",
     document_type: "cpf" as "cpf" | "cnpj",
+    responsible: "",
     address: "",
     city: "",
     state: "",
@@ -80,11 +83,13 @@ const Clientes = () => {
 
   const resetForm = () => {
     setFormData({
+      personType: "fisica" as "fisica" | "juridica",
       name: "",
       email: "",
       phone: "",
       document: "",
       document_type: "cpf" as "cpf" | "cnpj",
+      responsible: "",
       address: "",
       city: "",
       state: "",
@@ -115,7 +120,16 @@ const Clientes = () => {
       }
 
       const customerData = {
-        ...formData,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        document: formData.document,
+        document_type: formData.document_type,
+        responsible: formData.personType === "juridica" ? formData.responsible : null,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zip_code: formData.zip_code,
         company_id: profile.company_id,
       };
 
@@ -158,11 +172,13 @@ const Clientes = () => {
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setFormData({
+      personType: customer.document_type === "cnpj" ? "juridica" : "fisica",
       name: customer.name,
       email: customer.email || "",
       phone: customer.phone || "",
       document: customer.document || "",
       document_type: (customer.document_type as "cpf" | "cnpj") || "cpf",
+      responsible: customer.responsible || "",
       address: "",
       city: customer.city || "",
       state: customer.state || "",
@@ -236,89 +252,114 @@ const Clientes = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-4 py-4">
+                {/* Seleção de tipo de pessoa */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone *</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="document_type">Tipo Documento</Label>
+                  <Label htmlFor="personType">Tipo de Pessoa *</Label>
                   <Select 
-                    value={formData.document_type} 
-                    onValueChange={(value) => setFormData({...formData, document_type: value as "cpf" | "cnpj"})}
+                    value={formData.personType} 
+                    onValueChange={(value: "fisica" | "juridica") => {
+                      setFormData({
+                        ...formData, 
+                        personType: value,
+                        document_type: value === "fisica" ? "cpf" : "cnpj"
+                      })
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cpf">CPF</SelectItem>
-                      <SelectItem value="cnpj">CNPJ</SelectItem>
+                      <SelectItem value="fisica">Pessoa Física</SelectItem>
+                      <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="document">Documento *</Label>
-                  <Input
-                    id="document"
-                    value={formData.document}
-                    onChange={(e) => setFormData({...formData, document: e.target.value})}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="city">Cidade</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="state">Estado</Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => setFormData({...formData, state: e.target.value})}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="zip_code">CEP</Label>
-                  <Input
-                    id="zip_code"
-                    value={formData.zip_code}
-                    onChange={(e) => setFormData({...formData, zip_code: e.target.value})}
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">
+                      {formData.personType === "juridica" ? "Nome Fantasia" : "Nome"} *
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-mail *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone *</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="document">
+                      {formData.personType === "juridica" ? "CNPJ" : "CPF"} *
+                    </Label>
+                    <Input
+                      id="document"
+                      value={formData.document}
+                      onChange={(e) => setFormData({...formData, document: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  {formData.personType === "juridica" && (
+                    <div className="space-y-2 col-span-2">
+                      <Label htmlFor="responsible">Responsável</Label>
+                      <Input
+                        id="responsible"
+                        value={formData.responsible}
+                        onChange={(e) => setFormData({...formData, responsible: e.target.value})}
+                        placeholder="Nome da pessoa de contato"
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Cidade</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="state">Estado</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData({...formData, state: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="zip_code">CEP</Label>
+                    <Input
+                      id="zip_code"
+                      value={formData.zip_code}
+                      onChange={(e) => setFormData({...formData, zip_code: e.target.value})}
+                    />
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -357,6 +398,7 @@ const Clientes = () => {
                 <TableHead>E-mail</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Documento</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead>Cidade</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -364,32 +406,33 @@ const Clientes = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">Carregando...</TableCell>
+                  <TableCell colSpan={7} className="text-center">Carregando...</TableCell>
                 </TableRow>
               ) : filteredCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">Nenhum cliente encontrado</TableCell>
+                  <TableCell colSpan={7} className="text-center">Nenhum cliente encontrado</TableCell>
                 </TableRow>
               ) : (
-                filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>{customer.email}</TableCell>
-                    <TableCell>{customer.phone}</TableCell>
-                    <TableCell>{customer.document}</TableCell>
-                    <TableCell>{customer.city}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(customer)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(customer.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                  filteredCustomers.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium">{customer.name}</TableCell>
+                      <TableCell>{customer.email}</TableCell>
+                      <TableCell>{customer.phone}</TableCell>
+                      <TableCell>{customer.document}</TableCell>
+                      <TableCell>{customer.responsible || "-"}</TableCell>
+                      <TableCell>{customer.city}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(customer)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(customer.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
               )}
             </TableBody>
           </Table>

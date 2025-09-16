@@ -444,6 +444,7 @@ export type Database = {
           id: string
           name: string
           phone: string
+          responsible: string | null
           state: string | null
           status: Database["public"]["Enums"]["status_type"]
           updated_at: string
@@ -460,6 +461,7 @@ export type Database = {
           id?: string
           name: string
           phone: string
+          responsible?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["status_type"]
           updated_at?: string
@@ -476,6 +478,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string
+          responsible?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["status_type"]
           updated_at?: string
