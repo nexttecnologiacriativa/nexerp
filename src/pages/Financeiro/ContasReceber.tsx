@@ -110,8 +110,11 @@ const ContasReceber = () => {
   
   // Quick-add form states
   const [customerFormData, setCustomerFormData] = useState({
+    personType: "fisica" as "fisica" | "juridica",
     name: "",
     document: "",
+    document_type: "cpf" as "cpf" | "cnpj",
+    responsible: "",
     email: "",
     phone: "",
   });
@@ -295,6 +298,8 @@ const ContasReceber = () => {
         .insert({
           name: customerFormData.name,
           document: customerFormData.document || null,
+          document_type: customerFormData.document_type,
+          responsible: customerFormData.personType === "juridica" ? customerFormData.responsible || null : null,
           email: customerFormData.email || null,
           phone: customerFormData.phone || null,
           company_id: profile.company_id,
@@ -313,8 +318,11 @@ const ContasReceber = () => {
       
       // Resetar form e fechar modal
       setCustomerFormData({
+        personType: "fisica" as "fisica" | "juridica",
         name: "",
         document: "",
+        document_type: "cpf" as "cpf" | "cnpj",
+        responsible: "",
         email: "",
         phone: "",
       });
@@ -1261,25 +1269,70 @@ const ContasReceber = () => {
               </DialogHeader>
               <form onSubmit={handleCustomerQuickAdd}>
                 <div className="grid gap-4 py-4">
+                  {/* Seleção de tipo de pessoa */}
                   <div className="space-y-2">
-                    <Label htmlFor="customer_name">Nome *</Label>
+                    <Label htmlFor="personType">Tipo de Pessoa *</Label>
+                    <Select 
+                      value={customerFormData.personType} 
+                      onValueChange={(value: "fisica" | "juridica") => {
+                        setCustomerFormData({
+                          ...customerFormData, 
+                          personType: value,
+                          document_type: value === "fisica" ? "cpf" : "cnpj",
+                          name: "",
+                          document: "",
+                          responsible: ""
+                        })
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fisica">Pessoa Física</SelectItem>
+                        <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_name">
+                      {customerFormData.personType === "juridica" ? "Nome Fantasia" : "Nome"} *
+                    </Label>
                     <Input
                       id="customer_name"
-                      placeholder="Nome do cliente"
+                      placeholder={customerFormData.personType === "juridica" ? "Nome fantasia da empresa" : "Nome do cliente"}
                       value={customerFormData.name}
                       onChange={(e) => setCustomerFormData({...customerFormData, name: e.target.value})}
                       required
                     />
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="customer_document">Documento *</Label>
+                    <Label htmlFor="customer_document">
+                      {customerFormData.personType === "juridica" ? "CNPJ" : "CPF"} *
+                    </Label>
                     <Input
                       id="customer_document"
-                      placeholder="CPF/CNPJ"
+                      placeholder={customerFormData.personType === "juridica" ? "CNPJ" : "CPF"}
                       value={customerFormData.document}
                       onChange={(e) => setCustomerFormData({...customerFormData, document: e.target.value})}
+                      required
                     />
                   </div>
+
+                  {customerFormData.personType === "juridica" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="customer_responsible">Responsável</Label>
+                      <Input
+                        id="customer_responsible"
+                        placeholder="Nome da pessoa de contato"
+                        value={customerFormData.responsible}
+                        onChange={(e) => setCustomerFormData({...customerFormData, responsible: e.target.value})}
+                      />
+                    </div>
+                  )}
+                  
                   <div className="space-y-2">
                     <Label htmlFor="customer_email">E-mail *</Label>
                     <Input
@@ -1288,8 +1341,10 @@ const ContasReceber = () => {
                       placeholder="email@exemplo.com"
                       value={customerFormData.email}
                       onChange={(e) => setCustomerFormData({...customerFormData, email: e.target.value})}
+                      required
                     />
                   </div>
+                  
                   <div className="space-y-2">
                     <Label htmlFor="customer_phone">Telefone *</Label>
                     <Input
@@ -1297,6 +1352,7 @@ const ContasReceber = () => {
                       placeholder="(11) 99999-9999"
                       value={customerFormData.phone}
                       onChange={(e) => setCustomerFormData({...customerFormData, phone: e.target.value})}
+                      required
                     />
                   </div>
                 </div>
