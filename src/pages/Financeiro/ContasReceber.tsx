@@ -16,8 +16,10 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterva
 import { ptBR } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
+import { CPFInput } from "@/components/ui/cpf-input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { normalizeCPF } from "@/lib/cpf-utils";
 
 interface AccountReceivable {
   id: string;
@@ -118,6 +120,7 @@ const ContasReceber = () => {
     email: "",
     phone: "",
   });
+  const [customerCpfError, setCustomerCpfError] = useState<string | null>(null);
   
   const [bankAccountFormData, setBankAccountFormData] = useState({
     name: "",
@@ -277,6 +280,17 @@ const ContasReceber = () => {
   // Quick-add handlers
   const handleCustomerQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar CPF se for pessoa física
+    if (customerFormData.personType === "fisica" && customerCpfError) {
+      toast({
+        title: "CPF inválido",
+        description: customerCpfError,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -293,11 +307,30 @@ const ContasReceber = () => {
         return;
       }
 
+      // Verificar duplicidade de CPF/CNPJ
+      const normalizedDocument = customerFormData.document_type === "cpf" ? normalizeCPF(customerFormData.document) : customerFormData.document;
+      
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('company_id', profile.company_id)
+        .eq('document', normalizedDocument)
+        .eq('document_type', customerFormData.document_type);
+
+      if (existingCustomer && existingCustomer.length > 0) {
+        toast({
+          title: "Cliente já existe",
+          description: `Já existe um cliente cadastrado com este ${customerFormData.document_type === 'cpf' ? 'CPF' : 'CNPJ'}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('customers')
         .insert({
           name: customerFormData.name,
-          document: customerFormData.document || null,
+          document: normalizedDocument,
           document_type: customerFormData.document_type,
           responsible: customerFormData.personType === "juridica" ? customerFormData.responsible || null : null,
           email: customerFormData.email || null,
@@ -1312,13 +1345,23 @@ const ContasReceber = () => {
                     <Label htmlFor="customer_document">
                       {customerFormData.personType === "juridica" ? "CNPJ" : "CPF"} *
                     </Label>
-                    <Input
-                      id="customer_document"
-                      placeholder={customerFormData.personType === "juridica" ? "CNPJ" : "CPF"}
-                      value={customerFormData.document}
-                      onChange={(e) => setCustomerFormData({...customerFormData, document: e.target.value})}
-                      required
-                    />
+                    {customerFormData.personType === "fisica" ? (
+                      <CPFInput
+                        id="customer_document"
+                        value={customerFormData.document}
+                        onChange={(value, isValid) => setCustomerFormData({...customerFormData, document: value})}
+                        onValidationChange={setCustomerCpfError}
+                        required
+                      />
+                    ) : (
+                      <Input
+                        id="customer_document"
+                        placeholder="00.000.000/0000-00"
+                        value={customerFormData.document}
+                        onChange={(e) => setCustomerFormData({...customerFormData, document: e.target.value})}
+                        required
+                      />
+                    )}
                   </div>
 
                   {customerFormData.personType === "juridica" && (

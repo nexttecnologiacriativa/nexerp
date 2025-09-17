@@ -9,10 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CPFInput } from "@/components/ui/cpf-input";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { normalizeCPF } from "@/lib/cpf-utils";
 
 interface Customer {
   id: string;
@@ -35,6 +37,7 @@ const Clientes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [cpfError, setCpfError] = useState<string | null>(null);
   
   // Hook para modal de confirmação
   const confirmDialog = useConfirmDialog();
@@ -96,11 +99,32 @@ const Clientes = () => {
       state: "",
       zip_code: "",
     });
+    setCpfError(null);
     setEditingCustomer(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validações básicas
+    if (!formData.name || !formData.email || !formData.phone || !formData.document) {
+      toast({
+        title: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar CPF se for pessoa física
+    if (formData.personType === "fisica" && cpfError) {
+      toast({
+        title: "CPF inválido",
+        description: cpfError,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -120,11 +144,31 @@ const Clientes = () => {
         return;
       }
 
+      // Verificar duplicidade de CPF/CNPJ
+      const normalizedDocument = formData.document_type === "cpf" ? normalizeCPF(formData.document) : formData.document;
+      
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('company_id', profile.company_id)
+        .eq('document', normalizedDocument)
+        .eq('document_type', formData.document_type)
+        .neq('id', editingCustomer?.id || '');
+
+      if (existingCustomer && existingCustomer.length > 0) {
+        toast({
+          title: "Cliente já existe",
+          description: `Já existe um cliente cadastrado com este ${formData.document_type === 'cpf' ? 'CPF' : 'CNPJ'}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const customerData = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        document: formData.document,
+        document: normalizedDocument,
         document_type: formData.document_type,
         responsible: formData.personType === "juridica" ? formData.responsible : null,
         address: formData.address,
@@ -323,12 +367,23 @@ const Clientes = () => {
                     <Label htmlFor="document">
                       {formData.personType === "juridica" ? "CNPJ" : "CPF"} *
                     </Label>
-                    <Input
-                      id="document"
-                      value={formData.document}
-                      onChange={(e) => setFormData({...formData, document: e.target.value})}
-                      required
-                    />
+                    {formData.personType === "fisica" ? (
+                      <CPFInput
+                        id="document"
+                        value={formData.document}
+                        onChange={(value, isValid) => setFormData({...formData, document: value})}
+                        onValidationChange={setCpfError}
+                        required
+                      />
+                    ) : (
+                      <Input
+                        id="document"
+                        placeholder="00.000.000/0000-00"
+                        value={formData.document}
+                        onChange={(e) => setFormData({...formData, document: e.target.value})}
+                        required
+                      />
+                    )}
                   </div>
                   
                   {formData.personType === "juridica" && (
