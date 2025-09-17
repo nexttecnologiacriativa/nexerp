@@ -14,7 +14,7 @@ import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { normalizeCPF } from "@/lib/cpf-utils";
+import { normalizeCPF, formatCPF } from "@/lib/cpf-utils";
 
 interface Customer {
   id: string;
@@ -490,7 +490,7 @@ const Clientes = () => {
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.email}</TableCell>
                         <TableCell>{customer.phone}</TableCell>
-                        <TableCell>{customer.document}</TableCell>
+                        <TableCell>{formatCPF(customer.document)}</TableCell>
                         <TableCell>{customer.city || "-"}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
