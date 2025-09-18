@@ -11,8 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { formatCPF } from '@/lib/cpf-utils';
-import { formatCNPJ } from '@/lib/cnpj-utils';
+import { formatCPF, normalizeCPF } from '@/lib/cpf-utils';
+import { formatCNPJ, normalizeCNPJ } from '@/lib/cnpj-utils';
+import { CPFInput } from '@/components/ui/cpf-input';
+import { CNPJInput } from '@/components/ui/cnpj-input';
 
 interface Supplier {
   id: string;
@@ -44,6 +46,8 @@ const Fornecedores = () => {
     state: '',
     zip_code: ''
   });
+
+  const [documentValid, setDocumentValid] = useState(false);
 
   const fetchSuppliers = async () => {
     try {
@@ -111,11 +115,21 @@ const Fornecedores = () => {
       state: '',
       zip_code: ''
     });
+    setDocumentValid(false);
     setEditingSupplier(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!documentValid) {
+      toast({
+        title: "Erro de validação",
+        description: formData.document_type === 'cpf' ? "CPF deve ter 11 dígitos válidos" : "CNPJ deve ter 14 dígitos válidos",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       // Get user's company_id
@@ -139,6 +153,7 @@ const Fornecedores = () => {
 
       const supplierData = {
         ...formData,
+        document: formData.document_type === 'cpf' ? normalizeCPF(formData.document) : normalizeCNPJ(formData.document),
         company_id: profile.company_id,
       };
 
@@ -181,17 +196,22 @@ const Fornecedores = () => {
   };
 
   const handleEdit = (supplier: Supplier) => {
+    const formattedDocument = supplier.document_type === 'cpf' 
+      ? formatCPF(supplier.document || '')
+      : formatCNPJ(supplier.document || '');
+    
     setFormData({
       name: supplier.name,
       email: supplier.email || '',
       phone: '',
-      document: supplier.document || '',
+      document: formattedDocument,
       document_type: supplier.document_type || 'cnpj',
       address: '',
       city: supplier.city || '',
       state: supplier.state || '',
       zip_code: ''
     });
+    setDocumentValid(true); // Assume existing documents are valid
     setEditingSupplier(supplier);
     setDialogOpen(true);
   };
@@ -291,7 +311,14 @@ const Fornecedores = () => {
                   <Label htmlFor="document_type">Tipo de Documento</Label>
                   <Select
                     value={formData.document_type}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, document_type: value as "cpf" | "cnpj" }))}
+                    onValueChange={(value) => {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        document_type: value as "cpf" | "cnpj",
+                        document: '' // Reset document when type changes
+                      }));
+                      setDocumentValid(false);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -305,12 +332,23 @@ const Fornecedores = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="document">Documento *</Label>
-                  <Input
-                    id="document"
-                    value={formData.document}
-                    onChange={(e) => setFormData(prev => ({ ...prev, document: e.target.value }))}
-                    required
-                  />
+                  {formData.document_type === 'cpf' ? (
+                    <CPFInput
+                      value={formData.document}
+                      onChange={(value, isValid) => {
+                        setFormData(prev => ({ ...prev, document: value }));
+                        setDocumentValid(isValid);
+                      }}
+                    />
+                  ) : (
+                    <CNPJInput
+                      value={formData.document}
+                      onChange={(value, normalizedValue) => {
+                        setFormData(prev => ({ ...prev, document: value }));
+                        setDocumentValid(normalizedValue.length === 14);
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
