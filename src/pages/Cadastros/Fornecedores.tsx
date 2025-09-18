@@ -7,9 +7,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formatCPF } from '@/lib/cpf-utils';
+import { formatCNPJ } from '@/lib/cnpj-utils';
 
 interface Supplier {
   id: string;
@@ -226,6 +229,14 @@ const Fornecedores = () => {
     supplier.document?.includes(searchTerm)
   );
 
+  const pessoaFisicaSuppliers = filteredSuppliers.filter(supplier => 
+    supplier.document_type === "cpf"
+  );
+
+  const pessoaJuridicaSuppliers = filteredSuppliers.filter(supplier => 
+    supplier.document_type === "cnpj"
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -368,74 +379,204 @@ const Fornecedores = () => {
         <CardHeader>
           <CardTitle>Lista de Fornecedores</CardTitle>
           <CardDescription>
-            Visualize e gerencie todos os fornecedores cadastrados
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4" />
+              <Input
+                placeholder="Buscar fornecedores..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
           </CardDescription>
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, email ou documento..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : filteredSuppliers.length === 0 ? (
-            <div className="text-center py-10">
-              <p className="text-muted-foreground">Nenhum fornecedor encontrado</p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Documento</TableHead>
-                  <TableHead>Cidade</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSuppliers.map((supplier) => (
-                  <TableRow key={supplier.id}>
-                    <TableCell className="font-medium">{supplier.name}</TableCell>
-                    <TableCell>{supplier.email || '-'}</TableCell>
-                    <TableCell>{supplier.document || '-'}</TableCell>
-                    <TableCell>{supplier.city || '-'}</TableCell>
-                    <TableCell>
-                      <Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
-                        {supplier.status === 'active' ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(supplier)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(supplier.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <Tabs defaultValue="todos" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="todos">Todos ({filteredSuppliers.length})</TabsTrigger>
+              <TabsTrigger value="fisica">Pessoa Física ({pessoaFisicaSuppliers.length})</TabsTrigger>
+              <TabsTrigger value="juridica">Pessoa Jurídica ({pessoaJuridicaSuppliers.length})</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="todos" className="space-y-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : filteredSuppliers.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">Nenhum fornecedor encontrado</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Documento</TableHead>
+                      <TableHead>Cidade</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSuppliers.map((supplier) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.name}</TableCell>
+                        <TableCell>{supplier.email || '-'}</TableCell>
+                        <TableCell>
+                          {supplier.document_type === "cpf" 
+                            ? formatCPF(supplier.document) 
+                            : formatCNPJ(supplier.document)
+                          }
+                        </TableCell>
+                        <TableCell>{supplier.city || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
+                            {supplier.status === 'active' ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(supplier)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(supplier.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+
+            <TabsContent value="fisica" className="space-y-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : pessoaFisicaSuppliers.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">Nenhum fornecedor pessoa física encontrado</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>CPF</TableHead>
+                      <TableHead>Cidade</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pessoaFisicaSuppliers.map((supplier) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.name}</TableCell>
+                        <TableCell>{supplier.email || '-'}</TableCell>
+                        <TableCell>{formatCPF(supplier.document)}</TableCell>
+                        <TableCell>{supplier.city || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
+                            {supplier.status === 'active' ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(supplier)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(supplier.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+
+            <TabsContent value="juridica" className="space-y-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : pessoaJuridicaSuppliers.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-muted-foreground">Nenhum fornecedor pessoa jurídica encontrado</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>CNPJ</TableHead>
+                      <TableHead>Cidade</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pessoaJuridicaSuppliers.map((supplier) => (
+                      <TableRow key={supplier.id}>
+                        <TableCell className="font-medium">{supplier.name}</TableCell>
+                        <TableCell>{supplier.email || '-'}</TableCell>
+                        <TableCell>{formatCNPJ(supplier.document)}</TableCell>
+                        <TableCell>{supplier.city || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={supplier.status === 'active' ? 'default' : 'secondary'}>
+                            {supplier.status === 'active' ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(supplier)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDelete(supplier.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
