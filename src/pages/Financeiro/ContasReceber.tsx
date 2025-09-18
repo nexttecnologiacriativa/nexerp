@@ -17,9 +17,11 @@ import { ptBR } from "date-fns/locale";
 import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
 import { CPFInput } from "@/components/ui/cpf-input";
+import { CNPJInput } from "@/components/ui/cnpj-input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { normalizeCPF } from "@/lib/cpf-utils";
+import { normalizeCNPJ } from "@/lib/cnpj-utils";
 
 interface AccountReceivable {
   id: string;
@@ -121,6 +123,7 @@ const ContasReceber = () => {
     phone: "",
   });
   const [customerCpfError, setCustomerCpfError] = useState<string | null>(null);
+  const [customerCnpjError, setCustomerCnpjError] = useState<string | null>(null);
   
   const [bankAccountFormData, setBankAccountFormData] = useState({
     name: "",
@@ -290,6 +293,16 @@ const ContasReceber = () => {
       });
       return;
     }
+
+    // Validar CNPJ se for pessoa jurídica
+    if (customerFormData.personType === "juridica" && customerCnpjError) {
+      toast({
+        title: "CNPJ inválido",
+        description: customerCnpjError,
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       const { data: profile } = await supabase
@@ -308,7 +321,9 @@ const ContasReceber = () => {
       }
 
       // Verificar duplicidade de CPF/CNPJ
-      const normalizedDocument = customerFormData.document_type === "cpf" ? normalizeCPF(customerFormData.document) : customerFormData.document;
+      const normalizedDocument = customerFormData.document_type === "cpf" 
+        ? normalizeCPF(customerFormData.document) 
+        : normalizeCNPJ(customerFormData.document);
       
       const { data: existingCustomer } = await supabase
         .from('customers')
@@ -1354,11 +1369,11 @@ const ContasReceber = () => {
                         required
                       />
                     ) : (
-                      <Input
+                      <CNPJInput
                         id="customer_document"
-                        placeholder="00.000.000/0000-00"
                         value={customerFormData.document}
-                        onChange={(e) => setCustomerFormData({...customerFormData, document: e.target.value})}
+                        onChange={(value, normalizedValue) => setCustomerFormData({...customerFormData, document: normalizedValue})}
+                        onValidationChange={(isValid, error) => setCustomerCnpjError(error || null)}
                         required
                       />
                     )}

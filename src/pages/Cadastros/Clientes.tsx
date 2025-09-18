@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CPFInput } from "@/components/ui/cpf-input";
+import { CNPJInput } from "@/components/ui/cnpj-input";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { normalizeCPF, formatCPF } from "@/lib/cpf-utils";
+import { normalizeCNPJ, formatCNPJ } from "@/lib/cnpj-utils";
 
 interface Customer {
   id: string;
@@ -38,6 +40,7 @@ const Clientes = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [cpfError, setCpfError] = useState<string | null>(null);
+  const [cnpjError, setCnpjError] = useState<string | null>(null);
   
   // Hook para modal de confirmação
   const confirmDialog = useConfirmDialog();
@@ -100,6 +103,7 @@ const Clientes = () => {
       zip_code: "",
     });
     setCpfError(null);
+    setCnpjError(null);
     setEditingCustomer(null);
   };
 
@@ -125,6 +129,16 @@ const Clientes = () => {
       return;
     }
 
+    // Validar CNPJ se for pessoa jurídica
+    if (formData.personType === "juridica" && cnpjError) {
+      toast({
+        title: "CNPJ inválido",
+        description: cnpjError,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -145,7 +159,9 @@ const Clientes = () => {
       }
 
       // Verificar duplicidade de CPF/CNPJ
-      const normalizedDocument = formData.document_type === "cpf" ? normalizeCPF(formData.document) : formData.document;
+      const normalizedDocument = formData.document_type === "cpf" 
+        ? normalizeCPF(formData.document) 
+        : normalizeCNPJ(formData.document);
       
       const { data: existingCustomer } = await supabase
         .from('customers')
@@ -376,11 +392,11 @@ const Clientes = () => {
                         required
                       />
                     ) : (
-                      <Input
+                      <CNPJInput
                         id="document"
-                        placeholder="00.000.000/0000-00"
                         value={formData.document}
-                        onChange={(e) => setFormData({...formData, document: e.target.value})}
+                        onChange={(value, normalizedValue) => setFormData({...formData, document: normalizedValue})}
+                        onValidationChange={(isValid, error) => setCnpjError(error || null)}
                         required
                       />
                     )}
@@ -490,7 +506,12 @@ const Clientes = () => {
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.email}</TableCell>
                         <TableCell>{customer.phone}</TableCell>
-                        <TableCell>{formatCPF(customer.document)}</TableCell>
+                        <TableCell>
+                          {customer.document_type === "cpf" 
+                            ? formatCPF(customer.document) 
+                            : formatCNPJ(customer.document)
+                          }
+                        </TableCell>
                         <TableCell>{customer.city || "-"}</TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
