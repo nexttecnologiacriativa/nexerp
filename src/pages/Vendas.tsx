@@ -461,8 +461,8 @@ const Vendas = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="approved">Aprovado</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="rejected">Rejeitado</SelectItem>
+                    <SelectItem value="pending">Em andamento</SelectItem>
+                  <SelectItem value="rejected">Recusado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
