@@ -560,7 +560,7 @@ const Clientes = () => {
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.email}</TableCell>
                         <TableCell>{customer.phone}</TableCell>
-                        <TableCell>{customer.document}</TableCell>
+                        <TableCell>{formatCNPJ(customer.document)}</TableCell>
                         <TableCell>{customer.responsible || "-"}</TableCell>
                         <TableCell>{customer.city || "-"}</TableCell>
                         <TableCell>
