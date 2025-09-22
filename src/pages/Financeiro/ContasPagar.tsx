@@ -15,6 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { FileUpload } from "@/components/FileUpload";
+import { CPFInput } from "@/components/ui/cpf-input";
+import { CNPJInput } from "@/components/ui/cnpj-input";
+import { normalizeCPF } from "@/lib/cpf-utils";
+import { normalizeCNPJ } from "@/lib/cnpj-utils";
 
 interface AccountPayable {
   id: string;
@@ -101,6 +105,8 @@ const ContasPagar = () => {
     state: '',
     zip_code: ''
   });
+
+  const [supplierDocumentValid, setSupplierDocumentValid] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -248,10 +254,20 @@ const ContasPagar = () => {
       state: '',
       zip_code: ''
     });
+    setSupplierDocumentValid(false);
   };
 
   const handleSupplierSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!supplierDocumentValid) {
+      toast({
+        title: "Erro de validação",
+        description: supplierFormData.document_type === 'cpf' ? "CPF deve ter 11 dígitos válidos" : "CNPJ deve ter 14 dígitos válidos",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
       // Get user's company_id
@@ -275,6 +291,7 @@ const ContasPagar = () => {
 
       const supplierData = {
         ...supplierFormData,
+        document: supplierFormData.document_type === 'cpf' ? normalizeCPF(supplierFormData.document) : normalizeCNPJ(supplierFormData.document),
         company_id: profile.company_id,
       };
 
@@ -828,41 +845,72 @@ const ContasPagar = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier-document-type">Tipo de Documento</Label>
-                    <Select
-                      value={supplierFormData.document_type}
-                      onValueChange={(value) => setSupplierFormData(prev => ({ ...prev, document_type: value as "cpf" | "cnpj" }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cpf">CPF</SelectItem>
-                        <SelectItem value="cnpj">CNPJ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier-document">Documento *</Label>
-                    <Input
-                      id="supplier-document"
-                      value={supplierFormData.document}
-                      onChange={(e) => setSupplierFormData(prev => ({ ...prev, document: e.target.value }))}
-                    />
-                  </div>
-                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="supplier-document-type">Tipo de Documento</Label>
+                     <Select
+                       value={supplierFormData.document_type}
+                       onValueChange={(value) => {
+                         setSupplierFormData(prev => ({ 
+                           ...prev, 
+                           document_type: value as "cpf" | "cnpj",
+                           document: '' // Reset document when type changes
+                         }));
+                         setSupplierDocumentValid(false);
+                       }}
+                     >
+                       <SelectTrigger>
+                         <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="cpf">CPF</SelectItem>
+                         <SelectItem value="cnpj">CNPJ</SelectItem>
+                       </SelectContent>
+                     </Select>
+                   </div>
+                   
+                   <div className="space-y-2">
+                     <Label htmlFor="supplier-document">Documento *</Label>
+                     {supplierFormData.document_type === 'cpf' ? (
+                       <CPFInput
+                         value={supplierFormData.document}
+                         onChange={(value, isValid) => {
+                           setSupplierFormData(prev => ({ ...prev, document: value }));
+                           setSupplierDocumentValid(isValid);
+                         }}
+                       />
+                     ) : (
+                       <CNPJInput
+                         value={supplierFormData.document}
+                         onChange={(value, normalizedValue) => {
+                           setSupplierFormData(prev => ({ ...prev, document: value }));
+                           setSupplierDocumentValid(normalizedValue.length === 14);
+                         }}
+                       />
+                     )}
+                   </div>
+                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="supplier-phone">Telefone *</Label>
-                  <Input
-                    id="supplier-phone"
-                    value={supplierFormData.phone}
-                    onChange={(e) => setSupplierFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="supplier-phone">Telefone *</Label>
+                     <Input
+                       id="supplier-phone"
+                       value={supplierFormData.phone}
+                       onChange={(e) => setSupplierFormData(prev => ({ ...prev, phone: e.target.value }))}
+                       required
+                     />
+                   </div>
+
+                   <div className="space-y-2">
+                     <Label htmlFor="supplier-zip">CEP</Label>
+                     <Input
+                       id="supplier-zip"
+                       value={supplierFormData.zip_code}
+                       onChange={(e) => setSupplierFormData(prev => ({ ...prev, zip_code: e.target.value }))}
+                     />
+                   </div>
+                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="supplier-address">Endereço</Label>
@@ -873,34 +921,25 @@ const ContasPagar = () => {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier-city">Cidade</Label>
-                    <Input
-                      id="supplier-city"
-                      value={supplierFormData.city}
-                      onChange={(e) => setSupplierFormData(prev => ({ ...prev, city: e.target.value }))}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier-state">Estado</Label>
-                    <Input
-                      id="supplier-state"
-                      value={supplierFormData.state}
-                      onChange={(e) => setSupplierFormData(prev => ({ ...prev, state: e.target.value }))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="supplier-zip">CEP</Label>
-                    <Input
-                      id="supplier-zip"
-                      value={supplierFormData.zip_code}
-                      onChange={(e) => setSupplierFormData(prev => ({ ...prev, zip_code: e.target.value }))}
-                    />
-                  </div>
-                </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="supplier-city">Cidade</Label>
+                     <Input
+                       id="supplier-city"
+                       value={supplierFormData.city}
+                       onChange={(e) => setSupplierFormData(prev => ({ ...prev, city: e.target.value }))}
+                     />
+                   </div>
+                   
+                   <div className="space-y-2">
+                     <Label htmlFor="supplier-state">Estado</Label>
+                     <Input
+                       id="supplier-state"
+                       value={supplierFormData.state}
+                       onChange={(e) => setSupplierFormData(prev => ({ ...prev, state: e.target.value }))}
+                     />
+                   </div>
+                 </div>
 
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setSupplierDialogOpen(false)}>
