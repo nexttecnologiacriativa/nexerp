@@ -11,12 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CPFInput } from "@/components/ui/cpf-input";
 import { CNPJInput } from "@/components/ui/cnpj-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { normalizeCPF, formatCPF } from "@/lib/cpf-utils";
 import { normalizeCNPJ, formatCNPJ } from "@/lib/cnpj-utils";
+import { formatPhone } from "@/lib/phone-utils";
 
 interface Customer {
   id: string;
@@ -58,6 +60,7 @@ const Clientes = () => {
     state: "",
     zip_code: "",
   });
+  const [phoneValid, setPhoneValid] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -104,6 +107,7 @@ const Clientes = () => {
     });
     setCpfError(null);
     setCnpjError(null);
+    setPhoneValid(true);
     setEditingCustomer(null);
   };
 
@@ -114,6 +118,15 @@ const Clientes = () => {
     if (!formData.name || !formData.email || !formData.phone || !formData.document) {
       toast({
         title: "Preencha todos os campos obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!phoneValid) {
+      toast({
+        title: "Telefone inválido",
+        description: "O telefone deve ter entre 10 e 11 dígitos",
         variant: "destructive",
       });
       return;
@@ -245,6 +258,9 @@ const Clientes = () => {
       state: customer.state || "",
       zip_code: "",
     });
+    setCpfError(null);
+    setCnpjError(null);
+    setPhoneValid(true);
     setIsDialogOpen(true);
   };
 
@@ -371,10 +387,11 @@ const Clientes = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefone *</Label>
-                    <Input
+                    <PhoneInput
                       id="phone"
                       value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      onChange={(value) => setFormData({...formData, phone: value})}
+                      onValidityChange={setPhoneValid}
                       required
                     />
                   </div>
@@ -505,7 +522,7 @@ const Clientes = () => {
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.email}</TableCell>
-                        <TableCell>{customer.phone}</TableCell>
+                        <TableCell>{formatPhone(customer.phone)}</TableCell>
                         <TableCell>
                           {customer.document_type === "cpf" 
                             ? formatCPF(customer.document) 
@@ -559,7 +576,7 @@ const Clientes = () => {
                       <TableRow key={customer.id}>
                         <TableCell className="font-medium">{customer.name}</TableCell>
                         <TableCell>{customer.email}</TableCell>
-                        <TableCell>{customer.phone}</TableCell>
+                        <TableCell>{formatPhone(customer.phone)}</TableCell>
                         <TableCell>{formatCNPJ(customer.document)}</TableCell>
                         <TableCell>{customer.responsible || "-"}</TableCell>
                         <TableCell>{customer.city || "-"}</TableCell>

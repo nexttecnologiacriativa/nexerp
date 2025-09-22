@@ -17,8 +17,10 @@ import { ptBR } from "date-fns/locale";
 import { FileUpload } from "@/components/FileUpload";
 import { CPFInput } from "@/components/ui/cpf-input";
 import { CNPJInput } from "@/components/ui/cnpj-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { normalizeCPF } from "@/lib/cpf-utils";
 import { normalizeCNPJ } from "@/lib/cnpj-utils";
+import { formatPhone } from "@/lib/phone-utils";
 
 interface AccountPayable {
   id: string;
@@ -107,6 +109,7 @@ const ContasPagar = () => {
   });
 
   const [supplierDocumentValid, setSupplierDocumentValid] = useState(false);
+  const [supplierPhoneValid, setSupplierPhoneValid] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -255,6 +258,7 @@ const ContasPagar = () => {
       zip_code: ''
     });
     setSupplierDocumentValid(false);
+    setSupplierPhoneValid(true);
   };
 
   const handleSupplierSubmit = async (e: React.FormEvent) => {
@@ -264,6 +268,15 @@ const ContasPagar = () => {
       toast({
         title: "Erro de validação",
         description: supplierFormData.document_type === 'cpf' ? "CPF deve ter 11 dígitos válidos" : "CNPJ deve ter 14 dígitos válidos",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!supplierPhoneValid) {
+      toast({
+        title: "Telefone inválido",
+        description: "O telefone deve ter entre 10 e 11 dígitos",
         variant: "destructive",
       });
       return;

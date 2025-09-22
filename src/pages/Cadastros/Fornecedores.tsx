@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Edit, Trash2 } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Plus, Edit, Trash2, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { CPFInput } from "@/components/ui/cpf-input";
+import { CNPJInput } from "@/components/ui/cnpj-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { formatCPF, normalizeCPF } from '@/lib/cpf-utils';
 import { formatCNPJ, normalizeCNPJ } from '@/lib/cnpj-utils';
-import { CPFInput } from '@/components/ui/cpf-input';
-import { CNPJInput } from '@/components/ui/cnpj-input';
+import { formatPhone } from "@/lib/phone-utils";
 
 interface Supplier {
   id: string;
@@ -48,6 +51,7 @@ const Fornecedores = () => {
   });
 
   const [documentValid, setDocumentValid] = useState(false);
+  const [phoneValid, setPhoneValid] = useState(true);
 
   const fetchSuppliers = async () => {
     try {
@@ -116,6 +120,7 @@ const Fornecedores = () => {
       zip_code: ''
     });
     setDocumentValid(false);
+    setPhoneValid(true);
     setEditingSupplier(null);
   };
 
@@ -126,6 +131,15 @@ const Fornecedores = () => {
       toast({
         title: "Erro de validação",
         description: formData.document_type === 'cpf' ? "CPF deve ter 11 dígitos válidos" : "CNPJ deve ter 14 dígitos válidos",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!phoneValid) {
+      toast({
+        title: "Telefone inválido",
+        description: "O telefone deve ter entre 10 e 11 dígitos",
         variant: "destructive",
       });
       return;
@@ -212,6 +226,7 @@ const Fornecedores = () => {
       zip_code: ''
     });
     setDocumentValid(true); // Assume existing documents are valid
+    setPhoneValid(true);
     setEditingSupplier(supplier);
     setDialogOpen(true);
   };
@@ -354,10 +369,11 @@ const Fornecedores = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone *</Label>
-                <Input
+                <PhoneInput
                   id="phone"
                   value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
+                  onValidityChange={setPhoneValid}
                   required
                 />
               </div>
