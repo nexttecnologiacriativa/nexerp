@@ -46,7 +46,7 @@ import { ptBR } from 'date-fns/locale';
 interface ReportData {
   financial: {
     revenue: any[];
-    expenses: any[];
+    expenses: any[]; 
     cashFlow: any[];
   };
   sales: {
@@ -684,7 +684,7 @@ const Relatorios = () => {
                   reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
                     ? 'text-emerald-700 dark:text-emerald-300'
                     : 'text-orange-700 dark:text-orange-300'
-                }`}>Lucro Líquido Real</CardTitle>
+                }`}>Lucro Líquido</CardTitle>
                 <DollarSign className={`h-5 w-5 ${
                   reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
                     ? 'text-emerald-600 dark:text-emerald-400'
