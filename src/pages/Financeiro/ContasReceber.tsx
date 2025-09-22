@@ -112,7 +112,8 @@ const ContasReceber = () => {
     isOpen: false,
     accounts: [] as AccountReceivable[],
     title: "",
-    type: "pending" as "pending" | "received" | "overdue" | "total"
+    type: "pending" as "pending" | "received" | "overdue" | "total",
+    totalAmount: 0
   });
   
   // Quick-add states
@@ -907,23 +908,28 @@ const ContasReceber = () => {
   const openAccountDetailsModal = (type: "pending" | "received" | "overdue" | "total") => {
     let filteredAccountsForModal: AccountReceivable[] = [];
     let title = "";
+    let modalTotalAmount = 0;
 
     switch (type) {
       case "pending":
         filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'pending');
         title = "Detalhes - Contas a Receber";
+        modalTotalAmount = totalPending;
         break;
       case "received":
         filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'paid');
         title = "Detalhes - Contas Recebidas";
+        modalTotalAmount = totalReceived;
         break;
       case "overdue":
         filteredAccountsForModal = filteredAccounts.filter(account => getActualStatus(account) === 'overdue');
         title = "Detalhes - Contas Vencidas";
+        modalTotalAmount = totalOverdue;
         break;
       case "total":
         filteredAccountsForModal = filteredAccounts;
         title = "Detalhes - Todas as Contas";
+        modalTotalAmount = totalValue;
         break;
     }
 
@@ -931,7 +937,8 @@ const ContasReceber = () => {
       isOpen: true,
       accounts: filteredAccountsForModal,
       title,
-      type
+      type,
+      totalAmount: modalTotalAmount
     });
   };
 
@@ -1969,6 +1976,7 @@ const ContasReceber = () => {
         accounts={accountDetailsModal.accounts}
         title={accountDetailsModal.title}
         type="receivable"
+        totalAmount={accountDetailsModal.totalAmount}
       />
     </div>
   );

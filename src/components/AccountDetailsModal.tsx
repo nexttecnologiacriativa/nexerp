@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, X } from "lucide-react";
+import { Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhone } from "@/lib/phone-utils";
@@ -31,6 +31,7 @@ interface AccountDetailsModalProps {
   accounts: (PayableAccount | ReceivableAccount)[];
   title: string;
   type: "payable" | "receivable";
+  totalAmount?: number;
 }
 
 export function AccountDetailsModal({ 
@@ -38,7 +39,8 @@ export function AccountDetailsModal({
   onClose, 
   accounts, 
   title, 
-  type 
+  type,
+  totalAmount 
 }: AccountDetailsModalProps) {
   
   const getStatusBadge = (account: BaseAccount) => {
@@ -108,14 +110,6 @@ export function AccountDetailsModal({
               <Download className="h-4 w-4" />
               Exportar CSV
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </DialogHeader>
 
@@ -169,7 +163,7 @@ export function AccountDetailsModal({
               {accounts.length} conta{accounts.length !== 1 ? 's' : ''} encontrada{accounts.length !== 1 ? 's' : ''}
             </span>
             <span className="font-semibold">
-              Total: R$ {accounts.reduce((sum, account) => sum + account.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              Total: R$ {(totalAmount ?? accounts.reduce((sum, account) => sum + account.amount, 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>

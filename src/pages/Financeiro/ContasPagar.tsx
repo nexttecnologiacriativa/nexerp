@@ -80,7 +80,8 @@ const ContasPagar = () => {
     isOpen: false,
     accounts: [] as AccountPayable[],
     title: "",
-    type: "pending" as "pending" | "paid" | "overdue" | "total"
+    type: "pending" as "pending" | "paid" | "overdue" | "total",
+    totalAmount: 0
   });
 
   const [formData, setFormData] = useState({
@@ -644,23 +645,28 @@ const ContasPagar = () => {
   const openAccountDetailsModal = (type: "pending" | "paid" | "overdue" | "total") => {
     let filteredAccountsForModal: AccountPayable[] = [];
     let title = "";
+    let modalTotalAmount = 0;
 
     switch (type) {
       case "pending":
         filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'pending');
         title = "Detalhes - Contas a Pagar";
+        modalTotalAmount = totalPending;
         break;
       case "paid":
         filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'paid');
         title = "Detalhes - Contas Pagas";
+        modalTotalAmount = totalPaid;
         break;
       case "overdue":
         filteredAccountsForModal = filteredAccounts.filter(account => getActualStatus(account) === 'overdue');
         title = "Detalhes - Contas Vencidas";
+        modalTotalAmount = totalOverdue;
         break;
       case "total":
         filteredAccountsForModal = filteredAccounts;
         title = "Detalhes - Todas as Contas";
+        modalTotalAmount = totalValue;
         break;
     }
 
@@ -668,7 +674,8 @@ const ContasPagar = () => {
       isOpen: true,
       accounts: filteredAccountsForModal,
       title,
-      type
+      type,
+      totalAmount: modalTotalAmount
     });
   };
 
@@ -1232,6 +1239,7 @@ const ContasPagar = () => {
         accounts={accountDetailsModal.accounts}
         title={accountDetailsModal.title}
         type="payable"
+        totalAmount={accountDetailsModal.totalAmount}
       />
     </>
   );
