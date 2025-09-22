@@ -1007,7 +1007,8 @@ const ContasReceber = () => {
     .filter(account => getActualStatus(account) === 'overdue')
     .reduce((sum, account) => sum + account.amount, 0);
     
-  const totalValue = totalPending + totalReceived + totalOverdue;
+  // Total = Received + Pending (que já inclui os vencidos) - evita duplicação
+  const totalValue = totalReceived + totalPending;
 
   return (
     <div className="p-6 space-y-6">

@@ -743,7 +743,8 @@ const ContasPagar = () => {
     .filter(account => getActualStatus(account) === 'overdue')
     .reduce((sum, account) => sum + account.amount, 0);
     
-  const totalValue = totalPending + totalPaid + totalOverdue;
+  // Total = Paid + Pending (que já inclui os vencidos) - evita duplicação
+  const totalValue = totalPaid + totalPending;
 
   return (
     <>
