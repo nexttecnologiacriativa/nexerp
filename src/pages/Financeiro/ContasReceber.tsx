@@ -947,15 +947,15 @@ const ContasReceber = () => {
     return matchesSearch && matchesStatus && matchesPeriod;
   });
 
-  const totalPending = accounts
+  const totalPending = filteredAccounts
     .filter(account => account.status === 'pending')
     .reduce((sum, account) => sum + account.amount, 0);
 
-  const totalReceived = accounts
+  const totalReceived = filteredAccounts
     .filter(account => account.status === 'paid')
     .reduce((sum, account) => sum + account.amount, 0);
 
-  const totalOverdue = accounts
+  const totalOverdue = filteredAccounts
     .filter(account => getActualStatus(account) === 'overdue')
     .reduce((sum, account) => sum + account.amount, 0);
     
