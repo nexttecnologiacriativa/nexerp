@@ -21,6 +21,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { normalizeCPF } from "@/lib/cpf-utils";
 import { normalizeCNPJ } from "@/lib/cnpj-utils";
 import { formatPhone } from "@/lib/phone-utils";
+import { AccountDetailsModal } from "@/components/AccountDetailsModal";
 
 interface AccountPayable {
   id: string;
@@ -73,6 +74,14 @@ const ContasPagar = () => {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  
+  // Modal states for account details
+  const [accountDetailsModal, setAccountDetailsModal] = useState({
+    isOpen: false,
+    accounts: [] as AccountPayable[],
+    title: "",
+    type: "pending" as "pending" | "paid" | "overdue" | "total"
+  });
 
   const [formData, setFormData] = useState({
     supplier_id: "",
@@ -631,6 +640,38 @@ const ContasPagar = () => {
     return account.status;
   };
 
+  // Funções para abrir modal com detalhes específicos
+  const openAccountDetailsModal = (type: "pending" | "paid" | "overdue" | "total") => {
+    let filteredAccountsForModal: AccountPayable[] = [];
+    let title = "";
+
+    switch (type) {
+      case "pending":
+        filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'pending');
+        title = "Detalhes - Contas a Pagar";
+        break;
+      case "paid":
+        filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'paid');
+        title = "Detalhes - Contas Pagas";
+        break;
+      case "overdue":
+        filteredAccountsForModal = filteredAccounts.filter(account => getActualStatus(account) === 'overdue');
+        title = "Detalhes - Contas Vencidas";
+        break;
+      case "total":
+        filteredAccountsForModal = filteredAccounts;
+        title = "Detalhes - Todas as Contas";
+        break;
+    }
+
+    setAccountDetailsModal({
+      isOpen: true,
+      accounts: filteredAccountsForModal,
+      title,
+      type
+    });
+  };
+
   const getStatusBadge = (account: AccountPayable) => {
     const actualStatus = getActualStatus(account);
     const statusConfig = {
@@ -969,7 +1010,10 @@ const ContasPagar = () => {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => openAccountDetailsModal("pending")}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">A Pagar</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -981,7 +1025,10 @@ const ContasPagar = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => openAccountDetailsModal("paid")}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pago</CardTitle>
               <Check className="h-4 w-4 text-muted-foreground" />
@@ -993,7 +1040,10 @@ const ContasPagar = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => openAccountDetailsModal("overdue")}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Vencido</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1005,7 +1055,10 @@ const ContasPagar = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => openAccountDetailsModal("total")}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -1171,6 +1224,15 @@ const ContasPagar = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Account Details Modal */}
+      <AccountDetailsModal
+        isOpen={accountDetailsModal.isOpen}
+        onClose={() => setAccountDetailsModal(prev => ({ ...prev, isOpen: false }))}
+        accounts={accountDetailsModal.accounts}
+        title={accountDetailsModal.title}
+        type="payable"
+      />
     </>
   );
 };

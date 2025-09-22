@@ -22,6 +22,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { normalizeCPF } from "@/lib/cpf-utils";
 import { normalizeCNPJ } from "@/lib/cnpj-utils";
+import { AccountDetailsModal } from "@/components/AccountDetailsModal";
 
 interface AccountReceivable {
   id: string;
@@ -105,6 +106,14 @@ const ContasReceber = () => {
   const [periodFilter, setPeriodFilter] = useState<"monthly" | "today" | "year" | "all" | "custom">("monthly");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  
+  // Modal states for account details
+  const [accountDetailsModal, setAccountDetailsModal] = useState({
+    isOpen: false,
+    accounts: [] as AccountReceivable[],
+    title: "",
+    type: "pending" as "pending" | "received" | "overdue" | "total"
+  });
   
   // Quick-add states
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
@@ -894,6 +903,38 @@ const ContasReceber = () => {
     return account.status;
   };
 
+  // Funções para abrir modal com detalhes específicos
+  const openAccountDetailsModal = (type: "pending" | "received" | "overdue" | "total") => {
+    let filteredAccountsForModal: AccountReceivable[] = [];
+    let title = "";
+
+    switch (type) {
+      case "pending":
+        filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'pending');
+        title = "Detalhes - Contas a Receber";
+        break;
+      case "received":
+        filteredAccountsForModal = filteredAccounts.filter(account => account.status === 'paid');
+        title = "Detalhes - Contas Recebidas";
+        break;
+      case "overdue":
+        filteredAccountsForModal = filteredAccounts.filter(account => getActualStatus(account) === 'overdue');
+        title = "Detalhes - Contas Vencidas";
+        break;
+      case "total":
+        filteredAccountsForModal = filteredAccounts;
+        title = "Detalhes - Todas as Contas";
+        break;
+    }
+
+    setAccountDetailsModal({
+      isOpen: true,
+      accounts: filteredAccountsForModal,
+      title,
+      type
+    });
+  };
+
   const getStatusBadge = (account: AccountReceivable) => {
     const actualStatus = getActualStatus(account);
     const statusConfig = {
@@ -1664,7 +1705,10 @@ const ContasReceber = () => {
 
         {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openAccountDetailsModal("pending")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">A Receber</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -1676,7 +1720,10 @@ const ContasReceber = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openAccountDetailsModal("received")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Recebidos</CardTitle>
             <Check className="h-4 w-4 text-muted-foreground" />
@@ -1688,7 +1735,10 @@ const ContasReceber = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openAccountDetailsModal("overdue")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Vencidos</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -1700,7 +1750,10 @@ const ContasReceber = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card 
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => openAccountDetailsModal("total")}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -1908,6 +1961,15 @@ const ContasReceber = () => {
           </Table>
         </CardContent>
       </Card>
+      
+      {/* Account Details Modal */}
+      <AccountDetailsModal
+        isOpen={accountDetailsModal.isOpen}
+        onClose={() => setAccountDetailsModal(prev => ({ ...prev, isOpen: false }))}
+        accounts={accountDetailsModal.accounts}
+        title={accountDetailsModal.title}
+        type="receivable"
+      />
     </div>
   );
 };
