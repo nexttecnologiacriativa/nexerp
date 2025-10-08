@@ -1031,16 +1031,16 @@ const ContasPagar = () => {
                 Nova Conta a Pagar
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>{editingAccount ? "Editar Conta" : "Nova Conta a Pagar"}</DialogTitle>
                 <DialogDescription>
                   {editingAccount ? "Atualize as informações da conta" : "Cadastre uma nova conta a pagar"}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <ScrollArea className="max-h-[65vh] pr-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                <ScrollArea className="flex-1 px-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 pr-4">
                   <div className="space-y-2">
                     <Label htmlFor="supplier_id">Fornecedor *</Label>
                     <Select 
@@ -1407,7 +1407,7 @@ const ContasPagar = () => {
                 </div>
                 </ScrollArea>
 
-                <DialogFooter className="mt-6">
+                <DialogFooter className="pt-6 border-t mt-4">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancelar
                   </Button>
@@ -1421,7 +1421,7 @@ const ContasPagar = () => {
 
           {/* Supplier Registration Dialog */}
           <Dialog open={supplierDialogOpen} onOpenChange={setSupplierDialogOpen}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Fornecedor</DialogTitle>
                 <DialogDescription>
@@ -1562,7 +1562,7 @@ const ContasPagar = () => {
 
           {/* Quick-add Bank Account Dialog */}
           <Dialog open={bankAccountDialogOpen} onOpenChange={setBankAccountDialogOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Conta Bancária</DialogTitle>
                 <DialogDescription>
@@ -1626,7 +1626,7 @@ const ContasPagar = () => {
 
           {/* Quick-add Cost Center Dialog */}
           <Dialog open={costCenterDialogOpen} onOpenChange={setCostCenterDialogOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Centro de Custo</DialogTitle>
                 <DialogDescription>
@@ -1667,7 +1667,7 @@ const ContasPagar = () => {
 
           {/* Quick-add Category Dialog */}
           <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Categoria</DialogTitle>
                 <DialogDescription>
@@ -1726,7 +1726,7 @@ const ContasPagar = () => {
 
           {/* Quick-add Subcategory Dialog */}
           <Dialog open={subcategoryDialogOpen} onOpenChange={setSubcategoryDialogOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Subcategoria</DialogTitle>
                 <DialogDescription>
