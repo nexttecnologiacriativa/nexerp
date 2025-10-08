@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Edit, Trash2, Check, Calendar, DollarSign, ChevronLeft, ChevronRight, CreditCard, TrendingUp } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -75,6 +76,10 @@ const ContasPagar = () => {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
+  const [bankAccountDialogOpen, setBankAccountDialogOpen] = useState(false);
+  const [costCenterDialogOpen, setCostCenterDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
   
   // Modal states for account details
   const [accountDetailsModal, setAccountDetailsModal] = useState({
@@ -122,6 +127,32 @@ const ContasPagar = () => {
 
   const [supplierDocumentValid, setSupplierDocumentValid] = useState(false);
   const [supplierPhoneValid, setSupplierPhoneValid] = useState(true);
+
+  // Quick-add form states
+  const [bankAccountFormData, setBankAccountFormData] = useState({
+    name: "",
+    bank_name: "",
+    account_number: "",
+    account_type: "checking" as "checking" | "savings",
+  });
+
+  const [costCenterFormData, setCostCenterFormData] = useState({
+    name: "",
+    description: "",
+  });
+
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: "",
+    description: "",
+    color: "#3B82F6",
+  });
+
+  const [subcategoryFormData, setSubcategoryFormData] = useState({
+    name: "",
+    description: "",
+    color: "#6B7280",
+    category_id: "",
+  });
 
   useEffect(() => {
     if (user) {
@@ -271,6 +302,238 @@ const ContasPagar = () => {
     });
     setSupplierDocumentValid(false);
     setSupplierPhoneValid(true);
+  };
+
+  // Quick-add handlers
+  const handleBankAccountQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar associado a uma empresa",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('bank_accounts')
+        .insert({
+          name: bankAccountFormData.name,
+          bank_name: bankAccountFormData.bank_name,
+          account_number: bankAccountFormData.account_number,
+          account_type: bankAccountFormData.account_type,
+          company_id: profile.company_id,
+          balance: 0,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchBankAccounts();
+      setFormData(prev => ({ ...prev, bank_account_id: data.id }));
+      setBankAccountFormData({
+        name: "",
+        bank_name: "",
+        account_number: "",
+        account_type: "checking",
+      });
+      setBankAccountDialogOpen(false);
+      
+      toast({
+        title: "Conta bancária cadastrada!",
+        description: `${data.name} foi cadastrada e selecionada com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao cadastrar conta bancária",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCostCenterQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar associado a uma empresa",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('cost_centers')
+        .insert({
+          name: costCenterFormData.name,
+          description: costCenterFormData.description || null,
+          company_id: profile.company_id,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchCostCenters();
+      setFormData(prev => ({ ...prev, cost_center_id: data.id }));
+      setCostCenterFormData({
+        name: "",
+        description: "",
+      });
+      setCostCenterDialogOpen(false);
+      
+      toast({
+        title: "Centro de custo cadastrado!",
+        description: `${data.name} foi cadastrado e selecionado com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao cadastrar centro de custo",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCategoryQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar associado a uma empresa",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({
+          name: categoryFormData.name,
+          description: categoryFormData.description || null,
+          color: categoryFormData.color,
+          company_id: profile.company_id,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchCategories();
+      setFormData(prev => ({ ...prev, category_id: data.id }));
+      setCategoryFormData({
+        name: "",
+        description: "",
+        color: "#3B82F6",
+      });
+      setCategoryDialogOpen(false);
+      
+      toast({
+        title: "Categoria cadastrada!",
+        description: `${data.name} foi cadastrada e selecionada com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao cadastrar categoria",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSubcategoryQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) {
+        toast({
+          title: "Erro",
+          description: "Você precisa estar associado a uma empresa",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('subcategories')
+        .insert({
+          name: subcategoryFormData.name,
+          description: subcategoryFormData.description || null,
+          color: subcategoryFormData.color,
+          category_id: subcategoryFormData.category_id,
+          company_id: profile.company_id,
+          status: 'active'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await fetchSubcategories();
+      setFormData(prev => ({ ...prev, subcategory_id: data.id }));
+      setSubcategoryFormData({
+        name: "",
+        description: "",
+        color: "#6B7280",
+        category_id: "",
+      });
+      setSubcategoryDialogOpen(false);
+      
+      toast({
+        title: "Subcategoria cadastrada!",
+        description: `${data.name} foi cadastrada e selecionada com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao cadastrar subcategoria",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSupplierSubmit = async (e: React.FormEvent) => {
@@ -768,7 +1031,7 @@ const ContasPagar = () => {
                 Nova Conta a Pagar
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>{editingAccount ? "Editar Conta" : "Nova Conta a Pagar"}</DialogTitle>
                 <DialogDescription>
@@ -776,7 +1039,8 @@ const ContasPagar = () => {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+                <ScrollArea className="max-h-[65vh] pr-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="supplier_id">Fornecedor *</Label>
                     <Select 
@@ -858,7 +1122,16 @@ const ContasPagar = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="bank_account_id">Conta Bancária</Label>
-                    <Select value={formData.bank_account_id} onValueChange={(value) => setFormData({...formData, bank_account_id: value})}>
+                    <Select 
+                      value={formData.bank_account_id} 
+                      onValueChange={(value) => {
+                        if (value === "__add_new__") {
+                          setBankAccountDialogOpen(true);
+                        } else {
+                          setFormData({...formData, bank_account_id: value});
+                        }
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a conta bancária" />
                       </SelectTrigger>
@@ -868,13 +1141,31 @@ const ContasPagar = () => {
                             {account.name} - {account.bank_name}
                           </SelectItem>
                         ))}
+                        <SelectItem 
+                          value="__add_new__" 
+                          className="flex items-center justify-start text-primary font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                        >
+                          <div className="flex items-center">
+                            <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                            <span className="leading-none">Cadastrar Conta Bancária</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="cost_center_id">Centro de Custo</Label>
-                    <Select value={formData.cost_center_id} onValueChange={(value) => setFormData({...formData, cost_center_id: value})}>
+                    <Select 
+                      value={formData.cost_center_id} 
+                      onValueChange={(value) => {
+                        if (value === "__add_new__") {
+                          setCostCenterDialogOpen(true);
+                        } else {
+                          setFormData({...formData, cost_center_id: value});
+                        }
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o centro de custo" />
                       </SelectTrigger>
@@ -884,13 +1175,31 @@ const ContasPagar = () => {
                             {center.name}
                           </SelectItem>
                         ))}
+                        <SelectItem 
+                          value="__add_new__" 
+                          className="flex items-center justify-start text-primary font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                        >
+                          <div className="flex items-center">
+                            <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                            <span className="leading-none">Cadastrar Centro de Custo</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="category_id">Categoria</Label>
-                    <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value, subcategory_id: ""})}>
+                    <Select 
+                      value={formData.category_id} 
+                      onValueChange={(value) => {
+                        if (value === "__add_new__") {
+                          setCategoryDialogOpen(true);
+                        } else {
+                          setFormData({...formData, category_id: value, subcategory_id: ""});
+                        }
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a categoria" />
                       </SelectTrigger>
@@ -906,6 +1215,15 @@ const ContasPagar = () => {
                             </div>
                           </SelectItem>
                         ))}
+                        <SelectItem 
+                          value="__add_new__" 
+                          className="flex items-center justify-start text-primary font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                        >
+                          <div className="flex items-center">
+                            <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                            <span className="leading-none">Cadastrar Categoria</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -914,7 +1232,14 @@ const ContasPagar = () => {
                     <Label htmlFor="subcategory_id">Subcategoria</Label>
                     <Select 
                       value={formData.subcategory_id} 
-                      onValueChange={(value) => setFormData({...formData, subcategory_id: value})}
+                      onValueChange={(value) => {
+                        if (value === "__add_new__") {
+                          setSubcategoryFormData(prev => ({ ...prev, category_id: formData.category_id }));
+                          setSubcategoryDialogOpen(true);
+                        } else {
+                          setFormData({...formData, subcategory_id: value});
+                        }
+                      }}
                       disabled={!formData.category_id}
                     >
                       <SelectTrigger>
@@ -934,6 +1259,17 @@ const ContasPagar = () => {
                             </div>
                           </SelectItem>
                         ))}
+                        {formData.category_id && (
+                          <SelectItem 
+                            value="__add_new__" 
+                            className="flex items-center justify-start text-primary font-medium hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          >
+                            <div className="flex items-center">
+                              <Plus className="mr-2 h-4 w-4 flex-shrink-0" />
+                              <span className="leading-none">Cadastrar Subcategoria</span>
+                            </div>
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1069,8 +1405,9 @@ const ContasPagar = () => {
                     />
                   </div>
                 </div>
+                </ScrollArea>
 
-                <DialogFooter>
+                <DialogFooter className="mt-6">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Cancelar
                   </Button>
@@ -1219,6 +1556,229 @@ const ContasPagar = () => {
                     Salvar Fornecedor
                   </Button>
                 </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Quick-add Bank Account Dialog */}
+          <Dialog open={bankAccountDialogOpen} onOpenChange={setBankAccountDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Conta Bancária</DialogTitle>
+                <DialogDescription>
+                  Adicione uma nova conta bancária rapidamente
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleBankAccountQuickAdd}>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="account_name">Nome da Conta *</Label>
+                    <Input
+                      id="account_name"
+                      placeholder="Ex: Conta Corrente Principal"
+                      value={bankAccountFormData.name}
+                      onChange={(e) => setBankAccountFormData({...bankAccountFormData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bank_name">Nome do Banco *</Label>
+                    <Input
+                      id="bank_name"
+                      placeholder="Ex: Banco do Brasil"
+                      value={bankAccountFormData.bank_name}
+                      onChange={(e) => setBankAccountFormData({...bankAccountFormData, bank_name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="account_number">Número da Conta *</Label>
+                    <Input
+                      id="account_number"
+                      placeholder="Ex: 12345-6"
+                      value={bankAccountFormData.account_number}
+                      onChange={(e) => setBankAccountFormData({...bankAccountFormData, account_number: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="account_type">Tipo de Conta</Label>
+                    <Select value={bankAccountFormData.account_type} onValueChange={(value: "checking" | "savings") => setBankAccountFormData({...bankAccountFormData, account_type: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="checking">Conta Corrente</SelectItem>
+                        <SelectItem value="savings">Poupança</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setBankAccountDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Cadastrar</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Quick-add Cost Center Dialog */}
+          <Dialog open={costCenterDialogOpen} onOpenChange={setCostCenterDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Centro de Custo</DialogTitle>
+                <DialogDescription>
+                  Adicione um novo centro de custo rapidamente
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCostCenterQuickAdd}>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cost_center_name">Nome *</Label>
+                    <Input
+                      id="cost_center_name"
+                      placeholder="Nome do centro de custo"
+                      value={costCenterFormData.name}
+                      onChange={(e) => setCostCenterFormData({...costCenterFormData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cost_center_description">Descrição</Label>
+                    <Input
+                      id="cost_center_description"
+                      placeholder="Descrição do centro de custo"
+                      value={costCenterFormData.description}
+                      onChange={(e) => setCostCenterFormData({...costCenterFormData, description: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setCostCenterDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Cadastrar</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Quick-add Category Dialog */}
+          <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Categoria</DialogTitle>
+                <DialogDescription>
+                  Adicione uma nova categoria rapidamente
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCategoryQuickAdd}>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category_name">Nome *</Label>
+                    <Input
+                      id="category_name"
+                      placeholder="Nome da categoria"
+                      value={categoryFormData.name}
+                      onChange={(e) => setCategoryFormData({...categoryFormData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category_description">Descrição</Label>
+                    <Input
+                      id="category_description"
+                      placeholder="Descrição da categoria"
+                      value={categoryFormData.description}
+                      onChange={(e) => setCategoryFormData({...categoryFormData, description: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category_color">Cor</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="category_color"
+                        type="color"
+                        value={categoryFormData.color}
+                        onChange={(e) => setCategoryFormData({...categoryFormData, color: e.target.value})}
+                        className="w-12 h-10 p-1 border rounded cursor-pointer"
+                      />
+                      <Input
+                        value={categoryFormData.color}
+                        onChange={(e) => setCategoryFormData({...categoryFormData, color: e.target.value})}
+                        placeholder="#3B82F6"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setCategoryDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Cadastrar</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Quick-add Subcategory Dialog */}
+          <Dialog open={subcategoryDialogOpen} onOpenChange={setSubcategoryDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Subcategoria</DialogTitle>
+                <DialogDescription>
+                  Adicione uma nova subcategoria rapidamente
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubcategoryQuickAdd}>
+                <div className="grid gap-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="subcategory_name">Nome *</Label>
+                    <Input
+                      id="subcategory_name"
+                      placeholder="Nome da subcategoria"
+                      value={subcategoryFormData.name}
+                      onChange={(e) => setSubcategoryFormData({...subcategoryFormData, name: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="subcategory_description">Descrição</Label>
+                    <Input
+                      id="subcategory_description"
+                      placeholder="Descrição da subcategoria"
+                      value={subcategoryFormData.description}
+                      onChange={(e) => setSubcategoryFormData({...subcategoryFormData, description: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="subcategory_color">Cor</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="subcategory_color"
+                        type="color"
+                        value={subcategoryFormData.color}
+                        onChange={(e) => setSubcategoryFormData({...subcategoryFormData, color: e.target.value})}
+                        className="w-12 h-10 p-1 border rounded cursor-pointer"
+                      />
+                      <Input
+                        value={subcategoryFormData.color}
+                        onChange={(e) => setSubcategoryFormData({...subcategoryFormData, color: e.target.value})}
+                        placeholder="#6B7280"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setSubcategoryDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Cadastrar</Button>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
