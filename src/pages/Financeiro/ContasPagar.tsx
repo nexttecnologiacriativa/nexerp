@@ -851,6 +851,182 @@ const ContasPagar = () => {
                     />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="bank_account_id">Conta Bancária</Label>
+                    <Select value={formData.bank_account_id} onValueChange={(value) => setFormData({...formData, bank_account_id: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a conta bancária" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bankAccounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name} - {account.bank_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cost_center_id">Centro de Custo</Label>
+                    <Select value={formData.cost_center_id} onValueChange={(value) => setFormData({...formData, cost_center_id: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o centro de custo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {costCenters.map((center) => (
+                          <SelectItem key={center.id} value={center.id}>
+                            {center.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category_id">Categoria</Label>
+                    <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value, subcategory_id: ""})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: category.color }}
+                              />
+                              {category.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="subcategory_id">Subcategoria</Label>
+                    <Select 
+                      value={formData.subcategory_id} 
+                      onValueChange={(value) => setFormData({...formData, subcategory_id: value})}
+                      disabled={!formData.category_id}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a subcategoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subcategories
+                          .filter(sub => sub.category_id === formData.category_id)
+                          .map((subcategory) => (
+                          <SelectItem key={subcategory.id} value={subcategory.id}>
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: subcategory.color }}
+                              />
+                              {subcategory.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-4 col-span-2 border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        id="is_recurring"
+                        checked={formData.is_recurring}
+                        onChange={(e) => setFormData({...formData, is_recurring: e.target.checked})}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor="is_recurring" className="text-base font-medium">
+                          🔄 Configurar recorrência de pagamento
+                        </Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Ative para criar automaticamente as próximas contas de acordo com a frequência definida
+                        </p>
+                      </div>
+                    </div>
+
+                    {formData.is_recurring && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                        <div className="space-y-2">
+                          <Label htmlFor="recurrence_frequency" className="flex items-center gap-2">
+                            📅 Frequência
+                          </Label>
+                          <Select value={formData.recurrence_frequency} onValueChange={(value) => setFormData({...formData, recurrence_frequency: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="weekly">🗓️ Semanalmente</SelectItem>
+                              <SelectItem value="monthly">📅 Mensalmente</SelectItem>
+                              <SelectItem value="yearly">🎂 Anualmente</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="recurrence_interval" className="flex items-center gap-2">
+                            🔢 Intervalo
+                          </Label>
+                          <Input
+                            id="recurrence_interval"
+                            type="number"
+                            min="1"
+                            max="12"
+                            value={formData.recurrence_interval}
+                            onChange={(e) => setFormData({...formData, recurrence_interval: parseInt(e.target.value) || 1})}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            A cada {formData.recurrence_interval} {
+                              formData.recurrence_frequency === 'weekly' ? 'semana(s)' :
+                              formData.recurrence_frequency === 'monthly' ? 'mês/meses' : 'ano(s)'
+                            }
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="recurrence_end_date" className="flex items-center gap-2">
+                            🏁 Data limite
+                            <span className="text-xs text-muted-foreground">(opcional)</span>
+                          </Label>
+                          <Input
+                            id="recurrence_end_date"
+                            type="date"
+                            value={formData.recurrence_end_date}
+                            onChange={(e) => setFormData({...formData, recurrence_end_date: e.target.value})}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {formData.recurrence_end_date ? 
+                              `Até ${format(new Date(formData.recurrence_end_date), 'dd/MM/yyyy')}` : 
+                              '♾️ Sem data limite (para sempre)'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {formData.is_recurring && (
+                      <div className="bg-green-50 dark:bg-green-950/20 p-3 rounded-md border-l-4 border-green-500">
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-500 mt-0.5">ℹ️</span>
+                          <div className="text-sm">
+                            <p className="font-medium text-green-700 dark:text-green-300">Como funciona:</p>
+                            <p className="text-green-600 dark:text-green-400 mt-1">
+                              O sistema criará automaticamente as próximas contas {formData.recurrence_frequency === 'weekly' ? 'semanalmente' : formData.recurrence_frequency === 'monthly' ? 'mensalmente' : 'anualmente'} com 30 dias de antecedência.
+                              {!formData.recurrence_end_date && ' Esta conta será gerada indefinidamente.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="notes">Observações</Label>
                     <Input
@@ -858,6 +1034,15 @@ const ContasPagar = () => {
                       placeholder="Observações adicionais"
                       value={formData.notes}
                       onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <FileUpload
+                      onFileUploaded={(filePath) => setFormData({...formData, receipt_file_path: filePath})}
+                      currentFile={formData.receipt_file_path}
+                      companyId={user?.user_metadata?.company_id || 'temp'}
+                      accountId={editingAccount?.id}
                     />
                   </div>
                 </div>
