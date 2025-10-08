@@ -31,6 +31,7 @@ interface AccountPayable {
   due_date: string;
   payment_date: string | null;
   status: "pending" | "paid" | "overdue" | "cancelled";
+  payment_method: "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "bank_slip" | "check" | null;
   notes: string | null;
   document_number: string | null;
   suppliers: { name: string };
@@ -89,6 +90,7 @@ const ContasPagar = () => {
     description: "",
     amount: "",
     due_date: "",
+    payment_method: "",
     notes: "",
     document_number: "",
     is_recurring: false,
@@ -355,6 +357,7 @@ const ContasPagar = () => {
       description: "",
       amount: "",
       due_date: "",
+      payment_method: "",
       notes: "",
       document_number: "",
       is_recurring: false,
@@ -398,6 +401,7 @@ const ContasPagar = () => {
         description: formData.description,
         amount: parseFloat(formData.amount),
         due_date: formData.due_date,
+        payment_method: (formData.payment_method || null) as any,
         notes: formData.notes || null,
         document_number: formData.document_number || null,
         company_id: profile.company_id,
@@ -611,6 +615,7 @@ const ContasPagar = () => {
       description: account.description,
       amount: account.amount.toString(),
       due_date: account.due_date,
+      payment_method: account.payment_method || "",
       notes: account.notes || "",
       document_number: account.document_number || "",
       is_recurring: account.is_recurring || false,
@@ -1025,6 +1030,24 @@ const ContasPagar = () => {
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="payment_method">Forma de Pagamento *</Label>
+                    <Select value={formData.payment_method} onValueChange={(value) => setFormData({...formData, payment_method: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a forma de pagamento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                        <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                        <SelectItem value="bank_transfer">Transferência Bancária (TED/DOC)</SelectItem>
+                        <SelectItem value="bank_slip">Boleto Bancário</SelectItem>
+                        <SelectItem value="cash">Dinheiro</SelectItem>
+                        <SelectItem value="check">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
