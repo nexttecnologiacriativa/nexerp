@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { Bell, Calendar, AlertCircle } from "lucide-react";
+import { Bell, Calendar, AlertCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 interface Notification {
   id: string;
@@ -18,6 +20,9 @@ interface Notification {
 const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const fetchNotifications = async () => {
     try {
@@ -74,7 +79,9 @@ const NotificationDropdown = () => {
         });
       });
 
-      setNotifications(notificationsList);
+      // Filter out dismissed notifications
+      const filteredNotifications = notificationsList.filter(n => !dismissedIds.has(n.id));
+      setNotifications(filteredNotifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
@@ -84,9 +91,25 @@ const NotificationDropdown = () => {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 1000 * 60 * 5); // Atualiza a cada 5 minutos
+    const interval = setInterval(fetchNotifications, 1000 * 60 * 5);
     return () => clearInterval(interval);
-  }, []);
+  }, [dismissedIds]);
+
+  const handleNotificationClick = (notification: Notification) => {
+    const path = notification.type === "pagar" ? "/financeiro/contas-pagar" : "/financeiro/contas-receber";
+    navigate(path);
+    setIsOpen(false);
+  };
+
+  const handleClearAll = () => {
+    const allIds = new Set(notifications.map(n => n.id));
+    setDismissedIds(allIds);
+    setNotifications([]);
+    toast({
+      title: "Notificações limpas",
+      description: "Todas as notificações foram removidas.",
+    });
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -96,7 +119,7 @@ const NotificationDropdown = () => {
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-4 w-4" />
@@ -114,7 +137,21 @@ const NotificationDropdown = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="font-semibold">Notificações</h4>
-            {notifications.length > 0 && <Badge variant="secondary">{notifications.length}</Badge>}
+            <div className="flex items-center gap-2">
+              {notifications.length > 0 && (
+                <>
+                  <Badge variant="secondary">{notifications.length}</Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAll}
+                    className="h-6 px-2 text-xs"
+                  >
+                    Limpar tudo
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -129,10 +166,14 @@ const NotificationDropdown = () => {
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {notifications.map((notification) => (
-                <div key={notification.id} className="flex items-start gap-3 p-2 rounded-lg border bg-card">
+                <div
+                  key={notification.id}
+                  className="flex items-start gap-3 p-2 rounded-lg border bg-card cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => handleNotificationClick(notification)}
+                >
                   <div
                     className={`mt-1 p-1 rounded ${
-                      notification.type === "pagar" ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
+                      notification.type === "pagar" ? "bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400" : "bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400"
                     }`}
                   >
                     {notification.type === "pagar" ? (
@@ -152,7 +193,7 @@ const NotificationDropdown = () => {
                       </span>
                       <span
                         className={`text-xs font-medium ${
-                          notification.type === "pagar" ? "text-red-600" : "text-green-600"
+                          notification.type === "pagar" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
                         }`}
                       >
                         {formatCurrency(notification.amount)}
