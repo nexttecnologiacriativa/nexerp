@@ -25,6 +25,7 @@ import NotaFiscal from "./pages/NotaFiscal";
 import Relatorios from "./pages/Relatorios";
 import Planos from "./pages/Planos";
 import Faturamento from "./pages/Faturamento";
+import PopulateDemoData from "./pages/PopulateDemoData";
 import Layout from "./components/Layout";
 
 const queryClient = new QueryClient();
@@ -118,6 +119,11 @@ const App = () => (
             <Route path="/planos" element={
               <ProtectedRoute>
                 <Layout><Planos /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/populate-demo" element={
+              <ProtectedRoute>
+                <Layout><PopulateDemoData /></Layout>
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
