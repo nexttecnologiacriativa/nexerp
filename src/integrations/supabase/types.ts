@@ -32,6 +32,7 @@ export type Database = {
           parent_transaction_id: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id: string | null
           receipt_file_path: string | null
           recurrence_count: number | null
           recurrence_end_date: string | null
@@ -59,6 +60,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id?: string | null
           receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id?: string | null
           receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
@@ -159,6 +162,7 @@ export type Database = {
           parent_transaction_id: string | null
           payment_date: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id: string | null
           receipt_file_path: string | null
           recurrence_count: number | null
           recurrence_end_date: string | null
@@ -185,6 +189,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id?: string | null
           receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
@@ -211,6 +216,7 @@ export type Database = {
           parent_transaction_id?: string | null
           payment_date?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id?: string | null
           receipt_file_path?: string | null
           recurrence_count?: number | null
           recurrence_end_date?: string | null
@@ -304,6 +310,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cash_flow: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          category_id: string | null
+          company_id: string
+          created_at: string
+          description: string
+          id: string
+          notes: string | null
+          payment_method_id: string | null
+          related_account_id: string | null
+          related_account_type: string | null
+          subcategory_id: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          category_id?: string | null
+          company_id: string
+          created_at?: string
+          description: string
+          id?: string
+          notes?: string | null
+          payment_method_id?: string | null
+          related_account_id?: string | null
+          related_account_type?: string | null
+          subcategory_id?: string | null
+          transaction_date?: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          category_id?: string | null
+          company_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          notes?: string | null
+          payment_method_id?: string | null
+          related_account_id?: string | null
+          related_account_type?: string | null
+          subcategory_id?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       categories: {
         Row: {
@@ -494,6 +554,36 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category_id: string | null
@@ -672,6 +762,7 @@ export type Database = {
           net_amount: number
           notes: string | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id: string | null
           sale_date: string
           sale_number: string
           status: Database["public"]["Enums"]["status_type"]
@@ -687,6 +778,7 @@ export type Database = {
           net_amount?: number
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id?: string | null
           sale_date?: string
           sale_number: string
           status?: Database["public"]["Enums"]["status_type"]
@@ -702,6 +794,7 @@ export type Database = {
           net_amount?: number
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_method_id?: string | null
           sale_date?: string
           sale_number?: string
           status?: Database["public"]["Enums"]["status_type"]
