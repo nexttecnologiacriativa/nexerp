@@ -23,6 +23,7 @@ import { normalizeCPF } from "@/lib/cpf-utils";
 import { normalizeCNPJ } from "@/lib/cnpj-utils";
 import { formatPhone } from "@/lib/phone-utils";
 import { AccountDetailsModal } from "@/components/AccountDetailsModal";
+import { AccountDetailDialog } from "@/components/AccountDetailDialog";
 
 interface AccountPayable {
   id: string;
@@ -89,6 +90,10 @@ const ContasPagar = () => {
     type: "pending" as "pending" | "paid" | "overdue" | "total",
     totalAmount: 0
   });
+
+  // State for individual account detail dialog
+  const [selectedAccount, setSelectedAccount] = useState<AccountPayable | null>(null);
+  const [isAccountDetailOpen, setIsAccountDetailOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     supplier_id: "",
@@ -1953,7 +1958,14 @@ const ContasPagar = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredAccounts.map((account) => (
-                    <TableRow key={account.id}>
+                    <TableRow 
+                      key={account.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => {
+                        setSelectedAccount(account);
+                        setIsAccountDetailOpen(true);
+                      }}
+                    >
                       <TableCell className="font-medium">
                         {account.suppliers?.name || 'N/A'}
                       </TableCell>
@@ -1967,25 +1979,38 @@ const ContasPagar = () => {
                       <TableCell>
                         {getStatusBadge(account)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-2">
                           {(account.status === 'pending' || getActualStatus(account) === 'overdue') && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handlePayment(account.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePayment(account.id);
+                              }}
                               title="Marcar como pago"
                             >
                               <Check className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(account)}>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(account);
+                            }}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            onClick={() => handleDelete(account.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(account.id);
+                            }}
                             title="Excluir conta"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -2009,6 +2034,20 @@ const ContasPagar = () => {
         title={accountDetailsModal.title}
         type="payable"
         totalAmount={accountDetailsModal.totalAmount}
+      />
+
+      {/* Individual Account Detail Dialog */}
+      <AccountDetailDialog
+        isOpen={isAccountDetailOpen}
+        onClose={() => {
+          setIsAccountDetailOpen(false);
+          setSelectedAccount(null);
+        }}
+        account={selectedAccount}
+        type="payable"
+        onUpdate={() => {
+          fetchAccounts();
+        }}
       />
     </>
   );
