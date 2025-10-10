@@ -980,7 +980,7 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
             <div className="text-lg font-semibold">
               <div className="flex items-center gap-4">
                 <span>Total:</span>
-                <span className="text-2xl text-primary">
+                <span className="text-2xl text-primary dark:text-white">
                   R$ {getTotalAmount().toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
               </div>
