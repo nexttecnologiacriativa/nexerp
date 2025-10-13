@@ -13,6 +13,12 @@ import { CalendarIcon, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { QuickAddCustomer } from "@/components/QuickAddCustomer";
+import { QuickAddCategory } from "@/components/QuickAddCategory";
+import { QuickAddSubcategory } from "@/components/QuickAddSubcategory";
+import { QuickAddCostCenter } from "@/components/QuickAddCostCenter";
+import { QuickAddService } from "@/components/QuickAddService";
+import { QuickAddBankAccount } from "@/components/QuickAddBankAccount";
 
 interface SaleItem {
   id: string;
@@ -91,6 +97,14 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [showInstallments, setShowInstallments] = useState(false);
   const [installments, setInstallments] = useState<Installment[]>([]);
+  
+  // Quick add modals state
+  const [quickAddCustomerOpen, setQuickAddCustomerOpen] = useState(false);
+  const [quickAddCategoryOpen, setQuickAddCategoryOpen] = useState(false);
+  const [quickAddSubcategoryOpen, setQuickAddSubcategoryOpen] = useState(false);
+  const [quickAddCostCenterOpen, setQuickAddCostCenterOpen] = useState(false);
+  const [quickAddServiceOpen, setQuickAddServiceOpen] = useState(false);
+  const [quickAddBankAccountOpen, setQuickAddBankAccountOpen] = useState(false);
 
   const [saleType, setSaleType] = useState("budget");
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
@@ -248,13 +262,95 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
       if (costCentersData.data) setCostCenters(costCentersData.data);
       if (usersData.data) setUsers(usersData.data);
       if (bankAccountsData.data) setBankAccounts(bankAccountsData.data);
-
-      // Generate next sale number
-      const nextSaleNumber = generateNextSaleNumber(salesData.data?.[0]?.sale_number);
-      setFormData((prev) => ({ ...prev, sale_number: nextSaleNumber }));
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Erro ao carregar dados");
+    }
+  };
+
+  // Quick add callbacks
+  const handleQuickAddCustomer = async (customerId: string) => {
+    // Reload customers
+    const { data } = await supabase
+      .from("customers")
+      .select("id, name, email, phone")
+      .eq("company_id", userProfile.company_id)
+      .eq("status", "active");
+    
+    if (data) {
+      setCustomers(data);
+      setFormData({ ...formData, client_id: customerId });
+    }
+  };
+
+  const handleQuickAddCategory = async (categoryId: string) => {
+    // Reload categories
+    const { data } = await supabase
+      .from("categories")
+      .select("id, name, color")
+      .eq("company_id", userProfile.company_id)
+      .eq("status", "active");
+    
+    if (data) {
+      setCategories(data);
+      setFormData({ ...formData, category_id: categoryId });
+    }
+  };
+
+  const handleQuickAddSubcategory = async (subcategoryId: string) => {
+    // Reload subcategories
+    const { data } = await supabase
+      .from("subcategories")
+      .select("id, category_id, name, color")
+      .eq("company_id", userProfile.company_id)
+      .eq("status", "active");
+    
+    if (data) {
+      setSubcategories(data);
+      setFormData({ ...formData, subcategory_id: subcategoryId });
+    }
+  };
+
+  const handleQuickAddCostCenter = async (costCenterId: string) => {
+    // Reload cost centers
+    const { data } = await supabase
+      .from("cost_centers")
+      .select("id, name")
+      .eq("company_id", userProfile.company_id)
+      .eq("status", "active");
+    
+    if (data) {
+      setCostCenters(data);
+      setFormData({ ...formData, cost_center_id: costCenterId });
+    }
+  };
+
+  const handleQuickAddService = async (serviceId: string) => {
+    // Reload services
+    const { data } = await supabase
+      .from("services")
+      .select("id, name, price")
+      .eq("company_id", userProfile.company_id)
+      .eq("status", "active");
+    
+    if (data) {
+      setServices(data);
+      // Don't auto-add an item, just update the list
+      // User can manually add items using the "+ Adicionar item" button
+    }
+  };
+
+  const handleQuickAddBankAccount = async (accountId: string) => {
+    // Reload bank accounts
+    const { data } = await supabase
+      .from("bank_accounts")
+      .select("id, name, bank_name, account_number")
+      .eq("company_id", userProfile.company_id)
+      .eq("status", "active");
+    
+    if (data) {
+      setBankAccounts(data);
+      setPaymentInfo({ ...paymentInfo, receiving_account: accountId });
     }
   };
 
@@ -505,21 +601,31 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
             {/* Cliente */}
             <div>
               <Label htmlFor="client">Cliente *</Label>
-              <Select
-                value={formData.client_id}
-                onValueChange={(value) => setFormData({ ...formData, client_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.client_id}
+                  onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setQuickAddCustomerOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Data de venda */}
@@ -538,78 +644,109 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
             {/* Categoria financeira */}
             <div>
               <Label htmlFor="category">Categoria financeira</Label>
-              <Select
-                value={formData.category_id}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, category_id: value, subcategory_id: "" });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: category.color || "#3B82F6" }}
-                        />
-                        <span>{category.name}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.category_id}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, category_id: value, subcategory_id: "" });
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: category.color || "#3B82F6" }}
+                          />
+                          <span>{category.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setQuickAddCategoryOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Subcategoria */}
             <div>
               <Label htmlFor="subcategory">Subcategoria</Label>
-              <Select
-                value={formData.subcategory_id}
-                onValueChange={(value) => setFormData({ ...formData, subcategory_id: value })}
-                disabled={!formData.category_id}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma subcategoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subcategories
-                    .filter((sub) => sub.category_id === formData.category_id)
-                    .map((subcategory) => (
-                      <SelectItem key={subcategory.id} value={subcategory.id}>
-                        <div className="flex items-center space-x-2">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: subcategory.color || "#6B7280" }}
-                          />
-                          <span>{subcategory.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.subcategory_id}
+                  onValueChange={(value) => setFormData({ ...formData, subcategory_id: value })}
+                  disabled={!formData.category_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma subcategoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subcategories
+                      .filter((sub) => sub.category_id === formData.category_id)
+                      .map((subcategory) => (
+                        <SelectItem key={subcategory.id} value={subcategory.id}>
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: subcategory.color || "#6B7280" }}
+                            />
+                            <span>{subcategory.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setQuickAddSubcategoryOpen(true)}
+                  disabled={!formData.category_id}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Centro de custo */}
             <div>
               <Label htmlFor="cost_center">Centro de custo</Label>
-              <Select
-                value={formData.cost_center_id}
-                onValueChange={(value) => setFormData({ ...formData, cost_center_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um centro de custo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {costCenters.map((center) => (
-                    <SelectItem key={center.id} value={center.id}>
-                      {center.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.cost_center_id}
+                  onValueChange={(value) => setFormData({ ...formData, cost_center_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um centro de custo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {costCenters.map((center) => (
+                      <SelectItem key={center.id} value={center.id}>
+                        {center.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setQuickAddCostCenterOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Vendedor responsável */}
@@ -734,22 +871,34 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
                   {saleItems.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
-                        <Select
-                          value={item.service_id}
-                          onValueChange={(value) => updateSaleItem(item.id, "service_id", value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um serviço" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {services.map((service) => (
-                              <SelectItem key={service.id} value={service.id}>
-                                {service.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {!item.service_id && <p className="text-sm text-destructive mt-1">Campo obrigatório</p>}
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Select
+                              value={item.service_id}
+                              onValueChange={(value) => updateSaleItem(item.id, "service_id", value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione um serviço" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {services.map((service) => (
+                                  <SelectItem key={service.id} value={service.id}>
+                                    {service.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {!item.service_id && <p className="text-sm text-destructive mt-1">Campo obrigatório</p>}
+                          </div>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setQuickAddServiceOpen(true)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Textarea
@@ -845,21 +994,31 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
             {/* Conta de recebimento */}
             <div>
               <Label htmlFor="receiving_account">Conta de recebimento</Label>
-              <Select
-                value={paymentInfo.receiving_account}
-                onValueChange={(value) => setPaymentInfo({ ...paymentInfo, receiving_account: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma conta bancária" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bankAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name} - {account.bank_name} ({account.account_number})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={paymentInfo.receiving_account}
+                  onValueChange={(value) => setPaymentInfo({ ...paymentInfo, receiving_account: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma conta bancária" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} - {account.bank_name} ({account.account_number})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setQuickAddBankAccountOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Percentual */}
@@ -1009,6 +1168,49 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Quick Add Modals */}
+      {userProfile?.company_id && (
+        <>
+          <QuickAddCustomer
+            open={quickAddCustomerOpen}
+            onOpenChange={setQuickAddCustomerOpen}
+            onSuccess={handleQuickAddCustomer}
+            companyId={userProfile.company_id}
+          />
+          <QuickAddCategory
+            open={quickAddCategoryOpen}
+            onOpenChange={setQuickAddCategoryOpen}
+            onSuccess={handleQuickAddCategory}
+            companyId={userProfile.company_id}
+          />
+          <QuickAddSubcategory
+            open={quickAddSubcategoryOpen}
+            onOpenChange={setQuickAddSubcategoryOpen}
+            onSuccess={handleQuickAddSubcategory}
+            companyId={userProfile.company_id}
+            categoryId={formData.category_id}
+          />
+          <QuickAddCostCenter
+            open={quickAddCostCenterOpen}
+            onOpenChange={setQuickAddCostCenterOpen}
+            onSuccess={handleQuickAddCostCenter}
+            companyId={userProfile.company_id}
+          />
+          <QuickAddService
+            open={quickAddServiceOpen}
+            onOpenChange={setQuickAddServiceOpen}
+            onSuccess={handleQuickAddService}
+            companyId={userProfile.company_id}
+          />
+          <QuickAddBankAccount
+            open={quickAddBankAccountOpen}
+            onOpenChange={setQuickAddBankAccountOpen}
+            onSuccess={handleQuickAddBankAccount}
+            companyId={userProfile.company_id}
+          />
+        </>
+      )}
     </div>
   );
 };
