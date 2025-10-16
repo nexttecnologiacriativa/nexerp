@@ -62,9 +62,7 @@ const Index = () => {
             <Button variant="premium" size="lg" onClick={() => navigate("/auth")}>
               Teste Grátis por 30 dias
             </Button>
-            <Button variant="outline" size="lg">
-              Ver Demonstração
-            </Button>
+            
           </div>
         </div>
       </section>
