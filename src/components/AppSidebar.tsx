@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, DollarSign, Users, Package, FileText, BarChart3, Settings, Building2, CreditCard, Receipt, UserCog, LogOut, ChevronDown, Truck, Tag } from "lucide-react";
+import { LayoutDashboard, DollarSign, Users, Package, FileText, BarChart3, Settings, Building2, CreditCard, Receipt, UserCog, LogOut, ChevronDown, Truck, Tag, Shield, Zap, DollarSignIcon } from "lucide-react";
+import { useHasRole } from "@/hooks/use-has-role";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -82,6 +83,7 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const { hasRole: isSuperAdmin, loading: loadingRole } = useHasRole('super_admin');
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({
     isActive
@@ -155,6 +157,40 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {!loadingRole && isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/super-admin" className={getNavCls}>
+                      <Shield className="h-4 w-4" />
+                      {!collapsed && <span>Dashboard</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/super-admin/planos" className={getNavCls}>
+                      <Zap className="h-4 w-4" />
+                      {!collapsed && <span>Planos</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/super-admin/assinaturas" className={getNavCls}>
+                      <DollarSignIcon className="h-4 w-4" />
+                      {!collapsed && <span>Assinaturas</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">

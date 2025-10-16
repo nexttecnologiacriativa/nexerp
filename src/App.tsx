@@ -6,9 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import SuperAdminRoute from "@/components/SuperAdminRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import SuperAdminDashboard from "./pages/SuperAdmin/Index";
+import SuperAdminPlanos from "./pages/SuperAdmin/Planos";
+import SuperAdminAssinaturas from "./pages/SuperAdmin/Assinaturas";
 import Dashboard from "./pages/Dashboard";
 import ContasPagar from "./pages/Financeiro/ContasPagar";
 import ContasReceber from "./pages/Financeiro/ContasReceber";
@@ -124,6 +128,27 @@ const App = () => (
             <Route path="/populate-demo" element={
               <ProtectedRoute>
                 <Layout><PopulateDemoData /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/super-admin" element={
+              <ProtectedRoute>
+                <SuperAdminRoute>
+                  <SuperAdminDashboard />
+                </SuperAdminRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/super-admin/planos" element={
+              <ProtectedRoute>
+                <SuperAdminRoute>
+                  <SuperAdminPlanos />
+                </SuperAdminRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/super-admin/assinaturas" element={
+              <ProtectedRoute>
+                <SuperAdminRoute>
+                  <SuperAdminAssinaturas />
+                </SuperAdminRoute>
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

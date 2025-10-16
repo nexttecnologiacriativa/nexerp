@@ -409,50 +409,146 @@ export type Database = {
       companies: {
         Row: {
           address: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
           city: string | null
           created_at: string
           document: string
           document_type: Database["public"]["Enums"]["document_type"]
           email: string | null
           id: string
+          is_blocked: boolean | null
           name: string
           phone: string | null
           state: string | null
           status: Database["public"]["Enums"]["status_type"]
+          subscription_status: string | null
+          trial_ends_at: string | null
           updated_at: string
           zip_code: string | null
         }
         Insert: {
           address?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           city?: string | null
           created_at?: string
           document: string
           document_type: Database["public"]["Enums"]["document_type"]
           email?: string | null
           id?: string
+          is_blocked?: boolean | null
           name: string
           phone?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["status_type"]
+          subscription_status?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           zip_code?: string | null
         }
         Update: {
           address?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
           city?: string | null
           created_at?: string
           document?: string
           document_type?: Database["public"]["Enums"]["document_type"]
           email?: string | null
           id?: string
+          is_blocked?: boolean | null
           name?: string
           phone?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["status_type"]
+          subscription_status?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           zip_code?: string | null
         }
         Relationships: []
+      }
+      company_subscriptions: {
+        Row: {
+          auto_renew: boolean | null
+          company_id: string
+          created_at: string | null
+          created_by: string | null
+          end_date: string | null
+          id: string
+          is_trial: boolean | null
+          next_billing_date: string | null
+          notes: string | null
+          payment_status: string | null
+          plan_id: string
+          start_date: string
+          status: string
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
+          trial_end_date: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          company_id: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          is_trial?: boolean | null
+          next_billing_date?: string | null
+          notes?: string | null
+          payment_status?: string | null
+          plan_id: string
+          start_date?: string
+          status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
+          trial_end_date?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auto_renew?: boolean | null
+          company_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          end_date?: string | null
+          id?: string
+          is_trial?: boolean | null
+          next_billing_date?: string | null
+          notes?: string | null
+          payment_status?: string | null
+          plan_id?: string
+          start_date?: string
+          status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
+          trial_end_date?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cost_centers: {
         Row: {
@@ -916,6 +1012,48 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_companies: number | null
+          max_users: number | null
+          name: string
+          price_monthly: number
+          price_yearly: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_companies?: number | null
+          max_users?: number | null
+          name: string
+          price_monthly: number
+          price_yearly?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_companies?: number | null
+          max_users?: number | null
+          name?: string
+          price_monthly?: number
+          price_yearly?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -975,6 +1113,65 @@ export type Database = {
           },
         ]
       }
+      usage_logs: {
+        Row: {
+          action: string
+          company_id: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -982,6 +1179,10 @@ export type Database = {
     Functions: {
       calculate_next_due_date: {
         Args: { base_date: string; frequency: string; interval_value: number }
+        Returns: string
+      }
+      check_subscription_status: {
+        Args: { company_uuid: string }
         Returns: string
       }
       generate_next_payable: {
@@ -995,6 +1196,13 @@ export type Database = {
       get_user_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       process_recurring_transactions: {
         Args: Record<PropertyKey, never>
@@ -1010,6 +1218,7 @@ export type Database = {
     }
     Enums: {
       account_type: "checking" | "savings" | "credit"
+      app_role: "super_admin" | "company_admin" | "manager" | "user"
       document_type: "cpf" | "cnpj"
       payment_method:
         | "cash"
@@ -1150,6 +1359,7 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["checking", "savings", "credit"],
+      app_role: ["super_admin", "company_admin", "manager", "user"],
       document_type: ["cpf", "cnpj"],
       payment_method: [
         "cash",
