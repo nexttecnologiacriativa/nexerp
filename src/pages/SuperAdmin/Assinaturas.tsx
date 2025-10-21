@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { Plus, Ban, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -292,22 +293,20 @@ const SuperAdminAssinaturas = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="start_date">Data de Início *</Label>
-                  <Input
+                  <DateInput
                     id="start_date"
-                    type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, start_date: value })}
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="end_date">Data de Fim</Label>
-                  <Input
+                  <DateInput
                     id="end_date"
-                    type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, end_date: value })}
                   />
                 </div>
               </div>

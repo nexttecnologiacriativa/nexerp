@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DateInput } from '@/components/ui/date-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -603,20 +604,24 @@ const Relatorios = () => {
               <div className="space-y-2 md:col-span-2">
                 <Label>Período personalizado</Label>
                 <div className="flex space-x-2">
-                  <Input 
-                    type="date" 
+                  <DateInput
                     placeholder="Data inicial"
-                    onChange={(e) => {
-                      const newDate = new Date(e.target.value);
-                      setDateRange(prev => ({ ...prev, from: newDate, to: prev?.to || new Date() }));
+                    value={dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''}
+                    onChange={(value) => {
+                      if (value) {
+                        const newDate = new Date(value);
+                        setDateRange(prev => ({ ...prev, from: newDate, to: prev?.to || new Date() }));
+                      }
                     }}
                   />
-                  <Input 
-                    type="date" 
+                  <DateInput
                     placeholder="Data final"
-                    onChange={(e) => {
-                      const newDate = new Date(e.target.value);
-                      setDateRange(prev => ({ from: prev?.from || new Date(), to: newDate }));
+                    value={dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''}
+                    onChange={(value) => {
+                      if (value) {
+                        const newDate = new Date(value);
+                        setDateRange(prev => ({ from: prev?.from || new Date(), to: newDate }));
+                      }
                     }}
                   />
                 </div>

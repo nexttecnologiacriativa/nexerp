@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -638,11 +639,10 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
             {/* Data de venda */}
             <div>
               <Label htmlFor="sale_date">Data de venda *</Label>
-              <Input
+              <DateInput
                 id="sale_date"
-                type="date"
                 value={formData.sale_date}
-                onChange={(e) => setFormData({ ...formData, sale_date: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, sale_date: value })}
               />
             </div>
           </div>
@@ -1089,10 +1089,9 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
             <div>
               <Label htmlFor="due_date">Vencimento</Label>
               <div className="flex items-center gap-2">
-                <Input
-                  type="date"
+                <DateInput
                   value={paymentInfo.due_date}
-                  onChange={(e) => setPaymentInfo({ ...paymentInfo, due_date: e.target.value })}
+                  onChange={(value) => setPaymentInfo({ ...paymentInfo, due_date: value })}
                   className="flex-1"
                 />
                 {paymentInfo.installments > 1 && (
@@ -1125,10 +1124,9 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
                       />
                     </div>
                     <div className="flex-1">
-                      <Input
-                        type="date"
+                      <DateInput
                         value={installment.due_date}
-                        onChange={(e) => updateInstallment(index, "due_date", e.target.value)}
+                        onChange={(value) => updateInstallment(index, "due_date", value)}
                       />
                     </div>
                   </div>

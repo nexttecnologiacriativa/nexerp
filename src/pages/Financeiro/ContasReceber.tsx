@@ -3,6 +3,7 @@ import { useAuth } from "@/components/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -1109,11 +1110,10 @@ const ContasReceber = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="due_date">Data de Vencimento *</Label>
-                  <Input
+                  <DateInput
                     id="due_date"
-                    type="date"
                     value={formData.due_date}
-                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                    onChange={(value) => setFormData({...formData, due_date: value})}
                     required
                   />
                 </div>
@@ -1303,11 +1303,10 @@ const ContasReceber = () => {
                           🏁 Data limite
                           <span className="text-xs text-muted-foreground">(opcional)</span>
                         </Label>
-                        <Input
+                        <DateInput
                           id="recurrence_end_date"
-                          type="date"
                           value={formData.recurrence_end_date}
-                          onChange={(e) => setFormData({...formData, recurrence_end_date: e.target.value})}
+                          onChange={(value) => setFormData({...formData, recurrence_end_date: value})}
                         />
                         <p className="text-xs text-muted-foreground">
                           {formData.recurrence_end_date ? 
@@ -1857,21 +1856,19 @@ const ContasReceber = () => {
             <div className="flex flex-col sm:flex-row gap-4 bg-muted/30 p-4 rounded-lg">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="start-date" className="text-sm font-medium">Data Inicial</Label>
-                <Input
+                <DateInput
                   id="start-date"
-                  type="date"
                   value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  onChange={(value) => setCustomStartDate(value)}
                   className="w-auto"
                 />
               </div>
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="end-date" className="text-sm font-medium">Data Final</Label>
-                <Input
+                <DateInput
                   id="end-date"
-                  type="date"
                   value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  onChange={(value) => setCustomEndDate(value)}
                   className="w-auto"
                 />
               </div>

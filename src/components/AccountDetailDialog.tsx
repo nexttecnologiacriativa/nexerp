@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -315,11 +316,10 @@ export const AccountDetailDialog = ({ isOpen, onClose, account, type, onUpdate }
               {/* Due Date */}
               <div className="space-y-2">
                 <Label htmlFor="due_date">Data de Vencimento *</Label>
-                <Input
+                <DateInput
                   id="due_date"
-                  type="date"
                   value={formData.due_date}
-                  onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                  onChange={(value) => setFormData({...formData, due_date: value})}
                   required
                 />
               </div>
@@ -344,11 +344,10 @@ export const AccountDetailDialog = ({ isOpen, onClose, account, type, onUpdate }
               {formData.status === "paid" && (
                 <div className="space-y-2">
                   <Label htmlFor="payment_date">Data de Pagamento</Label>
-                  <Input
+                  <DateInput
                     id="payment_date"
-                    type="date"
                     value={formData.payment_date}
-                    onChange={(e) => setFormData({...formData, payment_date: e.target.value})}
+                    onChange={(value) => setFormData({...formData, payment_date: value})}
                   />
                 </div>
               )}

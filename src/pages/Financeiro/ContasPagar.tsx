@@ -3,6 +3,7 @@ import { useAuth } from "@/components/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -1106,11 +1107,10 @@ const ContasPagar = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="due_date">Data de Vencimento *</Label>
-                    <Input
+                    <DateInput
                       id="due_date"
-                      type="date"
                       value={formData.due_date}
-                      onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                      onChange={(value) => setFormData({...formData, due_date: value})}
                       required
                     />
                   </div>
@@ -1341,11 +1341,10 @@ const ContasPagar = () => {
                             🏁 Data limite
                             <span className="text-xs text-muted-foreground">(opcional)</span>
                           </Label>
-                          <Input
+                          <DateInput
                             id="recurrence_end_date"
-                            type="date"
                             value={formData.recurrence_end_date}
-                            onChange={(e) => setFormData({...formData, recurrence_end_date: e.target.value})}
+                            onChange={(value) => setFormData({...formData, recurrence_end_date: value})}
                           />
                           <p className="text-xs text-muted-foreground">
                             {formData.recurrence_end_date ? 
@@ -1918,17 +1917,15 @@ const ContasPagar = () => {
 
               {periodFilter === "custom" && (
                 <div className="flex gap-2 items-center">
-                  <Input
-                    type="date"
+                  <DateInput
                     value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    onChange={(value) => setCustomStartDate(value)}
                     className="w-40"
                   />
                   <span className="text-sm text-muted-foreground">até</span>
-                  <Input
-                    type="date"
+                  <DateInput
                     value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    onChange={(value) => setCustomEndDate(value)}
                     className="w-40"
                   />
                 </div>
