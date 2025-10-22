@@ -1908,9 +1908,9 @@ const ContasReceber = () => {
                 <TableHead>Cliente</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead>Subcategoria</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Vencimento</TableHead>
+                <TableHead>Recebimento</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -1952,23 +1952,13 @@ const ContasReceber = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {account.subcategories ? (
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: account.subcategories.color }}
-                          />
-                          {account.subcategories.name}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.amount)}
                     </TableCell>
                     <TableCell>
                       {format(new Date(account.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      {account.payment_date ? format(new Date(account.payment_date), "dd/MM/yyyy") : '-'}
                     </TableCell>
                     <TableCell>{getStatusBadge(account)}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
