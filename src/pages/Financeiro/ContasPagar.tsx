@@ -1949,6 +1949,7 @@ const ContasPagar = () => {
                     <TableHead>Descrição</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Vencimento</TableHead>
+                    <TableHead>Pagamento</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -1972,6 +1973,9 @@ const ContasPagar = () => {
                       </TableCell>
                       <TableCell>
                         {format(new Date(account.due_date), "dd/MM/yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        {account.payment_date ? format(new Date(account.payment_date), "dd/MM/yyyy") : '-'}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(account)}
