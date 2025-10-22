@@ -26,6 +26,7 @@ import { normalizeCPF } from "@/lib/cpf-utils";
 import { normalizeCNPJ } from "@/lib/cnpj-utils";
 import { AccountDetailsModal } from "@/components/AccountDetailsModal";
 import { AccountDetailDialog } from "@/components/AccountDetailDialog";
+import { PaymentConfirmDialog } from "@/components/PaymentConfirmDialog";
 
 interface AccountReceivable {
   id: string;
@@ -122,6 +123,10 @@ const ContasReceber = () => {
   // State for individual account detail dialog
   const [selectedAccount, setSelectedAccount] = useState<AccountReceivable | null>(null);
   const [isAccountDetailOpen, setIsAccountDetailOpen] = useState(false);
+  
+  // State for payment confirmation dialog
+  const [paymentConfirmOpen, setPaymentConfirmOpen] = useState(false);
+  const [accountToReceiveId, setAccountToReceiveId] = useState<string | null>(null);
   
   // Quick-add states
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
@@ -734,15 +739,24 @@ const ContasReceber = () => {
     }
   };
 
-  const handlePayment = async (id: string) => {
+  const handlePayment = (id: string) => {
+    setAccountToReceiveId(id);
+    setPaymentConfirmOpen(true);
+  };
+
+  const confirmPayment = async (bankAccountId: string, paymentMethod: string) => {
+    if (!accountToReceiveId) return;
+
     try {
       const { error } = await supabase
         .from('accounts_receivable')
         .update({
           status: 'paid',
-          payment_date: new Date().toISOString().split('T')[0]
+          payment_date: new Date().toISOString().split('T')[0],
+          bank_account_id: bankAccountId,
+          payment_method: paymentMethod as 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check'
         })
-        .eq('id', id);
+        .eq('id', accountToReceiveId);
 
       if (error) {
         toast({
@@ -759,6 +773,8 @@ const ContasReceber = () => {
       }
     } catch (error) {
       console.error('Error updating payment:', error);
+    } finally {
+      setAccountToReceiveId(null);
     }
   };
 
@@ -2029,6 +2045,19 @@ const ContasReceber = () => {
         onUpdate={() => {
           fetchAccounts();
         }}
+      />
+
+      {/* Payment Confirmation Dialog */}
+      <PaymentConfirmDialog
+        open={paymentConfirmOpen}
+        onOpenChange={setPaymentConfirmOpen}
+        title="Confirmar Recebimento"
+        amount={accounts.find(a => a.id === accountToReceiveId)?.amount || 0}
+        bankAccounts={bankAccounts}
+        currentBankAccountId={accounts.find(a => a.id === accountToReceiveId)?.bank_account_id}
+        currentPaymentMethod={accounts.find(a => a.id === accountToReceiveId)?.payment_method}
+        onConfirm={confirmPayment}
+        type="receipt"
       />
     </div>
   );

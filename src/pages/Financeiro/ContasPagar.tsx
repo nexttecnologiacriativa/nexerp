@@ -25,6 +25,7 @@ import { normalizeCNPJ } from "@/lib/cnpj-utils";
 import { formatPhone } from "@/lib/phone-utils";
 import { AccountDetailsModal } from "@/components/AccountDetailsModal";
 import { AccountDetailDialog } from "@/components/AccountDetailDialog";
+import { PaymentConfirmDialog } from "@/components/PaymentConfirmDialog";
 
 interface AccountPayable {
   id: string;
@@ -95,6 +96,10 @@ const ContasPagar = () => {
   // State for individual account detail dialog
   const [selectedAccount, setSelectedAccount] = useState<AccountPayable | null>(null);
   const [isAccountDetailOpen, setIsAccountDetailOpen] = useState(false);
+
+  // State for payment confirmation dialog
+  const [paymentConfirmOpen, setPaymentConfirmOpen] = useState(false);
+  const [accountToPayId, setAccountToPayId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     supplier_id: "",
@@ -721,15 +726,24 @@ const ContasPagar = () => {
     }
   };
 
-  const handlePayment = async (id: string) => {
+  const handlePayment = (id: string) => {
+    setAccountToPayId(id);
+    setPaymentConfirmOpen(true);
+  };
+
+  const confirmPayment = async (bankAccountId: string, paymentMethod: string) => {
+    if (!accountToPayId) return;
+
     try {
       const { error } = await supabase
         .from('accounts_payable')
         .update({ 
           status: 'paid',
-          payment_date: new Date().toISOString().split('T')[0]
+          payment_date: new Date().toISOString().split('T')[0],
+          bank_account_id: bankAccountId,
+          payment_method: paymentMethod as "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "bank_slip" | "check"
         })
-        .eq('id', id);
+        .eq('id', accountToPayId);
 
       if (error) {
         toast({
@@ -746,6 +760,8 @@ const ContasPagar = () => {
       }
     } catch (error) {
       console.error('Error updating payment:', error);
+    } finally {
+      setAccountToPayId(null);
     }
   };
 
@@ -2049,6 +2065,19 @@ const ContasPagar = () => {
         onUpdate={() => {
           fetchAccounts();
         }}
+      />
+
+      {/* Payment Confirmation Dialog */}
+      <PaymentConfirmDialog
+        open={paymentConfirmOpen}
+        onOpenChange={setPaymentConfirmOpen}
+        title="Confirmar Pagamento"
+        amount={accounts.find(a => a.id === accountToPayId)?.amount || 0}
+        bankAccounts={bankAccounts}
+        currentBankAccountId={accounts.find(a => a.id === accountToPayId)?.bank_account_id}
+        currentPaymentMethod={accounts.find(a => a.id === accountToPayId)?.payment_method}
+        onConfirm={confirmPayment}
+        type="payment"
       />
     </>
   );
