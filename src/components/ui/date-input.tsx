@@ -1,6 +1,11 @@
 import * as React from "react";
 import { Input } from "./input";
+import { Calendar } from "./calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { Button } from "./button";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 export interface DateInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type' | 'value' | 'onChange'> {
   value?: string; // formato YYYY-MM-DD
@@ -102,18 +107,51 @@ const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
       }
     };
 
+    const handleCalendarSelect = (date: Date | undefined) => {
+      if (date && onChange) {
+        const isoDate = format(date, "yyyy-MM-dd");
+        onChange(isoDate);
+      }
+    };
+
+    // Converte o valor ISO atual para Date object para o calendário
+    const currentDate = value ? new Date(value) : undefined;
+
     return (
-      <Input
-        ref={ref}
-        type="text"
-        value={displayValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        placeholder="dd/mm/yyyy"
-        maxLength={10}
-        className={cn(className)}
-        {...props}
-      />
+      <div className="relative flex items-center gap-1">
+        <Input
+          ref={ref}
+          type="text"
+          value={displayValue}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="dd/mm/yyyy"
+          maxLength={10}
+          className={cn(className)}
+          {...props}
+        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 flex-shrink-0"
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={currentDate}
+              onSelect={handleCalendarSelect}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
     );
   }
 );
