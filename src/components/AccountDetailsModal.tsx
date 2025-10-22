@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateForDisplay, parseISODate } from "@/lib/date-utils";
 import { formatPhone } from "@/lib/phone-utils";
 
 interface BaseAccount {
@@ -44,7 +45,7 @@ export function AccountDetailsModal({
 }: AccountDetailsModalProps) {
   
   const getStatusBadge = (account: BaseAccount) => {
-    const isOverdue = new Date(account.due_date) < new Date() && account.status === 'pending';
+    const isOverdue = account.due_date < new Date().toISOString().split('T')[0] && account.status === 'pending';
     const actualStatus = isOverdue ? 'overdue' : account.status;
 
     switch (actualStatus) {
@@ -77,7 +78,7 @@ export function AccountDetailsModal({
         : (account as ReceivableAccount).customers?.name || 'N/A',
       account.description,
       `R$ ${account.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      format(new Date(account.due_date), "dd/MM/yyyy", { locale: ptBR }),
+      formatDateForDisplay(account.due_date),
       account.status === 'paid' ? 'Pago' : 
         account.status === 'pending' ? 'Pendente' :
         account.status === 'overdue' ? 'Vencido' : 'Cancelado',
@@ -146,7 +147,7 @@ export function AccountDetailsModal({
                       R$ {account.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(account.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                      {formatDateForDisplay(account.due_date)}
                     </TableCell>
                     <TableCell>{getStatusBadge(account)}</TableCell>
                     <TableCell>{account.document_number || 'N/A'}</TableCell>

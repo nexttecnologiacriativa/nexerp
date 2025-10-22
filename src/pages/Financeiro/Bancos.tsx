@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, startOfDay, endOfDay, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { formatDateForDisplay } from '@/lib/date-utils';
 
 interface BankAccount {
   id: string;
@@ -972,9 +973,9 @@ const Bancos = () => {
                        <TableBody>
                          {transactions.map((transaction) => (
                            <TableRow key={transaction.id}>
-                             <TableCell>
-                               {format(new Date(transaction.date), 'dd/MM/yyyy', { locale: ptBR })}
-                             </TableCell>
+                              <TableCell>
+                                {formatDateForDisplay(transaction.date)}
+                              </TableCell>
                              <TableCell>
                                <div className="flex items-center gap-2">
                                  {transaction.type === 'income' ? (

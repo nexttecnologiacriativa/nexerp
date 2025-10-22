@@ -10,6 +10,7 @@ import { TrendingUp, TrendingDown, DollarSign, Calendar, Download, Filter } from
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateForDisplay, parseISODate, dateToISOString } from "@/lib/date-utils";
 
 interface CashFlowEntry {
   id: string;
@@ -84,8 +85,8 @@ const FluxoCaixa = () => {
           subcategories:subcategory_id (name)
         `)
         .eq('status', 'paid')
-        .gte('payment_date', startDate.toISOString().split('T')[0])
-        .lte('payment_date', endDate.toISOString().split('T')[0]);
+        .gte('payment_date', dateToISOString(startDate))
+        .lte('payment_date', dateToISOString(endDate));
 
       // Fetch paid payables (expenses)
       const { data: payables } = await supabase
@@ -101,8 +102,8 @@ const FluxoCaixa = () => {
           subcategories:subcategory_id (name)
         `)
         .eq('status', 'paid')
-        .gte('payment_date', startDate.toISOString().split('T')[0])
-        .lte('payment_date', endDate.toISOString().split('T')[0]);
+        .gte('payment_date', dateToISOString(startDate))
+        .lte('payment_date', dateToISOString(endDate));
 
       // Transform data for cash flow
       const entries: CashFlowEntry[] = [];
@@ -202,7 +203,7 @@ const FluxoCaixa = () => {
     const csvContent = [
       headers.join(','),
       ...cashFlowData.map(entry => [
-        format(new Date(entry.date), 'dd/MM/yyyy'),
+        formatDateForDisplay(entry.date),
         entry.description,
         entry.type === 'income' ? 'Receita' : 'Despesa',
         entry.category,
@@ -367,7 +368,7 @@ const FluxoCaixa = () => {
                 filteredData.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell>
-                      {format(new Date(entry.date), 'dd/MM/yyyy', { locale: ptBR })}
+                      {formatDateForDisplay(entry.date)}
                     </TableCell>
                     <TableCell>{entry.category}</TableCell>
                     <TableCell>{entry.description}</TableCell>
@@ -400,11 +401,14 @@ const FluxoCaixa = () => {
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {dailyBalances
               .filter(day => day.income > 0 || day.expenses > 0)
-              .map((day, index) => (
+              .map((day, index) => {
+                const [year, month, dayNum] = day.date.split('-');
+                const formattedDay = `${dayNum}/${month}`;
+                return (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-20 text-sm font-medium">
-                      {format(new Date(day.date), 'dd/MM', { locale: ptBR })}
+                      {formattedDay}
                     </div>
                     <div className="flex items-center space-x-6">
                       {day.income > 0 && (
@@ -425,7 +429,8 @@ const FluxoCaixa = () => {
                     </Badge>
                   </div>
                 </div>
-              ))}
+                );
+              })}
           </div>
         </CardContent>
       </Card>

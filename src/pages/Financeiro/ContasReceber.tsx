@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isWithinInterval, startOfYear, endOfYear, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateForDisplay, parseISODate, getTodayISO } from "@/lib/date-utils";
 import { useSearchParams } from "react-router-dom";
 import { FileUpload } from "@/components/FileUpload";
 import { CPFInput } from "@/components/ui/cpf-input";
@@ -752,7 +753,7 @@ const ContasReceber = () => {
         .from('accounts_receivable')
         .update({
           status: 'paid',
-          payment_date: new Date().toISOString().split('T')[0],
+          payment_date: getTodayISO(),
           bank_account_id: bankAccountId,
           payment_method: paymentMethod as 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check'
         })
@@ -919,10 +920,8 @@ const ContasReceber = () => {
   // Função para determinar o status real baseado na data de vencimento
   const getActualStatus = (account: AccountReceivable) => {
     if (account.status === 'pending') {
-      const today = new Date();
-      const dueDate = new Date(account.due_date);
-      today.setHours(0, 0, 0, 0);
-      dueDate.setHours(0, 0, 0, 0);
+      const today = getTodayISO();
+      const dueDate = account.due_date;
       
       if (dueDate < today) {
         return 'overdue';
@@ -990,7 +989,7 @@ const ContasReceber = () => {
     
     // Filtro por período
     let matchesPeriod = true;
-    const accountDate = new Date(account.due_date);
+    const accountDate = parseISODate(account.due_date);
     
     switch (periodFilter) {
       case "monthly":
@@ -1971,10 +1970,10 @@ const ContasReceber = () => {
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(account.amount)}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(account.due_date), 'dd/MM/yyyy', { locale: ptBR })}
+                      {formatDateForDisplay(account.due_date)}
                     </TableCell>
                     <TableCell>
-                      {account.payment_date ? format(new Date(account.payment_date), "dd/MM/yyyy") : '-'}
+                      {formatDateForDisplay(account.payment_date)}
                     </TableCell>
                     <TableCell>{getStatusBadge(account)}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>

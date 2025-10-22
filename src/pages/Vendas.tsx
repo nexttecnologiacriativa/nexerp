@@ -14,7 +14,7 @@ import { CalendarIcon, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { dateToISOString, getTodayISO } from "@/lib/date-utils";
 
 interface SaleItem {
   id: string;
@@ -97,7 +97,7 @@ const Vendas = () => {
     receiving_account: "",
     percentage: 100,
     installments: 1,
-    due_date: format(new Date(), "yyyy-MM-dd"),
+    due_date: getTodayISO(),
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
@@ -350,7 +350,7 @@ const Vendas = () => {
   const calculateInstallmentDate = (installmentNumber: number) => {
     const baseDate = new Date(paymentInfo.due_date || formData.sale_date);
     baseDate.setMonth(baseDate.getMonth() + installmentNumber - 1);
-    return baseDate.toISOString().split("T")[0];
+    return dateToISOString(baseDate);
   };
 
   const handleSave = async () => {

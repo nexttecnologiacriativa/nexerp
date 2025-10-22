@@ -6,6 +6,7 @@ import { Bell, Calendar, AlertCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatDateForDisplay } from "@/lib/date-utils";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
@@ -189,7 +190,7 @@ const NotificationDropdown = () => {
                     <p className="text-xs text-muted-foreground truncate">{notification.description}</p>
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-muted-foreground">
-                        {format(new Date(notification.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                        {formatDateForDisplay(notification.due_date)}
                       </span>
                       <span
                         className={`text-xs font-medium ${

@@ -109,13 +109,21 @@ const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
 
     const handleCalendarSelect = (date: Date | undefined) => {
       if (date && onChange) {
-        const isoDate = format(date, "yyyy-MM-dd");
+        // Usa o fuso horário local para evitar mudança de dia
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const isoDate = `${year}-${month}-${day}`;
         onChange(isoDate);
       }
     };
 
     // Converte o valor ISO atual para Date object para o calendário
-    const currentDate = value ? new Date(value) : undefined;
+    // Usa parseISODate para evitar problemas de timezone
+    const currentDate = value ? (() => {
+      const [year, month, day] = value.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    })() : undefined;
 
     return (
       <div className="relative flex items-center gap-1">
