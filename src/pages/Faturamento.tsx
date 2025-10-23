@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import SalesForm from '@/components/SalesForm';
+import { formatDateForDisplay } from '@/lib/date-utils';
 interface Sale {
   id: string;
   sale_number: string;
@@ -665,11 +666,9 @@ const Faturamento = () => {
                                  {getSaleType(sale)}
                                </Badge>
                              </TableCell>
-                             <TableCell>
-                               {format(new Date(sale.sale_date), 'dd/MM/yyyy', {
-                          locale: ptBR
-                        })}
-                             </TableCell>
+                              <TableCell>
+                                {formatDateForDisplay(sale.sale_date)}
+                              </TableCell>
                              <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
                                {sale.customer_name}
                              </TableCell>
@@ -834,9 +833,7 @@ const Faturamento = () => {
                               {budget.sale_number}
                             </TableCell>
                             <TableCell>
-                              {format(new Date(budget.sale_date), 'dd/MM/yyyy', {
-                          locale: ptBR
-                        })}
+                              {formatDateForDisplay(budget.sale_date)}
                             </TableCell>
                             <TableCell className="max-w-[150px] truncate" title={budget.customer_name}>
                               {budget.customer_name}

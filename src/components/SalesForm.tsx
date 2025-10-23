@@ -541,9 +541,6 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
 
       // Create sale
       console.log("Criando venda...");
-      console.log("Data da venda (formData.sale_date):", formData.sale_date);
-      console.log("Tipo da data:", typeof formData.sale_date);
-      
       const { data: saleData, error: saleError } = await supabase
         .from("sales")
         .insert({
