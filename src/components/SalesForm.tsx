@@ -100,7 +100,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   const [users, setUsers] = useState<User[]>([]);
   const [showInstallments, setShowInstallments] = useState(false);
   const [installments, setInstallments] = useState<Installment[]>([]);
-  
+
   // Quick add modals state
   const [quickAddCustomerOpen, setQuickAddCustomerOpen] = useState(false);
   const [quickAddCategoryOpen, setQuickAddCategoryOpen] = useState(false);
@@ -279,7 +279,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       .select("id, name, email, phone")
       .eq("company_id", userProfile.company_id)
       .eq("status", "active");
-    
+
     if (data) {
       setCustomers(data);
       setFormData({ ...formData, client_id: customerId });
@@ -293,7 +293,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       .select("id, name, color")
       .eq("company_id", userProfile.company_id)
       .eq("status", "active");
-    
+
     if (data) {
       setCategories(data);
       setFormData({ ...formData, category_id: categoryId });
@@ -307,7 +307,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       .select("id, category_id, name, color")
       .eq("company_id", userProfile.company_id)
       .eq("status", "active");
-    
+
     if (data) {
       setSubcategories(data);
       setFormData({ ...formData, subcategory_id: subcategoryId });
@@ -321,7 +321,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       .select("id, name")
       .eq("company_id", userProfile.company_id)
       .eq("status", "active");
-    
+
     if (data) {
       setCostCenters(data);
       setFormData({ ...formData, cost_center_id: costCenterId });
@@ -335,7 +335,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       .select("id, name, price")
       .eq("company_id", userProfile.company_id)
       .eq("status", "active");
-    
+
     if (data) {
       setServices(data);
       // Don't auto-add an item, just update the list
@@ -350,7 +350,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       .select("id, name, bank_name, account_number")
       .eq("company_id", userProfile.company_id)
       .eq("status", "active");
-    
+
     if (data) {
       setBankAccounts(data);
       setPaymentInfo({ ...paymentInfo, receiving_account: accountId });
@@ -460,7 +460,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     console.log("FormData:", formData);
     console.log("SaleItems:", saleItems);
     console.log("SaleType:", saleType);
-    
+
     if (!userProfile?.company_id) {
       console.error("Erro: company_id não encontrado");
       toast.error("Erro: empresa não identificada");
@@ -492,7 +492,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       let finalSaleNumber = "";
       let attempts = 0;
       const maxAttempts = 5;
-      
+
       while (attempts < maxAttempts) {
         console.log(`Tentativa ${attempts + 1} de gerar número único...`);
         const prefix = saleType === "budget" ? "ORC" : "VND";
@@ -500,7 +500,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         const year = today.getFullYear().toString().slice(-2);
         const month = (today.getMonth() + 1).toString().padStart(2, "0");
         const periodPrefix = `${prefix}${year}${month}`;
-        
+
         const { data: lastSale } = await supabase
           .from("sales")
           .select("sale_number")
@@ -508,16 +508,14 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           .like("sale_number", `${periodPrefix}%`)
           .order("sale_number", { ascending: false })
           .limit(1);
-        
-        const lastNumber = lastSale?.[0]?.sale_number 
-          ? parseInt(lastSale[0].sale_number.slice(-4)) || 0
-          : 0;
-        
+
+        const lastNumber = lastSale?.[0]?.sale_number ? parseInt(lastSale[0].sale_number.slice(-4)) || 0 : 0;
+
         const nextNumber = (lastNumber + 1 + attempts).toString().padStart(4, "0");
         finalSaleNumber = `${periodPrefix}${nextNumber}`;
-        
+
         console.log("Número gerado:", finalSaleNumber);
-        
+
         // Check if number already exists
         const { data: existing } = await supabase
           .from("sales")
@@ -525,16 +523,16 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           .eq("company_id", userProfile.company_id)
           .eq("sale_number", finalSaleNumber)
           .maybeSingle();
-        
+
         if (!existing) {
           console.log("Número único confirmado!");
           break;
         }
-        
+
         console.log("Número já existe, tentando próximo...");
         attempts++;
       }
-      
+
       if (attempts >= maxAttempts) {
         throw new Error("Não foi possível gerar um número único de venda. Tente novamente.");
       }
@@ -561,7 +559,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         console.error("Erro ao criar venda:", saleError);
         throw saleError;
       }
-      
+
       console.log("Venda criada com sucesso:", saleData);
 
       // Create sale items
@@ -574,7 +572,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         unit_price: item.unit_price,
         total_price: item.total,
       }));
-      
+
       console.log("Sale items data:", saleItemsData);
 
       const { error: itemsError } = await supabase.from("sale_items").insert(saleItemsData);
@@ -583,19 +581,24 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         console.error("Erro ao criar itens:", itemsError);
         throw itemsError;
       }
-      
+
       console.log("Itens criados com sucesso");
 
       // Create accounts receivable entries only for sales (not budgets)
       if (saleType !== "budget") {
         console.log("Criando contas a receber...");
         // Ensure installments are generated if empty
-        const finalInstallments = installments.length > 0 ? installments : [{
-          number: 1,
-          amount: totalAmount,
-          due_date: paymentInfo.due_date || dateToISOString(new Date()),
-        }];
-        
+        const finalInstallments =
+          installments.length > 0
+            ? installments
+            : [
+                {
+                  number: 1,
+                  amount: totalAmount,
+                  due_date: paymentInfo.due_date || dateToISOString(new Date()),
+                },
+              ];
+
         console.log("Installments:", finalInstallments);
         console.log("Payment method:", paymentInfo.payment_method);
         console.log("Bank account:", paymentInfo.receiving_account);
@@ -618,7 +621,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           recurrence_interval: null,
           recurrence_end_date: null,
         }));
-        
+
         console.log("Receivable entries:", receivableEntries);
 
         const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
@@ -627,17 +630,17 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           console.error("Erro ao criar contas a receber:", receivableError);
           throw receivableError;
         }
-        
+
         console.log("Contas a receber criadas com sucesso");
       }
 
       const saleTypeText = saleType === "budget" ? "Orçamento" : "Venda";
-      
+
       console.log("=== VENDA SALVA COM SUCESSO ===");
-      
+
       // Show success message
       toast.success(`${saleTypeText} ${saleType === "budget" ? "criado" : "criada"} com sucesso!`);
-      
+
       // Call onSuccess callback to refresh data and close dialog
       console.log("Chamando onSuccess callback...");
       if (onSuccess) {
@@ -649,7 +652,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       console.error("Error message:", error?.message);
       console.error("Error details:", error?.details);
       console.error("Error hint:", error?.hint);
-      
+
       // More detailed error message
       const errorMessage = error?.message || "Erro desconhecido";
       toast.error(`Erro ao salvar: ${errorMessage}`);
@@ -677,7 +680,11 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           {!defaultType && (
             <div>
               <Label>Tipo</Label>
-              <Tabs value={saleType} onValueChange={(value) => setSaleType(value as "budget" | "sale")} className="mt-2">
+              <Tabs
+                value={saleType}
+                onValueChange={(value) => setSaleType(value as "budget" | "sale")}
+                className="mt-2"
+              >
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="budget">Orçamento</TabsTrigger>
                   <TabsTrigger value="sale">Venda</TabsTrigger>
@@ -695,8 +702,8 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="approved">Aprovado</SelectItem>
                   <SelectItem value="pending">Em andamento</SelectItem>
+                  <SelectItem value="approved">Aprovado</SelectItem>
                   <SelectItem value="rejected">Recusado</SelectItem>
                 </SelectContent>
               </Select>
@@ -731,12 +738,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setQuickAddCustomerOpen(true)}
-                >
+                <Button type="button" size="icon" variant="outline" onClick={() => setQuickAddCustomerOpen(true)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -781,12 +783,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setQuickAddCategoryOpen(true)}
-                >
+                <Button type="button" size="icon" variant="outline" onClick={() => setQuickAddCategoryOpen(true)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -851,12 +848,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setQuickAddCostCenterOpen(true)}
-                >
+                <Button type="button" size="icon" variant="outline" onClick={() => setQuickAddCostCenterOpen(true)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -1123,12 +1115,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  onClick={() => setQuickAddBankAccountOpen(true)}
-                >
+                <Button type="button" size="icon" variant="outline" onClick={() => setQuickAddBankAccountOpen(true)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
