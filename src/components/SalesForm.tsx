@@ -546,7 +546,10 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       const saleTypeText = saleType === "budget" ? "Orçamento" : "Venda";
       toast.success(`${saleTypeText} ${saleType === "budget" ? "criado" : "criada"} com sucesso!`);
 
-      onSuccess?.();
+      // Small delay to ensure toast is visible before closing dialog
+      setTimeout(() => {
+        onSuccess?.();
+      }, 100);
     } catch (error) {
       console.error("Error saving sale:", error);
       toast.error("Erro ao salvar venda");
