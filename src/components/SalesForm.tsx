@@ -173,7 +173,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         .select("sale_number")
         .eq("company_id", userProfile.company_id)
         .like("sale_number", `${prefix}%`)
-        .order("created_at", { ascending: false })
+        .order("sale_number", { ascending: false })
         .limit(1);
 
       const nextSaleNumber = generateNextSaleNumber(salesData?.[0]?.sale_number);
@@ -486,6 +486,21 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       const totalAmount = getTotalAmount();
       console.log("Total amount:", totalAmount);
 
+      // Generate unique sale number at save time to avoid duplicates
+      console.log("Gerando número único de venda...");
+      const prefix = saleType === "budget" ? "ORC" : "VND";
+      
+      const { data: lastSale } = await supabase
+        .from("sales")
+        .select("sale_number")
+        .eq("company_id", userProfile.company_id)
+        .like("sale_number", `${prefix}%`)
+        .order("sale_number", { ascending: false })
+        .limit(1);
+      
+      const finalSaleNumber = generateNextSaleNumber(lastSale?.[0]?.sale_number);
+      console.log("Número gerado:", finalSaleNumber);
+
       // Create sale
       console.log("Criando venda...");
       const { data: saleData, error: saleError } = await supabase
@@ -497,7 +512,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           discount_amount: 0,
           net_amount: totalAmount,
           sale_date: formData.sale_date,
-          sale_number: formData.sale_number,
+          sale_number: finalSaleNumber,
           notes: formData.tags.length > 0 ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}` : formData.notes,
           status: "active",
         })
