@@ -44,6 +44,7 @@ const Faturamento = () => {
   const [budgets, setBudgets] = useState<Sale[]>([]);
   const [activeTab, setActiveTab] = useState('sales');
   const [showSalesForm, setShowSalesForm] = useState(false);
+  const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [metrics, setMetrics] = useState<BillingMetrics>({
     totalSales: 0,
     totalRevenue: 0,
@@ -474,6 +475,28 @@ const Faturamento = () => {
             </SelectContent>
           </Select>
           
+          <Dialog open={showBudgetForm} onOpenChange={setShowBudgetForm}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Orçamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Novo Orçamento</DialogTitle>
+              </DialogHeader>
+              <SalesForm 
+                defaultType="budget"
+                onSuccess={() => {
+                  setShowBudgetForm(false);
+                  fetchBillingData();
+                }} 
+                onCancel={() => setShowBudgetForm(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={showSalesForm} onOpenChange={setShowSalesForm}>
             <DialogTrigger asChild>
               <Button className="w-full sm:w-auto">
@@ -486,21 +509,15 @@ const Faturamento = () => {
                 <DialogTitle>Nova Venda</DialogTitle>
               </DialogHeader>
               <SalesForm 
+                defaultType="sale"
                 onSuccess={() => {
                   setShowSalesForm(false);
                   fetchBillingData();
-                }}
-                onCancel={() => {
-                  setShowSalesForm(false);
-                }}
+                }} 
+                onCancel={() => setShowSalesForm(false)}
               />
             </DialogContent>
           </Dialog>
-          
-          <Button variant="outline" className="w-full sm:w-auto">
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
-          </Button>
         </div>
       </div>
 

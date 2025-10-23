@@ -83,11 +83,12 @@ interface Installment {
 }
 
 interface SalesFormProps {
+  defaultType?: "budget" | "sale";
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
+const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps) => {
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -107,7 +108,7 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
   const [quickAddServiceOpen, setQuickAddServiceOpen] = useState(false);
   const [quickAddBankAccountOpen, setQuickAddBankAccountOpen] = useState(false);
 
-  const [saleType, setSaleType] = useState("budget");
+  const [saleType, setSaleType] = useState(defaultType);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [paymentInfo, setPaymentInfo] = useState({
     payment_method: "",
@@ -529,11 +530,11 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
           due_date: installment.due_date,
           status: "pending" as const,
           payment_method: paymentInfo.payment_method as any,
-          notes: `Gerado automaticamente da ${saleType === "sale" ? "venda" : "venda recorrente"} ${formData.sale_number}`,
+          notes: `Gerado automaticamente da ${saleType === "sale" ? "venda" : "orçamento"} ${formData.sale_number}`,
           bank_account_id: paymentInfo.receiving_account || null,
-          is_recurring: saleType === "recurring",
-          recurrence_frequency: saleType === "recurring" ? "monthly" : null,
-          recurrence_interval: saleType === "recurring" ? 1 : null,
+          is_recurring: false,
+          recurrence_frequency: null,
+          recurrence_interval: null,
           recurrence_end_date: null,
         }));
 
@@ -542,7 +543,7 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
         if (receivableError) throw receivableError;
       }
 
-      const saleTypeText = saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente";
+      const saleTypeText = saleType === "budget" ? "Orçamento" : "Venda";
       toast.success(`${saleTypeText} ${saleType === "budget" ? "criado" : "criada"} com sucesso!`);
 
       onSuccess?.();
@@ -568,17 +569,18 @@ const SalesForm = ({ onSuccess, onCancel }: SalesFormProps) => {
           <CardTitle>Informações</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Tipo de Venda */}
-          <div>
-            <Label>Tipo da venda</Label>
-            <Tabs value={saleType} onValueChange={setSaleType} className="mt-2">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="budget">Orçamento</TabsTrigger>
-                <TabsTrigger value="sale">Venda avulsa</TabsTrigger>
-                <TabsTrigger value="recurring">Venda recorrente (contrato)</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* Tipo de Venda - só mostra se não tiver defaultType definido */}
+          {!defaultType && (
+            <div>
+              <Label>Tipo</Label>
+              <Tabs value={saleType} onValueChange={(value) => setSaleType(value as "budget" | "sale")} className="mt-2">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="budget">Orçamento</TabsTrigger>
+                  <TabsTrigger value="sale">Venda</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Situação da negociação */}
