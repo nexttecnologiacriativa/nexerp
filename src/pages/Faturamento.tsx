@@ -105,13 +105,18 @@ const Faturamento = () => {
       const {
         data: allSalesData,
         error: salesError
-      } = await supabase.from('sales').select(`
-          *,
-          customers(name)
-        `).eq('company_id', companyId).gte('sale_date', dateFilter).order('sale_date', {
-        ascending: false
-      });
-      if (salesError) throw salesError;
+      } = await supabase
+        .from('sales')
+        .select('*, customers(name)')
+        .eq('company_id', companyId)
+        .gte('sale_date', dateFilter)
+        .order('sale_date', { ascending: false });
+      
+      if (salesError) {
+        console.error('Error fetching sales:', salesError);
+        throw salesError;
+      }
+      
       const formattedData = allSalesData?.map(sale => ({
         ...sale,
         customer_name: sale.customers?.name || 'Cliente não informado'

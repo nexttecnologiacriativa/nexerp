@@ -453,19 +453,29 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   };
 
   const handleSave = async () => {
+    console.log("=== INICIANDO SALVAMENTO DE VENDA ===");
+    console.log("UserProfile:", userProfile);
+    console.log("FormData:", formData);
+    console.log("SaleItems:", saleItems);
+    console.log("SaleType:", saleType);
+    
     if (!userProfile?.company_id) {
+      console.error("Erro: company_id não encontrado");
       toast.error("Erro: empresa não identificada");
       return;
     }
     if (!formData.client_id) {
+      console.error("Erro: client_id não encontrado");
       toast.error("Selecione um cliente");
       return;
     }
     if (saleItems.length === 0) {
+      console.error("Erro: nenhum item adicionado");
       toast.error("Adicione pelo menos um item à venda");
       return;
     }
     if (saleItems.some((item) => !item.service_id)) {
+      console.error("Erro: item sem serviço");
       toast.error("Todos os itens devem ter um serviço selecionado");
       return;
     }
@@ -474,18 +484,18 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
 
     try {
       const totalAmount = getTotalAmount();
-      const discount = 0;
-      const tax = 0;
+      console.log("Total amount:", totalAmount);
 
       // Create sale
+      console.log("Criando venda...");
       const { data: saleData, error: saleError } = await supabase
         .from("sales")
         .insert({
           company_id: userProfile.company_id,
           customer_id: formData.client_id,
           total_amount: totalAmount,
-          discount_amount: discount,
-          net_amount: totalAmount - discount,
+          discount_amount: 0,
+          net_amount: totalAmount,
           sale_date: formData.sale_date,
           sale_number: formData.sale_number,
           notes: formData.tags.length > 0 ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}` : formData.notes,
@@ -494,9 +504,15 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         .select()
         .single();
 
-      if (saleError) throw saleError;
+      if (saleError) {
+        console.error("Erro ao criar venda:", saleError);
+        throw saleError;
+      }
+      
+      console.log("Venda criada com sucesso:", saleData);
 
       // Create sale items
+      console.log("Criando itens da venda...");
       const saleItemsData = saleItems.map((item) => ({
         sale_id: saleData.id,
         service_id: item.service_id,
@@ -505,19 +521,29 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         unit_price: item.unit_price,
         total_price: item.total,
       }));
+      
+      console.log("Sale items data:", saleItemsData);
 
       const { error: itemsError } = await supabase.from("sale_items").insert(saleItemsData);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error("Erro ao criar itens:", itemsError);
+        throw itemsError;
+      }
+      
+      console.log("Itens criados com sucesso");
 
       // Create accounts receivable entries only for sales (not budgets)
       if (saleType !== "budget") {
+        console.log("Criando contas a receber...");
         // Ensure installments are generated if empty
         const finalInstallments = installments.length > 0 ? installments : [{
           number: 1,
           amount: totalAmount,
           due_date: paymentInfo.due_date || format(new Date(), "yyyy-MM-dd"),
         }];
+        
+        console.log("Installments:", finalInstallments);
 
         const receivableEntries = finalInstallments.map((installment, index) => ({
           company_id: userProfile.company_id,
@@ -537,28 +563,44 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           recurrence_interval: null,
           recurrence_end_date: null,
         }));
+        
+        console.log("Receivable entries:", receivableEntries);
 
         const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
 
-        if (receivableError) throw receivableError;
+        if (receivableError) {
+          console.error("Erro ao criar contas a receber:", receivableError);
+          throw receivableError;
+        }
+        
+        console.log("Contas a receber criadas com sucesso");
       }
 
       const saleTypeText = saleType === "budget" ? "Orçamento" : "Venda";
+      
+      console.log("=== VENDA SALVA COM SUCESSO ===");
+      
+      // Show success message
       toast.success(`${saleTypeText} ${saleType === "budget" ? "criado" : "criada"} com sucesso!`);
-
-      // Call onSuccess to refresh data
-      try {
-        await onSuccess?.();
-      } catch (refreshError) {
-        console.error("Error refreshing data:", refreshError);
-        // Venda foi salva, mas houve erro ao atualizar a lista
-        toast.info("Recarregue a página para ver a venda atualizada");
+      
+      // Call onSuccess callback to refresh data and close dialog
+      console.log("Chamando onSuccess callback...");
+      if (onSuccess) {
+        onSuccess();
       }
-    } catch (error) {
-      console.error("Error saving sale:", error);
-      toast.error("Erro ao salvar venda. Verifique os dados e tente novamente.");
+    } catch (error: any) {
+      console.error("=== ERRO AO SALVAR VENDA ===");
+      console.error("Error object:", error);
+      console.error("Error message:", error?.message);
+      console.error("Error details:", error?.details);
+      console.error("Error hint:", error?.hint);
+      
+      // More detailed error message
+      const errorMessage = error?.message || "Erro desconhecido";
+      toast.error(`Erro ao salvar: ${errorMessage}`);
     } finally {
       setLoading(false);
+      console.log("=== FINALIZANDO SALVAMENTO ===");
     }
   };
 
