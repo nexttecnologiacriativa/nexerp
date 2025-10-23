@@ -389,7 +389,7 @@ const Bancos = () => {
         <CardHeader>
           <CardTitle>Lista de Contas Bancárias</CardTitle>
           <CardDescription>
-            Visualize e gerencie todas as contas bancárias cadastradas. Clique em "Ver Extrato" para visualizar as movimentações.
+            Clique em uma conta para visualizar seu extrato completo com todas as movimentações.
           </CardDescription>
           <div className="flex items-center space-x-2">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -429,7 +429,11 @@ const Bancos = () => {
               </TableHeader>
               <TableBody>
                 {filteredAccounts.map((account) => (
-                  <TableRow key={account.id}>
+                  <TableRow 
+                    key={account.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleViewStatement(account.id)}
+                  >
                     <TableCell className="font-medium">{account.name}</TableCell>
                     <TableCell>{account.bank_name}</TableCell>
                     <TableCell>{account.account_number}</TableCell>
@@ -438,20 +442,13 @@ const Bancos = () => {
                       R$ {(account.balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell>{getStatusBadge(account.status)}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleViewStatement(account.id)}
-                          title="Ver Extrato"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
                           onClick={() => handleEdit(account)}
+                          title="Editar"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -459,6 +456,7 @@ const Bancos = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(account.id)}
+                          title="Excluir"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
