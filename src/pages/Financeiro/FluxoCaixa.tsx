@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/AuthContext";
+import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Download, Filter } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Download, Filter, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,11 +34,15 @@ interface DailyBalance {
 const FluxoCaixa = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const accountId = searchParams.get('accountId');
+  
   const [cashFlowData, setCashFlowData] = useState<CashFlowEntry[]>([]);
   const [dailyBalances, setDailyBalances] = useState<DailyBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState("current");
   const [selectedType, setSelectedType] = useState("all");
+  const [bankAccountName, setBankAccountName] = useState<string>("");
 
   useEffect(() => {
     if (user) {
@@ -48,6 +53,21 @@ const FluxoCaixa = () => {
   const fetchCashFlowData = async () => {
     try {
       setLoading(true);
+      
+      // Buscar nome da conta bancária se accountId estiver definido
+      if (accountId) {
+        const { data: bankAccount } = await supabase
+          .from('bank_accounts')
+          .select('name')
+          .eq('id', accountId)
+          .single();
+        
+        if (bankAccount) {
+          setBankAccountName(bankAccount.name);
+        }
+      } else {
+        setBankAccountName("");
+      }
       
       // Calculate date range based on selected period
       let startDate: Date;
@@ -71,8 +91,8 @@ const FluxoCaixa = () => {
           endDate = endOfMonth(new Date());
       }
 
-      // Fetch paid receivables (income)
-      const { data: receivables } = await supabase
+      // Base query para contas a receber
+      let receivablesQuery = supabase
         .from('accounts_receivable')
         .select(`
           id,
@@ -88,8 +108,15 @@ const FluxoCaixa = () => {
         .gte('payment_date', dateToISOString(startDate))
         .lte('payment_date', dateToISOString(endDate));
 
-      // Fetch paid payables (expenses)
-      const { data: payables } = await supabase
+      // Filtrar por conta bancária se accountId estiver definido
+      if (accountId) {
+        receivablesQuery = receivablesQuery.eq('bank_account_id', accountId);
+      }
+
+      const { data: receivables } = await receivablesQuery;
+
+      // Base query para contas a pagar
+      let payablesQuery = supabase
         .from('accounts_payable')
         .select(`
           id,
@@ -104,6 +131,13 @@ const FluxoCaixa = () => {
         .eq('status', 'paid')
         .gte('payment_date', dateToISOString(startDate))
         .lte('payment_date', dateToISOString(endDate));
+
+      // Filtrar por conta bancária se accountId estiver definido
+      if (accountId) {
+        payablesQuery = payablesQuery.eq('bank_account_id', accountId);
+      }
+
+      const { data: payables } = await payablesQuery;
 
       // Transform data for cash flow
       const entries: CashFlowEntry[] = [];
@@ -248,8 +282,27 @@ const FluxoCaixa = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Fluxo de Caixa</h1>
-          <p className="text-muted-foreground">Acompanhe entradas e saídas de dinheiro</p>
+          <div className="flex items-center gap-4">
+            {accountId && (
+              <Link to="/financeiro/bancos">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar
+                </Button>
+              </Link>
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                {accountId ? `Extrato - ${bankAccountName}` : 'Fluxo de Caixa'}
+              </h1>
+              <p className="text-muted-foreground">
+                {accountId 
+                  ? 'Movimentações desta conta bancária' 
+                  : 'Acompanhe entradas e saídas de dinheiro'
+                }
+              </p>
+            </div>
+          </div>
         </div>
         
         <div className="flex items-center space-x-4">
