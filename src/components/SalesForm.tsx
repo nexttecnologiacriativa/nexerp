@@ -14,6 +14,7 @@ import { CalendarIcon, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { dateToISOString } from "@/lib/date-utils";
 import { QuickAddCustomer } from "@/components/QuickAddCustomer";
 import { QuickAddCategory } from "@/components/QuickAddCategory";
 import { QuickAddSubcategory } from "@/components/QuickAddSubcategory";
@@ -115,14 +116,14 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     receiving_account: "",
     percentage: 100,
     installments: 1,
-    due_date: format(new Date(), "yyyy-MM-dd"),
+    due_date: dateToISOString(new Date()),
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     sale_number: "",
     client_id: "",
-    sale_date: new Date().toISOString().split("T")[0],
+    sale_date: dateToISOString(new Date()),
     category_id: "",
     subcategory_id: "",
     cost_center_id: "",
@@ -450,7 +451,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   const calculateInstallmentDate = (installmentNumber: number) => {
     const baseDate = new Date(paymentInfo.due_date || formData.sale_date);
     baseDate.setMonth(baseDate.getMonth() + installmentNumber - 1);
-    return baseDate.toISOString().split("T")[0];
+    return dateToISOString(baseDate);
   };
 
   const handleSave = async () => {
@@ -592,10 +593,12 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         const finalInstallments = installments.length > 0 ? installments : [{
           number: 1,
           amount: totalAmount,
-          due_date: paymentInfo.due_date || format(new Date(), "yyyy-MM-dd"),
+          due_date: paymentInfo.due_date || dateToISOString(new Date()),
         }];
         
         console.log("Installments:", finalInstallments);
+        console.log("Payment method:", paymentInfo.payment_method);
+        console.log("Bank account:", paymentInfo.receiving_account);
 
         const receivableEntries = finalInstallments.map((installment, index) => ({
           company_id: userProfile.company_id,
@@ -607,7 +610,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
           amount: installment.amount,
           due_date: installment.due_date,
           status: "pending" as const,
-          payment_method: paymentInfo.payment_method as any,
+          payment_method: (paymentInfo.payment_method || null) as any,
           notes: `Gerado automaticamente da ${saleType === "sale" ? "venda" : "orçamento"} ${formData.sale_number}`,
           bank_account_id: paymentInfo.receiving_account || null,
           is_recurring: false,
@@ -1091,12 +1094,12 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="boleto_banco">Boleto Bancário</SelectItem>
-                  <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
+                  <SelectItem value="bank_slip">Boleto Bancário</SelectItem>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                  <SelectItem value="bank_transfer">Transferência</SelectItem>
+                  <SelectItem value="check">Cheque</SelectItem>
+                  <SelectItem value="cash">Dinheiro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
