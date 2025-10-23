@@ -1,20 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, FileText, Eye, Edit, Filter, Download, RefreshCw, CheckCircle, AlertCircle, Trash2, Plus, PiggyBank, FileDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
-import SalesForm from '@/components/SalesForm';
-import { formatDateForDisplay } from '@/lib/date-utils';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Calendar,
+  FileText,
+  Eye,
+  Edit,
+  Filter,
+  Download,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Trash2,
+  Plus,
+  PiggyBank,
+  FileDown,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
+import SalesForm from "@/components/SalesForm";
+import { formatDateForDisplay } from "@/lib/date-utils";
 interface Sale {
   id: string;
   sale_number: string;
@@ -43,7 +60,7 @@ const Faturamento = () => {
   const navigate = useNavigate();
   const [sales, setSales] = useState<Sale[]>([]);
   const [budgets, setBudgets] = useState<Sale[]>([]);
-  const [activeTab, setActiveTab] = useState('sales');
+  const [activeTab, setActiveTab] = useState("sales");
   const [showSalesForm, setShowSalesForm] = useState(false);
   const [showBudgetForm, setShowBudgetForm] = useState(false);
   const [metrics, setMetrics] = useState<BillingMetrics>({
@@ -52,16 +69,14 @@ const Faturamento = () => {
     averageTicket: 0,
     pendingReceivables: 0,
     monthlyGrowth: 0,
-    topCustomer: '-',
+    topCustomer: "-",
     totalBudgets: 0,
-    budgetValue: 0
+    budgetValue: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [periodFilter, setPeriodFilter] = useState('current_month');
-  const {
-    toast
-  } = useToast();
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("current_month");
+  const { toast } = useToast();
   useEffect(() => {
     fetchBillingData();
   }, [periodFilter]);
@@ -71,14 +86,10 @@ const Faturamento = () => {
 
       // Get user's company_id
       const {
-        data: {
-          user
-        }
+        data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const {
-        data: profile
-      } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
+      const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
       if (!profile?.company_id) return;
       const companyId = profile.company_id;
 
@@ -87,15 +98,15 @@ const Faturamento = () => {
       const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      let dateFilter = '';
+      let dateFilter = "";
       switch (periodFilter) {
-        case 'current_month':
+        case "current_month":
           dateFilter = currentMonth.toISOString();
           break;
-        case 'last_month':
+        case "last_month":
           dateFilter = lastMonth.toISOString();
           break;
-        case 'last_3_months':
+        case "last_3_months":
           dateFilter = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
           break;
         default:
@@ -103,34 +114,36 @@ const Faturamento = () => {
       }
 
       // Fetch all sales and separate by type
-      const {
-        data: allSalesData,
-        error: salesError
-      } = await supabase
-        .from('sales')
-        .select('*, customers(name)')
-        .eq('company_id', companyId)
-        .gte('sale_date', dateFilter)
-        .order('sale_date', { ascending: false });
-      
+      const { data: allSalesData, error: salesError } = await supabase
+        .from("sales")
+        .select("*, customers(name)")
+        .eq("company_id", companyId)
+        .gte("sale_date", dateFilter)
+        .order("sale_date", { ascending: false });
+
       if (salesError) {
-        console.error('Error fetching sales:', salesError);
+        console.error("Error fetching sales:", salesError);
         throw salesError;
       }
-      
-      const formattedData = allSalesData?.map(sale => ({
-        ...sale,
-        customer_name: sale.customers?.name || 'Cliente não informado'
-      })) || [];
+
+      const formattedData =
+        allSalesData?.map((sale) => ({
+          ...sale,
+          customer_name: sale.customers?.name || "Cliente não informado",
+        })) || [];
 
       // Separate sales from budgets based on sale_number prefix or notes
-      const actualSales = formattedData.filter(sale => !sale.sale_number?.startsWith('ORC') &&
-      // Orçamentos não começam com ORC
-      !sale.notes?.toLowerCase().includes('orçamento') // Ou não têm "orçamento" nas notas
+      const actualSales = formattedData.filter(
+        (sale) =>
+          !sale.sale_number?.startsWith("ORC") &&
+          // Orçamentos não começam com ORC
+          !sale.notes?.toLowerCase().includes("orçamento"), // Ou não têm "orçamento" nas notas
       );
-      const budgetData = formattedData.filter(sale => sale.sale_number?.startsWith('ORC') ||
-      // Orçamentos começam com ORC
-      sale.notes?.toLowerCase().includes('orçamento') // Ou têm "orçamento" nas notas
+      const budgetData = formattedData.filter(
+        (sale) =>
+          sale.sale_number?.startsWith("ORC") ||
+          // Orçamentos começam com ORC
+          sale.notes?.toLowerCase().includes("orçamento"), // Ou têm "orçamento" nas notas
       );
       setSales(actualSales);
       setBudgets(budgetData);
@@ -139,10 +152,12 @@ const Faturamento = () => {
       const totalSales = actualSales.length;
 
       // Calcular receita total apenas de contratos pagos (cruzar com contas a receber pagas)
-      const {
-        data: paidReceivables
-      } = await supabase.from('accounts_receivable').select('amount').eq('company_id', companyId).eq('status', 'paid');
-      
+      const { data: paidReceivables } = await supabase
+        .from("accounts_receivable")
+        .select("amount")
+        .eq("company_id", companyId)
+        .eq("status", "paid");
+
       const totalRevenue = paidReceivables?.reduce((sum, receivable) => sum + Number(receivable.amount), 0) || 0;
       const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 
@@ -151,26 +166,37 @@ const Faturamento = () => {
       const budgetValue = budgetData.reduce((sum, budget) => sum + Number(budget.net_amount), 0);
 
       // Fetch pending receivables
-      const {
-        data: receivables
-      } = await supabase.from('accounts_receivable').select('amount').eq('company_id', companyId).eq('status', 'pending');
+      const { data: receivables } = await supabase
+        .from("accounts_receivable")
+        .select("amount")
+        .eq("company_id", companyId)
+        .eq("status", "pending");
       const pendingReceivables = receivables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
 
       // Calculate monthly growth for sales only (compare with previous period)
-      const {
-        data: previousSales
-      } = await supabase.from('sales').select('net_amount, sale_number, notes').eq('company_id', companyId).gte('sale_date', lastMonth.toISOString()).lte('sale_date', lastMonthEnd.toISOString());
-      const previousActualSales = previousSales?.filter(sale => !sale.sale_number?.startsWith('ORC') && !sale.notes?.toLowerCase().includes('orçamento')) || [];
+      const { data: previousSales } = await supabase
+        .from("sales")
+        .select("net_amount, sale_number, notes")
+        .eq("company_id", companyId)
+        .gte("sale_date", lastMonth.toISOString())
+        .lte("sale_date", lastMonthEnd.toISOString());
+      const previousActualSales =
+        previousSales?.filter(
+          (sale) => !sale.sale_number?.startsWith("ORC") && !sale.notes?.toLowerCase().includes("orçamento"),
+        ) || [];
       const previousRevenue = previousActualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
-      const monthlyGrowth = previousRevenue > 0 ? (totalRevenue - previousRevenue) / previousRevenue * 100 : 0;
+      const monthlyGrowth = previousRevenue > 0 ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 : 0;
 
       // Find top customer from actual sales only
-      const customerSales = actualSales.reduce((acc, sale) => {
-        const customer = sale.customer_name || 'Sem cliente';
-        acc[customer] = (acc[customer] || 0) + Number(sale.net_amount);
-        return acc;
-      }, {} as Record<string, number>);
-      const topCustomer = Object.entries(customerSales).sort(([, a], [, b]) => b - a)[0]?.[0] || '-';
+      const customerSales = actualSales.reduce(
+        (acc, sale) => {
+          const customer = sale.customer_name || "Sem cliente";
+          acc[customer] = (acc[customer] || 0) + Number(sale.net_amount);
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+      const topCustomer = Object.entries(customerSales).sort(([, a], [, b]) => b - a)[0]?.[0] || "-";
       setMetrics({
         totalSales,
         totalRevenue,
@@ -179,25 +205,25 @@ const Faturamento = () => {
         monthlyGrowth,
         topCustomer,
         totalBudgets,
-        budgetValue
+        budgetValue,
       });
     } catch (error) {
-      console.error('Error fetching billing data:', error);
+      console.error("Error fetching billing data:", error);
       toast({
         title: "Erro ao carregar dados",
         description: "Não foi possível carregar os dados de faturamento",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
-  const filteredSales = sales.filter(sale => {
-    const matchesStatus = statusFilter === 'all' || sale.status === statusFilter;
+  const filteredSales = sales.filter((sale) => {
+    const matchesStatus = statusFilter === "all" || sale.status === statusFilter;
     return matchesStatus;
   });
-  const filteredBudgets = budgets.filter(budget => {
-    const matchesStatus = statusFilter === 'all' || budget.status === statusFilter;
+  const filteredBudgets = budgets.filter((budget) => {
+    const matchesStatus = statusFilter === "all" || budget.status === statusFilter;
     return matchesStatus;
   });
   const handleViewSale = (saleId: string) => {
@@ -206,59 +232,58 @@ const Faturamento = () => {
   };
 
   const handleEditSale = (saleId: string) => {
-    // Por enquanto só abre um novo formulário - implementar edição depois  
+    // Por enquanto só abre um novo formulário - implementar edição depois
     setShowSalesForm(true);
   };
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
   const getStatusVariant = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'default';
-      case 'cancelled':
-        return 'destructive';
-      case 'pending':
-        return 'secondary';
-      case 'overdue':
-        return 'destructive';
+      case "active":
+        return "default";
+      case "cancelled":
+        return "destructive";
+      case "pending":
+        return "secondary";
+      case "overdue":
+        return "destructive";
       default:
-        return 'outline';
+        return "outline";
     }
   };
   const getSaleType = (sale: Sale) => {
-    if (sale.sale_number?.startsWith('ORC') || sale.notes?.toLowerCase().includes('orçamento')) {
-      return 'Orçamento';
+    if (sale.sale_number?.startsWith("ORC") || sale.notes?.toLowerCase().includes("orçamento")) {
+      return "Orçamento";
     }
     // Verificar se é recorrente baseado nas notas ou outros campos
-    if (sale.notes?.toLowerCase().includes('recorrente') || sale.notes?.toLowerCase().includes('mensal')) {
-      return 'Recorrente';
+    if (sale.notes?.toLowerCase().includes("recorrente") || sale.notes?.toLowerCase().includes("mensal")) {
+      return "Recorrente";
     }
-    return 'Avulsa';
+    return "Avulsa";
   };
   const handleViewRecurrences = async (sale: Sale) => {
     try {
       const {
-        data: {
-          user
-        }
+        data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      const {
-        data: profile
-      } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
+      const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
       if (!profile?.company_id) return;
 
       // Buscar TODAS as contas a receber relacionadas a esta venda (não apenas recorrentes)
-      const {
-        data: relatedReceivables
-      } = await supabase.from('accounts_receivable').select('*').eq('company_id', profile.company_id).ilike('description', `%${sale.sale_number}%`).order('due_date', {
-        ascending: true
-      });
-      
+      const { data: relatedReceivables } = await supabase
+        .from("accounts_receivable")
+        .select("*")
+        .eq("company_id", profile.company_id)
+        .ilike("description", `%${sale.sale_number}%`)
+        .order("due_date", {
+          ascending: true,
+        });
+
       if (relatedReceivables && relatedReceivables.length > 0) {
         // Navegar para contas a receber com filtro específico para esta venda
         navigate(`/financeiro/contas-receber?filter=${sale.sale_number}`);
@@ -266,67 +291,67 @@ const Faturamento = () => {
         toast({
           title: "Nenhuma cobrança encontrada",
           description: "Não há cobranças relacionadas a esta venda.",
-          variant: "default"
+          variant: "default",
         });
       }
     } catch (error) {
-      console.error('Error fetching receivables:', error);
+      console.error("Error fetching receivables:", error);
       toast({
         title: "Erro",
         description: "Não foi possível buscar as cobranças.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   const handleDeleteSale = async (sale: Sale) => {
-    if (!confirm(`Tem certeza que deseja excluir a venda ${sale.sale_number}? Esta ação também excluirá todas as cobranças relacionadas e não pode ser desfeita.`)) {
+    if (
+      !confirm(
+        `Tem certeza que deseja excluir a venda ${sale.sale_number}? Esta ação também excluirá todas as cobranças relacionadas e não pode ser desfeita.`,
+      )
+    ) {
       return;
     }
 
     try {
       const {
-        data: {
-          user
-        }
+        data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const {
-        data: profile
-      } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
+      const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
       if (!profile?.company_id) return;
 
       // Primeiro, excluir todas as cobranças relacionadas no contas a receber
       const { error: receivablesError } = await supabase
-        .from('accounts_receivable')
+        .from("accounts_receivable")
         .delete()
-        .eq('company_id', profile.company_id)
-        .ilike('description', `%${sale.sale_number}%`);
+        .eq("company_id", profile.company_id)
+        .ilike("description", `%${sale.sale_number}%`);
 
       if (receivablesError) {
-        console.error('Error deleting receivables:', receivablesError);
+        console.error("Error deleting receivables:", receivablesError);
         toast({
           title: "Erro ao excluir cobranças",
           description: "Não foi possível excluir as cobranças relacionadas.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
       // Depois, excluir a venda
       const { error: saleError } = await supabase
-        .from('sales')
+        .from("sales")
         .delete()
-        .eq('id', sale.id)
-        .eq('company_id', profile.company_id);
+        .eq("id", sale.id)
+        .eq("company_id", profile.company_id);
 
       if (saleError) {
-        console.error('Error deleting sale:', saleError);
+        console.error("Error deleting sale:", saleError);
         toast({
           title: "Erro ao excluir venda",
           description: "Não foi possível excluir a venda.",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -337,23 +362,22 @@ const Faturamento = () => {
       toast({
         title: "Venda excluída",
         description: `A venda ${sale.sale_number} e suas cobranças foram excluídas com sucesso.`,
-        variant: "default"
+        variant: "default",
       });
-
     } catch (error) {
-      console.error('Error deleting sale:', error);
+      console.error("Error deleting sale:", error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir a venda.",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
-  const handleGeneratePDF = (item: Sale, type: 'sale' | 'budget') => {
-    const printWindow = window.open('', '_blank');
+  const handleGeneratePDF = (item: Sale, type: "sale" | "budget") => {
+    const printWindow = window.open("", "_blank");
     if (printWindow) {
-      const title = type === 'sale' ? 'Venda' : 'Orçamento';
+      const title = type === "sale" ? "Venda" : "Orçamento";
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -401,18 +425,18 @@ const Faturamento = () => {
         <body>
           <div class="header">
             <h1>${title} #${item.sale_number}</h1>
-            <p>Data: ${format(new Date(item.sale_date), 'dd/MM/yyyy', { locale: ptBR })}</p>
+            <p>Data: ${format(new Date(item.sale_date), "dd/MM/yyyy", { locale: ptBR })}</p>
           </div>
           
           <div class="info-grid">
             <div>
               <div class="info-item">
                 <span class="label">Cliente:</span>
-                <span class="value">${item.customer_name || 'Não informado'}</span>
+                <span class="value">${item.customer_name || "Não informado"}</span>
               </div>
               <div class="info-item">
                 <span class="label">Status:</span>
-                <span class="value">${item.status === 'active' ? 'Ativo' : item.status === 'cancelled' ? 'Cancelado' : 'Pendente'}</span>
+                <span class="value">${item.status === "active" ? "Ativo" : item.status === "cancelled" ? "Cancelado" : "Pendente"}</span>
               </div>
               <div class="info-item">
                 <span class="label">Tipo:</span>
@@ -427,7 +451,7 @@ const Faturamento = () => {
               </div>
               <div class="info-item">
                 <span class="label">Desconto:</span>
-                <span class="value">${item.discount_amount > 0 ? formatCurrency(Number(item.discount_amount)) : 'Nenhum'}</span>
+                <span class="value">${item.discount_amount > 0 ? formatCurrency(Number(item.discount_amount)) : "Nenhum"}</span>
               </div>
               <div class="info-item">
                 <span class="label">Valor Líquido:</span>
@@ -436,17 +460,21 @@ const Faturamento = () => {
             </div>
           </div>
 
-          ${item.notes ? `
+          ${
+            item.notes
+              ? `
             <div style="margin-top: 20px;">
               <div class="label">Observações:</div>
               <div style="margin-top: 10px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
                 ${item.notes}
               </div>
             </div>
-          ` : ''}
+          `
+              : ""
+          }
           
           <div class="footer">
-            <p>Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</p>
+            <p>Documento gerado em ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
           </div>
         </body>
         </html>
@@ -457,18 +485,21 @@ const Faturamento = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">
+    return (
+      <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Vendas e Orçamentos</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Indicadores de vendas e gestão de orçamentos</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <Select value={periodFilter} onValueChange={setPeriodFilter}>
             <SelectTrigger className="w-full sm:w-48">
@@ -480,7 +511,7 @@ const Faturamento = () => {
               <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Dialog open={showBudgetForm} onOpenChange={setShowBudgetForm}>
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full sm:w-auto">
@@ -492,12 +523,12 @@ const Faturamento = () => {
               <DialogHeader>
                 <DialogTitle>Novo Orçamento</DialogTitle>
               </DialogHeader>
-              <SalesForm 
+              <SalesForm
                 defaultType="budget"
                 onSuccess={() => {
                   setShowBudgetForm(false);
                   fetchBillingData();
-                }} 
+                }}
                 onCancel={() => setShowBudgetForm(false)}
               />
             </DialogContent>
@@ -514,12 +545,12 @@ const Faturamento = () => {
               <DialogHeader>
                 <DialogTitle>Nova Venda</DialogTitle>
               </DialogHeader>
-              <SalesForm 
+              <SalesForm
                 defaultType="sale"
                 onSuccess={() => {
                   setShowSalesForm(false);
                   fetchBillingData();
-                }} 
+                }}
                 onCancel={() => setShowSalesForm(false)}
               />
             </DialogContent>
@@ -536,9 +567,7 @@ const Faturamento = () => {
           </CardHeader>
           <CardContent>
             <div className="text-xl sm:text-2xl font-bold">{metrics.totalSales}</div>
-            <p className="text-xs text-muted-foreground">
-              vendas realizadas
-            </p>
+            <p className="text-xs text-muted-foreground">vendas realizadas</p>
           </CardContent>
         </Card>
 
@@ -547,14 +576,12 @@ const Faturamento = () => {
             <CardTitle className="text-xs sm:text-sm font-medium">Receita Total</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
-            <CardContent>
-              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
-                {formatCurrency(metrics.totalRevenue)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                apenas contratos pagos
-              </p>
-            </CardContent>
+          <CardContent>
+            <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
+              {formatCurrency(metrics.totalRevenue)}
+            </div>
+            <p className="text-xs text-muted-foreground">apenas contratos pagos</p>
+          </CardContent>
         </Card>
 
         <Card>
@@ -566,9 +593,7 @@ const Faturamento = () => {
             <div className="text-lg sm:text-xl lg:text-2xl font-bold break-all">
               {formatCurrency(metrics.averageTicket)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              valor médio por venda
-            </p>
+            <p className="text-xs text-muted-foreground">valor médio por venda</p>
           </CardContent>
         </Card>
 
@@ -581,24 +606,20 @@ const Faturamento = () => {
             <div className="text-lg sm:text-xl lg:text-2xl font-bold text-yellow-600 break-all">
               {formatCurrency(metrics.budgetValue)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              orçamentos em negociação
-            </p>
+            <p className="text-xs text-muted-foreground">orçamentos em negociação</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">A Receber</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total do período</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
             <div className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600 break-all">
               {formatCurrency(metrics.pendingReceivables)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              vendas ainda não recebidas
-            </p>
+            <p className="text-xs text-muted-foreground">vendas ainda não recebidas</p>
           </CardContent>
         </Card>
       </div>
@@ -616,10 +637,8 @@ const Faturamento = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Lista de Vendas</CardTitle>
-                <CardDescription>
-                  Vendas efetivas (avulsa e recorrente) realizadas no período
-                </CardDescription>
-                
+                <CardDescription>Vendas efetivas (avulsa e recorrente) realizadas no período</CardDescription>
+
                 <div className="flex justify-end">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-48">
@@ -636,102 +655,134 @@ const Faturamento = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredSales.length === 0 ? <div className="text-center py-10">
+                {filteredSales.length === 0 ? (
+                  <div className="text-center py-10">
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="mt-2 text-sm font-semibold">Nenhuma venda encontrada</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Não há vendas efetivas para o período e filtros selecionados.
                     </p>
-                  </div> : <div className="overflow-x-auto">
-                     <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="min-w-[100px]">Número</TableHead>
-                            <TableHead className="min-w-[80px]">Tipo</TableHead>
-                            <TableHead className="min-w-[100px]">Data</TableHead>
-                            <TableHead className="min-w-[150px]">Cliente</TableHead>
-                            <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
-                            <TableHead className="min-w-[80px]">Status</TableHead>
-                            <TableHead className="min-w-[120px]">Tags</TableHead>
-                            <TableHead className="min-w-[120px]">Ações</TableHead>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[100px]">Número</TableHead>
+                          <TableHead className="min-w-[80px]">Tipo</TableHead>
+                          <TableHead className="min-w-[100px]">Data</TableHead>
+                          <TableHead className="min-w-[150px]">Cliente</TableHead>
+                          <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
+                          <TableHead className="min-w-[80px]">Status</TableHead>
+                          <TableHead className="min-w-[120px]">Tags</TableHead>
+                          <TableHead className="min-w-[120px]">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSales.map((sale) => (
+                          <TableRow key={sale.id}>
+                            <TableCell className="font-medium">{sale.sale_number}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {getSaleType(sale)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatDateForDisplay(sale.sale_date)}</TableCell>
+                            <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
+                              {sale.customer_name}
+                            </TableCell>
+                            <TableCell className="font-medium">{formatCurrency(Number(sale.net_amount))}</TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusVariant(sale.status)} className="text-xs">
+                                {sale.status === "active"
+                                  ? "Ativo"
+                                  : sale.status === "cancelled"
+                                    ? "Cancelado"
+                                    : sale.status === "overdue"
+                                      ? "Atrasado"
+                                      : "Pendente"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {/* Extrair tags das notas */}
+                              {(() => {
+                                const notesContent = sale.notes || "";
+                                const tagsMatch = notesContent.match(/Tags:\s*(.+)/);
+                                const tags = tagsMatch ? tagsMatch[1].split(",").map((tag) => tag.trim()) : [];
+
+                                return (
+                                  <div className="flex flex-wrap gap-1">
+                                    {tags.length > 0 ? (
+                                      tags.slice(0, 2).map((tag, index) => (
+                                        <Badge key={index} variant="secondary" className="text-xs">
+                                          {tag}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <Badge variant="outline" className="text-xs">
+                                        Sem tags
+                                      </Badge>
+                                    )}
+                                    {tags.length > 2 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        +{tags.length - 2}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleGeneratePDF(sale, "sale")}
+                                  title="Gerar PDF da venda"
+                                >
+                                  <FileDown className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewRecurrences(sale)}
+                                  title="Ver recorrências desta venda"
+                                >
+                                  <PiggyBank className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewSale(sale.id)}
+                                  title="Visualizar venda"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditSale(sale.id)}
+                                  title="Editar venda"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteSale(sale)}
+                                  title="Excluir venda"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                       <TableBody>
-                         {filteredSales.map(sale => <TableRow key={sale.id}>
-                             <TableCell className="font-medium">
-                               {sale.sale_number}
-                             </TableCell>
-                             <TableCell>
-                               <Badge variant="outline" className="text-xs">
-                                 {getSaleType(sale)}
-                               </Badge>
-                             </TableCell>
-                              <TableCell>
-                                {formatDateForDisplay(sale.sale_date)}
-                              </TableCell>
-                             <TableCell className="max-w-[150px] truncate" title={sale.customer_name}>
-                               {sale.customer_name}
-                             </TableCell>
-                             <TableCell className="font-medium">
-                               {formatCurrency(Number(sale.net_amount))}
-                             </TableCell>
-                              <TableCell>
-                                <Badge variant={getStatusVariant(sale.status)} className="text-xs">
-                                  {sale.status === 'active' ? 'Ativo' : sale.status === 'cancelled' ? 'Cancelado' : sale.status === 'overdue' ? 'Atrasado' : 'Pendente'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {/* Extrair tags das notas */}
-                                {(() => {
-                                  const notesContent = sale.notes || '';
-                                  const tagsMatch = notesContent.match(/Tags:\s*(.+)/);
-                                  const tags = tagsMatch ? tagsMatch[1].split(',').map(tag => tag.trim()) : [];
-                                  
-                                  return (
-                                    <div className="flex flex-wrap gap-1">
-                                      {tags.length > 0 ? (
-                                        tags.slice(0, 2).map((tag, index) => (
-                                          <Badge key={index} variant="secondary" className="text-xs">
-                                            {tag}
-                                          </Badge>
-                                        ))
-                                      ) : (
-                                        <Badge variant="outline" className="text-xs">
-                                          Sem tags
-                                        </Badge>
-                                      )}
-                                      {tags.length > 2 && (
-                                        <Badge variant="outline" className="text-xs">
-                                          +{tags.length - 2}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                              </TableCell>
-                               <TableCell className="text-right">
-                                 <div className="flex justify-end space-x-1">
-                                    <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(sale, 'sale')} title="Gerar PDF da venda">
-                                      <FileDown className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleViewRecurrences(sale)} title="Ver recorrências desta venda">
-                                      <PiggyBank className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleViewSale(sale.id)} title="Visualizar venda">
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleEditSale(sale.id)} title="Editar venda">
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                   <Button variant="outline" size="sm" onClick={() => handleDeleteSale(sale)} title="Excluir venda" className="text-destructive hover:text-destructive">
-                                     <Trash2 className="h-4 w-4" />
-                                   </Button>
-                                 </div>
-                               </TableCell>
-                          </TableRow>)}
+                        ))}
                       </TableBody>
                     </Table>
-                  </div>}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -746,9 +797,7 @@ const Faturamento = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-xl sm:text-2xl font-bold">{metrics.totalBudgets}</div>
-                  <p className="text-xs text-muted-foreground">
-                    orçamentos criados
-                  </p>
+                  <p className="text-xs text-muted-foreground">orçamentos criados</p>
                 </CardContent>
               </Card>
 
@@ -761,9 +810,7 @@ const Faturamento = () => {
                   <div className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 break-all">
                     {formatCurrency(metrics.budgetValue)}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    potencial de faturamento
-                  </p>
+                  <p className="text-xs text-muted-foreground">potencial de faturamento</p>
                 </CardContent>
               </Card>
 
@@ -776,9 +823,7 @@ const Faturamento = () => {
                   <div className="text-lg sm:text-xl lg:text-2xl font-bold break-all">
                     {formatCurrency(metrics.totalBudgets > 0 ? metrics.budgetValue / metrics.totalBudgets : 0)}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    valor médio por orçamento
-                  </p>
+                  <p className="text-xs text-muted-foreground">valor médio por orçamento</p>
                 </CardContent>
               </Card>
             </div>
@@ -787,10 +832,8 @@ const Faturamento = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Dinheiro na Mesa</CardTitle>
-                <CardDescription>
-                  Orçamentos que podem se transformar em vendas efetivas
-                </CardDescription>
-                
+                <CardDescription>Orçamentos que podem se transformar em vendas efetivas</CardDescription>
+
                 <div className="flex justify-end">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-48">
@@ -807,13 +850,16 @@ const Faturamento = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {filteredBudgets.length === 0 ? <div className="text-center py-10">
+                {filteredBudgets.length === 0 ? (
+                  <div className="text-center py-10">
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
                     <h3 className="mt-2 text-sm font-semibold">Nenhum orçamento encontrado</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Não há orçamentos para o período e filtros selecionados.
                     </p>
-                  </div> : <div className="overflow-x-auto">
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -828,53 +874,78 @@ const Faturamento = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredBudgets.map(budget => <TableRow key={budget.id}>
-                            <TableCell className="font-medium">
-                              {budget.sale_number}
-                            </TableCell>
-                            <TableCell>
-                              {formatDateForDisplay(budget.sale_date)}
-                            </TableCell>
+                        {filteredBudgets.map((budget) => (
+                          <TableRow key={budget.id}>
+                            <TableCell className="font-medium">{budget.sale_number}</TableCell>
+                            <TableCell>{formatDateForDisplay(budget.sale_date)}</TableCell>
                             <TableCell className="max-w-[150px] truncate" title={budget.customer_name}>
                               {budget.customer_name}
                             </TableCell>
                             <TableCell>{formatCurrency(Number(budget.total_amount))}</TableCell>
                             <TableCell>
-                              {budget.discount_amount > 0 ? formatCurrency(Number(budget.discount_amount)) : '-'}
+                              {budget.discount_amount > 0 ? formatCurrency(Number(budget.discount_amount)) : "-"}
                             </TableCell>
-                            <TableCell className="font-medium">
-                              {formatCurrency(Number(budget.net_amount))}
+                            <TableCell className="font-medium">{formatCurrency(Number(budget.net_amount))}</TableCell>
+                            <TableCell>
+                              <Badge variant={getStatusVariant(budget.status)} className="text-xs">
+                                {budget.status === "active"
+                                  ? "Ativo"
+                                  : budget.status === "cancelled"
+                                    ? "Cancelado"
+                                    : budget.status === "overdue"
+                                      ? "Atrasado"
+                                      : "Pendente"}
+                              </Badge>
                             </TableCell>
-                             <TableCell>
-                               <Badge variant={getStatusVariant(budget.status)} className="text-xs">
-                                 {budget.status === 'active' ? 'Ativo' : budget.status === 'cancelled' ? 'Cancelado' : budget.status === 'overdue' ? 'Atrasado' : 'Pendente'}
-                               </Badge>
-                             </TableCell>
-                             <TableCell className="text-right">
-                               <div className="flex justify-end space-x-1">
-                                  <Button variant="outline" size="sm" onClick={() => handleGeneratePDF(budget, 'budget')} title="Gerar PDF do orçamento">
-                                    <FileDown className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleViewSale(budget.id)} title="Visualizar orçamento">
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={() => handleEditSale(budget.id)} title="Editar orçamento">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                 <Button variant="outline" size="sm" onClick={() => handleDeleteSale(budget)} title="Excluir orçamento" className="text-destructive hover:text-destructive">
-                                   <Trash2 className="h-4 w-4" />
-                                 </Button>
-                               </div>
-                             </TableCell>
-                          </TableRow>)}
+                            <TableCell className="text-right">
+                              <div className="flex justify-end space-x-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleGeneratePDF(budget, "budget")}
+                                  title="Gerar PDF do orçamento"
+                                >
+                                  <FileDown className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewSale(budget.id)}
+                                  title="Visualizar orçamento"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditSale(budget.id)}
+                                  title="Editar orçamento"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteSale(budget)}
+                                  title="Excluir orçamento"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
-                  </div>}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </div>;
+    </div>
+  );
 };
 export default Faturamento;
