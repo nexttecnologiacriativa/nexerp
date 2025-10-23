@@ -546,13 +546,17 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       const saleTypeText = saleType === "budget" ? "Orçamento" : "Venda";
       toast.success(`${saleTypeText} ${saleType === "budget" ? "criado" : "criada"} com sucesso!`);
 
-      // Small delay to ensure toast is visible before closing dialog
-      setTimeout(() => {
-        onSuccess?.();
-      }, 100);
+      // Call onSuccess to refresh data
+      try {
+        await onSuccess?.();
+      } catch (refreshError) {
+        console.error("Error refreshing data:", refreshError);
+        // Venda foi salva, mas houve erro ao atualizar a lista
+        toast.info("Recarregue a página para ver a venda atualizada");
+      }
     } catch (error) {
       console.error("Error saving sale:", error);
-      toast.error("Erro ao salvar venda");
+      toast.error("Erro ao salvar venda. Verifique os dados e tente novamente.");
     } finally {
       setLoading(false);
     }

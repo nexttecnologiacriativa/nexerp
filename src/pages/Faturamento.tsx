@@ -107,7 +107,7 @@ const Faturamento = () => {
         error: salesError
       } = await supabase.from('sales').select(`
           *,
-          customers!inner(name)
+          customers(name)
         `).eq('company_id', companyId).gte('sale_date', dateFilter).order('sale_date', {
         ascending: false
       });
