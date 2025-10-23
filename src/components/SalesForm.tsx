@@ -362,16 +362,17 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     const month = (today.getMonth() + 1).toString().padStart(2, "0");
 
     const prefix = saleType === "budget" ? "ORC" : "VND";
+    const periodPrefix = `${prefix}${year}${month}`;
 
-    if (!lastSaleNumber || !lastSaleNumber.startsWith(prefix)) {
-      return `${prefix}${year}${month}0001`;
+    if (!lastSaleNumber || !lastSaleNumber.startsWith(periodPrefix)) {
+      return `${periodPrefix}0001`;
     }
 
-    // Extract number from last sale
+    // Extract number from last sale (últimos 4 dígitos)
     const lastNumber = parseInt(lastSaleNumber.slice(-4)) || 0;
     const nextNumber = (lastNumber + 1).toString().padStart(4, "0");
 
-    return `${prefix}${year}${month}${nextNumber}`;
+    return `${periodPrefix}${nextNumber}`;
   };
 
   const generateInstallments = () => {
@@ -486,20 +487,56 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       const totalAmount = getTotalAmount();
       console.log("Total amount:", totalAmount);
 
-      // Generate unique sale number at save time to avoid duplicates
-      console.log("Gerando número único de venda...");
-      const prefix = saleType === "budget" ? "ORC" : "VND";
+      // Generate unique sale number with retry logic
+      let finalSaleNumber = "";
+      let attempts = 0;
+      const maxAttempts = 5;
       
-      const { data: lastSale } = await supabase
-        .from("sales")
-        .select("sale_number")
-        .eq("company_id", userProfile.company_id)
-        .like("sale_number", `${prefix}%`)
-        .order("sale_number", { ascending: false })
-        .limit(1);
+      while (attempts < maxAttempts) {
+        console.log(`Tentativa ${attempts + 1} de gerar número único...`);
+        const prefix = saleType === "budget" ? "ORC" : "VND";
+        const today = new Date();
+        const year = today.getFullYear().toString().slice(-2);
+        const month = (today.getMonth() + 1).toString().padStart(2, "0");
+        const periodPrefix = `${prefix}${year}${month}`;
+        
+        const { data: lastSale } = await supabase
+          .from("sales")
+          .select("sale_number")
+          .eq("company_id", userProfile.company_id)
+          .like("sale_number", `${periodPrefix}%`)
+          .order("sale_number", { ascending: false })
+          .limit(1);
+        
+        const lastNumber = lastSale?.[0]?.sale_number 
+          ? parseInt(lastSale[0].sale_number.slice(-4)) || 0
+          : 0;
+        
+        const nextNumber = (lastNumber + 1 + attempts).toString().padStart(4, "0");
+        finalSaleNumber = `${periodPrefix}${nextNumber}`;
+        
+        console.log("Número gerado:", finalSaleNumber);
+        
+        // Check if number already exists
+        const { data: existing } = await supabase
+          .from("sales")
+          .select("id")
+          .eq("company_id", userProfile.company_id)
+          .eq("sale_number", finalSaleNumber)
+          .maybeSingle();
+        
+        if (!existing) {
+          console.log("Número único confirmado!");
+          break;
+        }
+        
+        console.log("Número já existe, tentando próximo...");
+        attempts++;
+      }
       
-      const finalSaleNumber = generateNextSaleNumber(lastSale?.[0]?.sale_number);
-      console.log("Número gerado:", finalSaleNumber);
+      if (attempts >= maxAttempts) {
+        throw new Error("Não foi possível gerar um número único de venda. Tente novamente.");
+      }
 
       // Create sale
       console.log("Criando venda...");
