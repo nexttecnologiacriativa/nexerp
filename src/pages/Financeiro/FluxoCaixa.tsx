@@ -360,7 +360,6 @@ const FluxoCaixa = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Data</TableHead>
-                <TableHead>Categoria</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
@@ -370,7 +369,7 @@ const FluxoCaixa = () => {
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={accountId ? 6 : 5} className="text-center">Nenhuma movimentação encontrada</TableCell>
+                  <TableCell colSpan={accountId ? 5 : 4} className="text-center">Nenhuma movimentação encontrada</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((entry) => (
@@ -378,7 +377,6 @@ const FluxoCaixa = () => {
                     <TableCell>
                       {formatDateForDisplay(entry.date)}
                     </TableCell>
-                    <TableCell>{entry.category}</TableCell>
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>
                       <Badge variant={entry.type === 'income' ? 'default' : 'destructive'}>
