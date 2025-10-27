@@ -128,7 +128,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     subcategory_id: "",
     cost_center_id: "",
     salesperson: "",
-    status: "approved",
+    status: defaultType === "budget" ? "pending" : "approved",
     notes: "",
     tags: [] as string[],
   });
@@ -162,6 +162,12 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   useEffect(() => {
     if (userProfile?.company_id) {
       updateSaleNumber();
+    }
+    // Update status based on sale type
+    if (saleType === "budget") {
+      setFormData((prev) => ({ ...prev, status: "pending" }));
+    } else {
+      setFormData((prev) => ({ ...prev, status: "approved" }));
     }
   }, [saleType, userProfile?.company_id]);
 
