@@ -343,7 +343,7 @@ export const AccountDetailDialog = ({ isOpen, onClose, account, type, onUpdate }
               {/* Payment Date (only if paid) */}
               {formData.status === "paid" && (
                 <div className="space-y-2">
-                  <Label htmlFor="payment_date">Data de Pagamento</Label>
+                  <Label htmlFor="payment_date">{type === "payable" ? "Data de Pagamento" : "Data de Recebimento"}</Label>
                   <DateInput
                     id="payment_date"
                     value={formData.payment_date}
