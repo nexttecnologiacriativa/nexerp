@@ -21,6 +21,7 @@ interface CashFlowEntry {
   amount: number;
   status: string;
   category: string;
+  balance?: number;
 }
 
 interface DailyBalance {
@@ -43,6 +44,7 @@ const FluxoCaixa = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("current");
   const [selectedType, setSelectedType] = useState("all");
   const [bankAccountName, setBankAccountName] = useState<string>("");
+  const [initialBalance, setInitialBalance] = useState<number>(0);
 
   useEffect(() => {
     if (user) {
@@ -54,19 +56,21 @@ const FluxoCaixa = () => {
     try {
       setLoading(true);
       
-      // Buscar nome da conta bancária se accountId estiver definido
+      // Buscar nome e saldo da conta bancária se accountId estiver definido
       if (accountId) {
         const { data: bankAccount } = await supabase
           .from('bank_accounts')
-          .select('name')
+          .select('name, balance')
           .eq('id', accountId)
           .single();
         
         if (bankAccount) {
           setBankAccountName(bankAccount.name);
+          setInitialBalance(bankAccount.balance || 0);
         }
       } else {
         setBankAccountName("");
+        setInitialBalance(0);
       }
       
       // Calculate date range based on selected period
@@ -168,6 +172,20 @@ const FluxoCaixa = () => {
 
       // Sort by date
       entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      // Calculate running balance for each entry if viewing specific account
+      if (accountId) {
+        let runningBalance = initialBalance;
+        entries.forEach(entry => {
+          if (entry.type === 'income') {
+            runningBalance += entry.amount;
+          } else {
+            runningBalance -= entry.amount;
+          }
+          entry.balance = runningBalance;
+        });
+      }
+      
       setCashFlowData(entries);
 
       // Calculate daily balances
@@ -346,12 +364,13 @@ const FluxoCaixa = () => {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                {accountId && <TableHead className="text-right">Saldo</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">Nenhuma movimentação encontrada</TableCell>
+                  <TableCell colSpan={accountId ? 6 : 5} className="text-center">Nenhuma movimentação encontrada</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((entry) => (
@@ -370,6 +389,11 @@ const FluxoCaixa = () => {
                       {entry.type === 'income' ? '+' : '-'}
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.amount)}
                     </TableCell>
+                    {accountId && (
+                      <TableCell className="text-right font-semibold">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.balance || 0)}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}
