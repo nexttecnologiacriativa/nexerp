@@ -668,9 +668,9 @@ const Faturamento = () => {
           </CardHeader>
           <CardContent>
             <div className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600 break-all">
-              {formatCurrency(metrics.pendingReceivables)}
+              {formatCurrency(metrics.totalRevenue + metrics.budgetValue)}
             </div>
-            <p className="text-xs text-muted-foreground">vendas ainda não recebidas</p>
+            <p className="text-xs text-muted-foreground">receita total + em negociação</p>
           </CardContent>
         </Card>
       </div>
