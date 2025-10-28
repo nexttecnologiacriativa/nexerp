@@ -46,6 +46,24 @@ interface Sale {
   created_at: string;
   notes?: string;
 }
+
+interface SaleItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+interface SaleDetails extends Sale {
+  sale_items: SaleItem[];
+  customers?: {
+    name: string;
+    email: string;
+    phone: string;
+    document: string;
+  };
+}
 interface BillingMetrics {
   totalSales: number;
   totalRevenue: number;
@@ -77,6 +95,8 @@ const Faturamento = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("current_month");
   const { toast } = useToast();
+  const [viewingSale, setViewingSale] = useState<SaleDetails | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   useEffect(() => {
     fetchBillingData();
   }, [periodFilter]);
@@ -226,9 +246,40 @@ const Faturamento = () => {
     const matchesStatus = statusFilter === "all" || budget.status === statusFilter;
     return matchesStatus;
   });
-  const handleViewSale = (saleId: string) => {
-    // Por enquanto só abre um novo formulário - implementar visualização depois
-    setShowSalesForm(true);
+  const handleViewSale = async (saleId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          sale_items (
+            id,
+            description,
+            quantity,
+            unit_price,
+            total_price
+          ),
+          customers (
+            name,
+            email,
+            phone,
+            document
+          )
+        `)
+        .eq("id", saleId)
+        .single();
+
+      if (error) throw error;
+
+      setViewingSale(data as SaleDetails);
+      setIsViewDialogOpen(true);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar venda",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditSale = (saleId: string) => {
@@ -944,6 +995,148 @@ const Faturamento = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* View Sale Details Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Detalhes da Venda</DialogTitle>
+            </DialogHeader>
+            {viewingSale && (
+              <div className="space-y-6">
+                {/* Sale Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Informações da Venda</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Número da Venda</p>
+                      <p className="font-medium">{viewingSale.sale_number}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Data</p>
+                      <p className="font-medium">{formatDateForDisplay(viewingSale.sale_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <Badge variant={getStatusVariant(viewingSale.status)}>
+                        {viewingSale.status === "active"
+                          ? "Ativo"
+                          : viewingSale.status === "cancelled"
+                            ? "Cancelado"
+                            : viewingSale.status === "overdue"
+                              ? "Atrasado"
+                              : "Pendente"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tipo</p>
+                      <Badge variant="outline">{getSaleType(viewingSale)}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Customer Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Cliente</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nome</p>
+                      <p className="font-medium">{viewingSale.customers?.name || viewingSale.customer_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Documento</p>
+                      <p className="font-medium">{viewingSale.customers?.document || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Email</p>
+                      <p className="font-medium">{viewingSale.customers?.email || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Telefone</p>
+                      <p className="font-medium">{viewingSale.customers?.phone || "-"}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Sale Items */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Itens da Venda</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead className="text-right">Quantidade</TableHead>
+                          <TableHead className="text-right">Valor Unitário</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {viewingSale.sale_items?.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>{item.description}</TableCell>
+                            <TableCell className="text-right">{item.quantity}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(Number(item.unit_price))}</TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(Number(item.total_price))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+
+                {/* Financial Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Resumo Financeiro</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Valor Total</span>
+                      <span className="font-medium">{formatCurrency(Number(viewingSale.total_amount))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Desconto</span>
+                      <span className="font-medium text-destructive">
+                        - {formatCurrency(Number(viewingSale.discount_amount))}
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between">
+                      <span className="font-semibold">Valor Líquido</span>
+                      <span className="font-bold text-lg">{formatCurrency(Number(viewingSale.net_amount))}</span>
+                    </div>
+                    {viewingSale.payment_method && (
+                      <div className="flex justify-between mt-4">
+                        <span className="text-muted-foreground">Método de Pagamento</span>
+                        <span className="font-medium capitalize">{viewingSale.payment_method.replace("_", " ")}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Notes and Tags */}
+                {viewingSale.notes && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Observações</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm whitespace-pre-wrap">{viewingSale.notes}</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
