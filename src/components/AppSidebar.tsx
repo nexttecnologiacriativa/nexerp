@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, DollarSign, Users, Package, FileText, BarChart3, Settings, Building2, CreditCard, Receipt, UserCog, LogOut, ChevronDown, Truck, Tag, Shield, Zap, DollarSignIcon } from "lucide-react";
 import { useHasRole } from "@/hooks/use-has-role";
+import { useUserRole } from "@/hooks/use-user-role";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -84,6 +85,7 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const { hasRole: isSuperAdmin, loading: loadingRole } = useHasRole('super_admin');
+  const { role: userRole, loading: loadingUserRole } = useUserRole();
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({
     isActive
@@ -92,6 +94,36 @@ export function AppSidebar() {
   }) => isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "hover:bg-sidebar-accent/50";
   const toggleGroup = (groupTitle: string) => {
     setExpandedGroups(prev => prev.includes(groupTitle) ? prev.filter(g => g !== groupTitle) : [...prev, groupTitle]);
+  };
+
+  // Função para verificar se o usuário tem permissão para acessar um item
+  const canAccessItem = (item: any): boolean => {
+    if (loadingUserRole || !userRole) return true; // Mostra tudo enquanto carrega
+    
+    // Admin tem acesso total
+    if (userRole === 'admin') return true;
+    
+    // Vendedor: apenas Vendas e Orçamentos + Clientes
+    if (userRole === 'salesperson') {
+      if (item.url === '/faturamento') return true;
+      if (item.title === 'Cadastros') {
+        // Filtra apenas Clientes dentro de Cadastros
+        if (item.subItems) {
+          item.subItems = item.subItems.filter((sub: any) => sub.url === '/cadastros/clientes');
+          return item.subItems.length > 0;
+        }
+      }
+      return false;
+    }
+    
+    // Financeiro: tudo exceto Usuários e Configurações (info da empresa)
+    if (userRole === 'financial') {
+      if (item.url === '/usuarios' || item.url === '/configuracoes') return false;
+      return true;
+    }
+    
+    // Usuário padrão: sem restrições específicas (ou implementar conforme necessário)
+    return true;
   };
   const renderMenuItem = (item: any) => {
     if (item.subItems) {
@@ -144,7 +176,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map(renderMenuItem)}
+              {menuItems.filter(canAccessItem).map(renderMenuItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -153,7 +185,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Sistema</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {systemItems.map(renderMenuItem)}
+              {systemItems.filter(canAccessItem).map(renderMenuItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

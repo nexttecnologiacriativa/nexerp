@@ -15,7 +15,7 @@ interface User {
   id: string;
   full_name: string;
   phone: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'user' | 'salesperson' | 'financial';
   company_id: string;
   avatar_url: string;
   created_at: string;
@@ -34,7 +34,7 @@ const Usuarios = () => {
     full_name: '',
     email: '',
     phone: '',
-    role: 'user' as 'admin' | 'user'
+    role: 'user' as 'admin' | 'user' | 'salesperson' | 'financial'
   });
 
   const fetchUsers = async () => {
@@ -234,7 +234,7 @@ const Usuarios = () => {
                   <Label htmlFor="role">Função</Label>
                   <Select
                     value={formData.role}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as "admin" | "user" }))}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as "admin" | "user" | "salesperson" | "financial" }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -242,6 +242,8 @@ const Usuarios = () => {
                     <SelectContent>
                       <SelectItem value="user">Usuário</SelectItem>
                       <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="salesperson">Vendedor</SelectItem>
+                      <SelectItem value="financial">Financeiro</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -393,7 +395,9 @@ const Usuarios = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role === 'admin' ? 'Administrador' : 'Usuário'}
+                        {user.role === 'admin' ? 'Administrador' : 
+                         user.role === 'salesperson' ? 'Vendedor' :
+                         user.role === 'financial' ? 'Financeiro' : 'Usuário'}
                       </Badge>
                     </TableCell>
                     <TableCell>
