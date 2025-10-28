@@ -812,14 +812,6 @@ const Faturamento = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleEditSale(sale.id)}
-                                  title="Editar venda"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
                                   onClick={() => handleDeleteSale(sale)}
                                   title="Excluir venda"
                                   className="text-destructive hover:text-destructive"
@@ -965,14 +957,6 @@ const Faturamento = () => {
                                   title="Visualizar orçamento"
                                 >
                                   <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditSale(budget.id)}
-                                  title="Editar orçamento"
-                                >
-                                  <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="outline"
