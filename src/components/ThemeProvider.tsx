@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/components/AuthContext';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -17,19 +19,51 @@ const ThemeProviderContext = createContext<ThemeProviderContextType>(initialStat
 export function ThemeProvider({
   children,
   defaultTheme = 'light',
-  storageKey = 'vite-ui-theme',
 }: {
   children: React.ReactNode;
   defaultTheme?: Theme;
-  storageKey?: string;
 }) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  );
+  const { user } = useAuth();
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Carregar preferência do usuário do banco de dados
   useEffect(() => {
-    const root = window.document.documentElement;
+    const loadUserTheme = async () => {
+      if (!user) {
+        setTheme(defaultTheme);
+        setIsLoading(false);
+        return;
+      }
 
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('theme_preference')
+          .eq('id', user.id)
+          .single();
+
+        if (!error && data?.theme_preference) {
+          setTheme(data.theme_preference as Theme);
+        } else {
+          setTheme(defaultTheme);
+        }
+      } catch (error) {
+        console.error('Error loading theme preference:', error);
+        setTheme(defaultTheme);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserTheme();
+  }, [user, defaultTheme]);
+
+  // Aplicar o tema no DOM
+  useEffect(() => {
+    if (isLoading) return;
+
+    const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
 
     if (theme === 'system') {
@@ -37,19 +71,29 @@ export function ThemeProvider({
         .matches
         ? 'dark'
         : 'light';
-
       root.classList.add(systemTheme);
       return;
     }
 
     root.classList.add(theme);
-  }, [theme]);
+  }, [theme, isLoading]);
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: async (newTheme: Theme) => {
+      setTheme(newTheme);
+      
+      // Salvar no banco de dados se o usuário estiver logado
+      if (user) {
+        try {
+          await supabase
+            .from('profiles')
+            .update({ theme_preference: newTheme })
+            .eq('id', user.id);
+        } catch (error) {
+          console.error('Error saving theme preference:', error);
+        }
+      }
     },
   };
 
