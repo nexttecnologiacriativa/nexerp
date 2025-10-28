@@ -64,6 +64,15 @@ interface SaleDetails extends Sale {
     document: string;
   };
 }
+
+interface Installment {
+  id: string;
+  description: string;
+  amount: number;
+  due_date: string;
+  payment_date: string | null;
+  status: string;
+}
 interface BillingMetrics {
   totalSales: number;
   totalRevenue: number;
@@ -97,6 +106,7 @@ const Faturamento = () => {
   const { toast } = useToast();
   const [viewingSale, setViewingSale] = useState<SaleDetails | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [installments, setInstallments] = useState<Installment[]>([]);
   useEffect(() => {
     fetchBillingData();
   }, [periodFilter]);
@@ -264,6 +274,24 @@ const Faturamento = () => {
         .single();
 
       if (error) throw error;
+
+      // Buscar parcelas relacionadas
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
+        if (profile?.company_id) {
+          const { data: receivables } = await supabase
+            .from("accounts_receivable")
+            .select("id, description, amount, due_date, payment_date, status")
+            .eq("company_id", profile.company_id)
+            .ilike("description", `%${data.sale_number}%`)
+            .order("due_date", { ascending: true });
+
+          setInstallments(receivables || []);
+        }
+      }
 
       setViewingSale(data as SaleDetails);
       setIsViewDialogOpen(true);
@@ -1103,6 +1131,61 @@ const Faturamento = () => {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Installments */}
+                {installments.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Parcelas</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Descrição</TableHead>
+                            <TableHead>Vencimento</TableHead>
+                            <TableHead>Pagamento</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {installments.map((installment) => (
+                            <TableRow key={installment.id}>
+                              <TableCell>{installment.description}</TableCell>
+                              <TableCell>{formatDateForDisplay(installment.due_date)}</TableCell>
+                              <TableCell>
+                                {installment.payment_date
+                                  ? formatDateForDisplay(installment.payment_date)
+                                  : "-"}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency(Number(installment.amount))}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    installment.status === "paid"
+                                      ? "default"
+                                      : installment.status === "overdue"
+                                        ? "destructive"
+                                        : "secondary"
+                                  }
+                                >
+                                  {installment.status === "paid"
+                                    ? "Pago"
+                                    : installment.status === "overdue"
+                                      ? "Vencido"
+                                      : "Em Aberto"}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Notes and Tags */}
                 {viewingSale.notes && (
