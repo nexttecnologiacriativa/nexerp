@@ -35,10 +35,12 @@ interface SaleItem {
 interface PaymentInfo {
   payment_method: string;
   receiving_account: string;
-  percentage: number;
-  amount: number;
   installments: number;
   due_date: string;
+  discount_type: "fixed" | "percentage";
+  discount_value: number;
+  addition_type: "fixed" | "percentage";
+  addition_value: number;
 }
 
 interface Customer {
@@ -114,9 +116,12 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   const [paymentInfo, setPaymentInfo] = useState({
     payment_method: "",
     receiving_account: "",
-    percentage: 100,
     installments: 1,
     due_date: dateToISOString(new Date()),
+    discount_type: "fixed" as "fixed" | "percentage",
+    discount_value: 0,
+    addition_type: "fixed" as "fixed" | "percentage",
+    addition_value: 0,
   });
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
 
@@ -383,7 +388,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   };
 
   const generateInstallments = () => {
-    const totalAmount = getTotalAmount();
+    const totalAmount = getFinalAmount();
     const installmentAmount = totalAmount / paymentInfo.installments;
 
     const newInstallments: Installment[] = [];
@@ -454,6 +459,29 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     return saleItems.reduce((sum, item) => sum + item.total, 0);
   };
 
+  const getDiscountAmount = () => {
+    const subtotal = getTotalAmount();
+    if (paymentInfo.discount_type === "percentage") {
+      return (subtotal * paymentInfo.discount_value) / 100;
+    }
+    return paymentInfo.discount_value;
+  };
+
+  const getAdditionAmount = () => {
+    const subtotal = getTotalAmount();
+    if (paymentInfo.addition_type === "percentage") {
+      return (subtotal * paymentInfo.addition_value) / 100;
+    }
+    return paymentInfo.addition_value;
+  };
+
+  const getFinalAmount = () => {
+    const subtotal = getTotalAmount();
+    const discount = getDiscountAmount();
+    const addition = getAdditionAmount();
+    return subtotal - discount + addition;
+  };
+
   const calculateInstallmentDate = (installmentNumber: number) => {
     const baseDate = new Date(paymentInfo.due_date || formData.sale_date);
     baseDate.setMonth(baseDate.getMonth() + installmentNumber - 1);
@@ -491,8 +519,14 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     setLoading(true);
 
     try {
-      const totalAmount = getTotalAmount();
-      console.log("Total amount:", totalAmount);
+      const subtotal = getTotalAmount();
+      const discountAmount = getDiscountAmount();
+      const additionAmount = getAdditionAmount();
+      const finalAmount = getFinalAmount();
+      console.log("Subtotal:", subtotal);
+      console.log("Discount:", discountAmount);
+      console.log("Addition:", additionAmount);
+      console.log("Final amount:", finalAmount);
 
       // Generate unique sale number with retry logic
       let finalSaleNumber = "";
@@ -550,9 +584,9 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
         .insert({
           company_id: userProfile.company_id,
           customer_id: formData.client_id,
-          total_amount: totalAmount,
-          discount_amount: 0,
-          net_amount: totalAmount,
+          total_amount: subtotal,
+          discount_amount: discountAmount - additionAmount, // Store net discount (discount minus additions)
+          net_amount: finalAmount,
           sale_date: formData.sale_date,
           sale_number: finalSaleNumber,
           notes: formData.tags.length > 0 ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}` : formData.notes,
@@ -600,7 +634,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
             : [
                 {
                   number: 1,
-                  amount: totalAmount,
+                  amount: finalAmount,
                   due_date: paymentInfo.due_date || dateToISOString(new Date()),
                 },
               ];
@@ -1127,30 +1161,77 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
               </div>
             </div>
 
-            {/* Percentual */}
+            {/* Desconto */}
             <div>
-              <Label htmlFor="percentage">Percentual</Label>
-              <div className="flex items-center">
+              <Label htmlFor="discount">Desconto</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={paymentInfo.discount_type}
+                  onValueChange={(value: "fixed" | "percentage") =>
+                    setPaymentInfo({ ...paymentInfo, discount_type: value })
+                  }
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">R$</SelectItem>
+                    <SelectItem value="percentage">%</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
                   type="number"
-                  value={paymentInfo.percentage}
-                  onChange={(e) => setPaymentInfo({ ...paymentInfo, percentage: parseFloat(e.target.value) || 0 })}
+                  value={paymentInfo.discount_value}
+                  onChange={(e) =>
+                    setPaymentInfo({ ...paymentInfo, discount_value: parseFloat(e.target.value) || 0 })
+                  }
                   min="0"
-                  max="100"
+                  step="0.01"
+                  className="flex-1"
                 />
-                <span className="ml-1 text-sm">%</span>
+              </div>
+            </div>
+
+            {/* Acréscimo */}
+            <div>
+              <Label htmlFor="addition">Acréscimo</Label>
+              <div className="flex gap-2">
+                <Select
+                  value={paymentInfo.addition_type}
+                  onValueChange={(value: "fixed" | "percentage") =>
+                    setPaymentInfo({ ...paymentInfo, addition_type: value })
+                  }
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">R$</SelectItem>
+                    <SelectItem value="percentage">%</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  value={paymentInfo.addition_value}
+                  onChange={(e) =>
+                    setPaymentInfo({ ...paymentInfo, addition_value: parseFloat(e.target.value) || 0 })
+                  }
+                  min="0"
+                  step="0.01"
+                  className="flex-1"
+                />
               </div>
             </div>
           </div>
 
           {/* Segunda linha */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Valor a receber */}
+            {/* Valor total */}
             <div>
-              <Label htmlFor="amount">Valor a receber</Label>
+              <Label htmlFor="amount">Valor total</Label>
               <div className="flex items-center">
                 <span className="text-sm mr-1">R$</span>
-                <Input type="number" value={getTotalAmount()} readOnly className="bg-muted" />
+                <Input type="number" value={getFinalAmount()} readOnly className="bg-muted" />
               </div>
             </div>
 
@@ -1240,17 +1321,40 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
       <Card>
         <CardContent className="pt-6">
           <div className="flex justify-between items-center mb-6">
-            <div className="text-lg font-semibold">
+            <div className="text-lg font-semibold space-y-2">
+              <div className="flex items-center gap-4">
+                <span>Subtotal:</span>
+                <span className="text-lg">
+                  R$ {getTotalAmount().toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              {getDiscountAmount() > 0 && (
+                <div className="flex items-center gap-4 text-destructive">
+                  <span>Desconto:</span>
+                  <span>
+                    - R$ {getDiscountAmount().toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+              {getAdditionAmount() > 0 && (
+                <div className="flex items-center gap-4 text-green-600">
+                  <span>Acréscimo:</span>
+                  <span>
+                    + R$ {getAdditionAmount().toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+              <Separator className="my-2" />
               <div className="flex items-center gap-4">
                 <span>Total:</span>
                 <span className="text-2xl text-primary dark:text-white">
-                  R$ {getTotalAmount().toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R$ {getFinalAmount().toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </span>
               </div>
               {paymentInfo.installments > 1 && (
                 <div className="text-sm text-muted-foreground mt-1">
                   {paymentInfo.installments}x de R${" "}
-                  {(getTotalAmount() / paymentInfo.installments).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  {(getFinalAmount() / paymentInfo.installments).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
               )}
             </div>
