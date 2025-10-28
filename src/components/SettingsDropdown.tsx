@@ -41,10 +41,7 @@ const SettingsDropdown = () => {
             <Label htmlFor="theme-select">Tema</Label>
             <Select value={theme} onValueChange={setTheme}>
               <SelectTrigger id="theme-select">
-                <div className="flex items-center gap-2">
-                  {getThemeIcon(theme)}
-                  <SelectValue />
-                </div>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="light">
