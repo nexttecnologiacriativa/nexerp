@@ -86,7 +86,7 @@ const Relatorios = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('last6months');
   const [dateRange, setDateRange] = useState<{from: Date, to: Date} | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'revenue' | 'expenses' | 'profit' | 'bankBalance' | 'margin' | null>(null);
+  const [dialogType, setDialogType] = useState<'revenue' | 'expenses' | 'profit' | 'bankBalance' | 'margin' | 'costCenterTotal' | 'costCenterRevenue' | 'costCenterExpenses' | 'costCenterProfit' | null>(null);
   const [dialogData, setDialogData] = useState<any>(null);
   const [rawData, setRawData] = useState<any>(null);
   const { toast } = useToast();
@@ -536,7 +536,7 @@ const Relatorios = () => {
     fetchReportData();
   }, [selectedPeriod, dateRange]);
 
-  const handleIndicatorClick = (type: 'revenue' | 'expenses' | 'profit' | 'bankBalance' | 'margin') => {
+  const handleIndicatorClick = (type: 'revenue' | 'expenses' | 'profit' | 'bankBalance' | 'margin' | 'costCenterTotal' | 'costCenterRevenue' | 'costCenterExpenses' | 'costCenterProfit') => {
     if (!rawData) return;
 
     const data: any = {};
@@ -555,6 +555,8 @@ const Relatorios = () => {
       const expenses = rawData.paidPayables?.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0) || 0;
       data.revenue = revenue;
       data.profit = revenue - expenses;
+    } else if (type === 'costCenterTotal' || type === 'costCenterRevenue' || type === 'costCenterExpenses' || type === 'costCenterProfit') {
+      data.centers = reportData?.costCenters.data || [];
     }
 
     setDialogType(type);
@@ -1089,7 +1091,10 @@ const Relatorios = () => {
 
         <TabsContent value="centers" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
+            <Card 
+              className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleIndicatorClick('costCenterTotal')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Centros</CardTitle>
                 <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -1108,7 +1113,10 @@ const Relatorios = () => {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
+            <Card 
+              className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleIndicatorClick('costCenterRevenue')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Receitas</CardTitle>
                 <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -1127,7 +1135,10 @@ const Relatorios = () => {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800">
+            <Card 
+              className="relative overflow-hidden bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleIndicatorClick('costCenterExpenses')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Total Despesas</CardTitle>
                 <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -1146,11 +1157,14 @@ const Relatorios = () => {
               </div>
             </Card>
 
-            <Card className={`relative overflow-hidden border-2 ${
-              (reportData?.costCenters.totalProfit || 0) >= 0 
-                ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-300 dark:border-emerald-700' 
-                : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-300 dark:border-orange-700'
-            }`}>
+            <Card 
+              className={`relative overflow-hidden border-2 cursor-pointer hover:shadow-lg transition-shadow ${
+                (reportData?.costCenters.totalProfit || 0) >= 0 
+                  ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-300 dark:border-emerald-700' 
+                  : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-300 dark:border-orange-700'
+              }`}
+              onClick={() => handleIndicatorClick('costCenterProfit')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${
                   (reportData?.costCenters.totalProfit || 0) >= 0 
