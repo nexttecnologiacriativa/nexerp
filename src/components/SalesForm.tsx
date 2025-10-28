@@ -937,8 +937,18 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Nova Venda {formData.sale_number}</h2>
-          <p className="text-muted-foreground">Cadastre uma nova venda</p>
+          <h2 className="text-2xl font-bold">
+            {isEditMode 
+              ? `Editar ${saleType === "budget" ? "Orçamento" : "Venda"} ${formData.sale_number}`
+              : `Novo ${saleType === "budget" ? "Orçamento" : "Venda"} ${formData.sale_number}`
+            }
+          </h2>
+          <p className="text-muted-foreground">
+            {isEditMode 
+              ? `Edite ${saleType === "budget" ? "o orçamento" : "a venda"}`
+              : `Cadastre ${saleType === "budget" ? "um novo orçamento" : "uma nova venda"}`
+            }
+          </p>
         </div>
       </div>
 
