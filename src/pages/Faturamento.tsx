@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import {
   TrendingUp,
   TrendingDown,
@@ -24,6 +26,7 @@ import {
   Plus,
   PiggyBank,
   FileDown,
+  CalendarIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +34,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import SalesForm from "@/components/SalesForm";
-import { formatDateForDisplay } from "@/lib/date-utils";
+import { formatDateForDisplay, dateToISOString } from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 interface Sale {
   id: string;
   sale_number: string;
@@ -102,14 +106,17 @@ const Faturamento = () => {
   });
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [periodFilter, setPeriodFilter] = useState("current_month");
+  const [periodFilter, setPeriodFilter] = useState<"by_month" | "this_year" | "all" | "custom">("by_month");
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
   const { toast } = useToast();
   const [viewingSale, setViewingSale] = useState<SaleDetails | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [installments, setInstallments] = useState<Installment[]>([]);
   useEffect(() => {
     fetchBillingData();
-  }, [periodFilter]);
+  }, [periodFilter, selectedMonth, customStartDate, customEndDate]);
   const fetchBillingData = async () => {
     try {
       setLoading(true);
@@ -125,31 +132,49 @@ const Faturamento = () => {
 
       // Date filters
       const now = new Date();
-      const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      let dateFilter = "";
+      let startDate: string | null = null;
+      let endDate: string | null = null;
+
       switch (periodFilter) {
-        case "current_month":
-          dateFilter = currentMonth.toISOString();
+        case "by_month":
+          // Primeiro dia do mês selecionado
+          startDate = dateToISOString(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1));
+          // Último dia do mês selecionado
+          endDate = dateToISOString(new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() + 1, 0));
           break;
-        case "last_month":
-          dateFilter = lastMonth.toISOString();
+        case "this_year":
+          // Primeiro dia do ano atual
+          startDate = dateToISOString(new Date(now.getFullYear(), 0, 1));
+          // Último dia do ano atual
+          endDate = dateToISOString(new Date(now.getFullYear(), 11, 31));
           break;
-        case "last_3_months":
-          dateFilter = new Date(now.getFullYear(), now.getMonth() - 3, 1).toISOString();
+        case "custom":
+          if (customStartDate) {
+            startDate = dateToISOString(customStartDate);
+          }
+          if (customEndDate) {
+            endDate = dateToISOString(customEndDate);
+          }
           break;
-        default:
-          dateFilter = currentMonth.toISOString();
+        case "all":
+          // Sem filtro de data
+          break;
       }
 
       // Fetch all sales and separate by type
-      const { data: allSalesData, error: salesError } = await supabase
+      let query = supabase
         .from("sales")
         .select("*, customers(name)")
-        .eq("company_id", companyId)
-        .gte("sale_date", dateFilter)
-        .order("sale_date", { ascending: false });
+        .eq("company_id", companyId);
+
+      if (startDate) {
+        query = query.gte("sale_date", startDate);
+      }
+      if (endDate) {
+        query = query.lte("sale_date", endDate);
+      }
+
+      const { data: allSalesData, error: salesError } = await query.order("sale_date", { ascending: false });
 
       if (salesError) {
         console.error("Error fetching sales:", salesError);
@@ -197,19 +222,29 @@ const Faturamento = () => {
         .eq("status", "pending");
       const pendingReceivables = receivables?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
 
-      // Calculate monthly growth for sales only (compare with previous period)
-      const { data: previousSales } = await supabase
-        .from("sales")
-        .select("net_amount, sale_number, notes")
-        .eq("company_id", companyId)
-        .gte("sale_date", lastMonth.toISOString())
-        .lte("sale_date", lastMonthEnd.toISOString());
-      const previousActualSales =
-        previousSales?.filter(
-          (sale) => !sale.sale_number?.startsWith("ORC") && !sale.notes?.toLowerCase().includes("orçamento"),
-        ) || [];
-      const previousRevenue = previousActualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
-      const monthlyGrowth = previousRevenue > 0 ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+      // Calculate growth based on period type
+      let previousRevenue = 0;
+      let monthlyGrowth = 0;
+
+      if (periodFilter === "by_month") {
+        // Compare with previous month
+        const prevMonth = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth() - 1, 1);
+        const prevMonthEnd = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 0);
+        
+        const { data: previousSales } = await supabase
+          .from("sales")
+          .select("net_amount, sale_number, notes")
+          .eq("company_id", companyId)
+          .gte("sale_date", dateToISOString(prevMonth))
+          .lte("sale_date", dateToISOString(prevMonthEnd));
+          
+        const previousActualSales =
+          previousSales?.filter(
+            (sale) => !sale.sale_number?.startsWith("ORC") && !sale.notes?.toLowerCase().includes("orçamento"),
+          ) || [];
+        previousRevenue = previousActualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
+        monthlyGrowth = previousRevenue > 0 ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+      }
 
       // Find top customer from actual sales only
       const customerSales = actualSales.reduce(
@@ -579,16 +614,82 @@ const Faturamento = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-          <Select value={periodFilter} onValueChange={setPeriodFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="current_month">Mês Atual</SelectItem>
-              <SelectItem value="last_month">Mês Anterior</SelectItem>
-              <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Select
+              value={periodFilter}
+              onValueChange={(value: "by_month" | "this_year" | "all" | "custom") => setPeriodFilter(value)}
+            >
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="by_month">Por Mês</SelectItem>
+                <SelectItem value="this_year">Este Ano</SelectItem>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {periodFilter === "by_month" && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full sm:w-[200px] justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedMonth}
+                    onSelect={(date) => date && setSelectedMonth(date)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {periodFilter === "custom" && (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-[150px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customStartDate ? format(customStartDate, "dd/MM/yyyy") : "Data início"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customStartDate}
+                      onSelect={setCustomStartDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full sm:w-[150px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customEndDate ? format(customEndDate, "dd/MM/yyyy") : "Data fim"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customEndDate}
+                      onSelect={setCustomEndDate}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+          </div>
 
           <Dialog open={showBudgetForm} onOpenChange={setShowBudgetForm}>
             <DialogTrigger asChild>
