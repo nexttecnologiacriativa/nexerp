@@ -487,6 +487,151 @@ const Faturamento = () => {
     }
   };
 
+  const handleApproveBudget = async (budget: Sale) => {
+    if (!confirm(`Deseja aprovar o orçamento ${budget.sale_number}? Ele se tornará uma venda efetiva.`)) {
+      return;
+    }
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
+      if (!profile?.company_id) return;
+
+      // Buscar os itens do orçamento
+      const { data: budgetItems } = await supabase
+        .from("sale_items")
+        .select("*")
+        .eq("sale_id", budget.id);
+
+      // Gerar novo número de venda
+      const { data: salesData } = await supabase
+        .from("sales")
+        .select("sale_number")
+        .eq("company_id", profile.company_id)
+        .like("sale_number", "VND%")
+        .order("sale_number", { ascending: false })
+        .limit(1);
+
+      const today = new Date();
+      const year = today.getFullYear().toString().slice(-2);
+      const month = (today.getMonth() + 1).toString().padStart(2, "0");
+      const periodPrefix = `VND${year}${month}`;
+
+      let newSaleNumber: string;
+      if (!salesData?.[0]?.sale_number || !salesData[0].sale_number.startsWith(periodPrefix)) {
+        newSaleNumber = `${periodPrefix}0001`;
+      } else {
+        const lastNumber = parseInt(salesData[0].sale_number.slice(-4)) || 0;
+        const nextNumber = (lastNumber + 1).toString().padStart(4, "0");
+        newSaleNumber = `${periodPrefix}${nextNumber}`;
+      }
+
+      // Criar nova venda efetiva
+      const { data: newSale, error: saleError } = await supabase
+        .from("sales")
+        .insert([{
+          company_id: profile.company_id,
+          customer_id: budget.customer_id,
+          sale_number: newSaleNumber,
+          sale_date: dateToISOString(new Date()),
+          total_amount: budget.total_amount,
+          discount_amount: budget.discount_amount,
+          net_amount: budget.net_amount,
+          payment_method: budget.payment_method as "bank_slip" | "bank_transfer" | "cash" | "check" | "credit_card" | "debit_card" | "pix" | undefined,
+          status: "active",
+          notes: `Aprovado do orçamento ${budget.sale_number}`,
+        }])
+        .select()
+        .single();
+
+      if (saleError) {
+        console.error("Error creating sale:", saleError);
+        toast({
+          title: "Erro ao criar venda",
+          description: "Não foi possível criar a venda efetiva.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Copiar os itens para a nova venda
+      if (budgetItems && budgetItems.length > 0) {
+        const newItems = budgetItems.map((item) => ({
+          sale_id: newSale.id,
+          product_id: item.product_id,
+          service_id: item.service_id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+        }));
+
+        const { error: itemsError } = await supabase.from("sale_items").insert(newItems);
+
+        if (itemsError) {
+          console.error("Error creating sale items:", itemsError);
+        }
+      }
+
+      // Buscar contas a receber relacionadas ao orçamento
+      const { data: budgetReceivables } = await supabase
+        .from("accounts_receivable")
+        .select("*")
+        .eq("company_id", profile.company_id)
+        .or(`document_number.eq.${budget.sale_number},description.ilike.%${budget.sale_number}%`);
+
+      // Criar contas a receber para a nova venda
+      if (budgetReceivables && budgetReceivables.length > 0) {
+        const newReceivables = budgetReceivables.map((receivable) => ({
+          company_id: profile.company_id,
+          customer_id: budget.customer_id,
+          description: receivable.description.replace(budget.sale_number, newSaleNumber),
+          amount: receivable.amount,
+          due_date: receivable.due_date,
+          payment_method: receivable.payment_method,
+          bank_account_id: receivable.bank_account_id,
+          document_number: newSaleNumber,
+          status: "pending" as const,
+        }));
+
+        const { error: receivablesError } = await supabase
+          .from("accounts_receivable")
+          .insert(newReceivables);
+
+        if (receivablesError) {
+          console.error("Error creating receivables:", receivablesError);
+        }
+      }
+
+      // Atualizar status do orçamento para inativo (aprovado)
+      await supabase
+        .from("sales")
+        .update({ 
+          status: "inactive",
+          notes: `Aprovado e convertido em venda ${newSaleNumber}`
+        })
+        .eq("id", budget.id);
+
+      await fetchBillingData();
+
+      toast({
+        title: "Orçamento aprovado!",
+        description: `Venda efetiva ${newSaleNumber} criada com sucesso.`,
+      });
+    } catch (error) {
+      console.error("Error approving budget:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível aprovar o orçamento.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleGeneratePDF = (item: Sale, type: "sale" | "budget") => {
     const printWindow = window.open("", "_blank");
     if (printWindow) {
@@ -1064,6 +1209,16 @@ const Faturamento = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end space-x-1">
+                                {budget.status === "pending" && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => handleApproveBudget(budget)}
+                                    title="Aprovar orçamento e converter em venda efetiva"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="outline"
                                   size="sm"
