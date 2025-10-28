@@ -816,7 +816,7 @@ const Faturamento = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Lista de Vendas</CardTitle>
-                <CardDescription>Vendas efetivas (avulsa e recorrente) realizadas no período</CardDescription>
+                <CardDescription>Vendas efetivas realizadas no período</CardDescription>
 
                 <div className="flex justify-end">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
