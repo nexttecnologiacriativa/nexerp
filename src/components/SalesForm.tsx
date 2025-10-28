@@ -624,55 +624,57 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
 
       console.log("Itens criados com sucesso");
 
-      // Create accounts receivable entries only for sales (not budgets)
-      if (saleType !== "budget") {
-        console.log("Criando contas a receber...");
-        // Ensure installments are generated if empty
-        const finalInstallments =
-          installments.length > 0
-            ? installments
-            : [
-                {
-                  number: 1,
-                  amount: finalAmount,
-                  due_date: paymentInfo.due_date || dateToISOString(new Date()),
-                },
-              ];
+      // Create accounts receivable entries
+      console.log("Criando contas a receber...");
+      
+      // Ensure installments are generated if empty
+      const finalInstallments =
+        installments.length > 0
+          ? installments
+          : [
+              {
+                number: 1,
+                amount: finalAmount,
+                due_date: paymentInfo.due_date || dateToISOString(new Date()),
+              },
+            ];
 
-        console.log("Installments:", finalInstallments);
-        console.log("Payment method:", paymentInfo.payment_method);
-        console.log("Bank account:", paymentInfo.receiving_account);
+      console.log("Installments:", finalInstallments);
+      console.log("Payment method:", paymentInfo.payment_method);
+      console.log("Bank account:", paymentInfo.receiving_account);
 
-        const receivableEntries = finalInstallments.map((installment, index) => ({
-          company_id: userProfile.company_id,
-          customer_id: formData.client_id,
-          description:
-            finalInstallments.length === 1
-              ? `${saleType === "sale" ? "Venda" : "Venda Recorrente"} ${formData.sale_number}`
-              : `${saleType === "sale" ? "Venda" : "Venda Recorrente"} ${formData.sale_number} - Parcela ${installment.number}/${finalInstallments.length}`,
-          amount: installment.amount,
-          due_date: installment.due_date,
-          status: "pending" as const,
-          payment_method: (paymentInfo.payment_method || null) as any,
-          notes: `Gerado automaticamente da ${saleType === "sale" ? "venda" : "orçamento"} ${formData.sale_number}`,
-          bank_account_id: paymentInfo.receiving_account || null,
-          is_recurring: false,
-          recurrence_frequency: null,
-          recurrence_interval: null,
-          recurrence_end_date: null,
-        }));
+      const saleTypeLabel = saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente";
 
-        console.log("Receivable entries:", receivableEntries);
+      const receivableEntries = finalInstallments.map((installment, index) => ({
+        company_id: userProfile.company_id,
+        customer_id: formData.client_id,
+        description:
+          finalInstallments.length === 1
+            ? `${saleTypeLabel} ${formData.sale_number}`
+            : `${saleTypeLabel} ${formData.sale_number} - Parcela ${installment.number}/${finalInstallments.length}`,
+        amount: installment.amount,
+        due_date: installment.due_date,
+        status: "pending" as const,
+        payment_method: (paymentInfo.payment_method || null) as any,
+        notes: `Gerado automaticamente do ${saleTypeLabel.toLowerCase()} ${formData.sale_number}`,
+        bank_account_id: paymentInfo.receiving_account || null,
+        is_recurring: false,
+        recurrence_frequency: null,
+        recurrence_interval: null,
+        recurrence_end_date: null,
+        document_number: formData.sale_number,
+      }));
 
-        const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
+      console.log("Receivable entries:", receivableEntries);
 
-        if (receivableError) {
-          console.error("Erro ao criar contas a receber:", receivableError);
-          throw receivableError;
-        }
+      const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
 
-        console.log("Contas a receber criadas com sucesso");
+      if (receivableError) {
+        console.error("Erro ao criar contas a receber:", receivableError);
+        throw receivableError;
       }
+
+      console.log("Contas a receber criadas com sucesso");
 
       const saleTypeText = saleType === "budget" ? "Orçamento" : "Venda";
 
