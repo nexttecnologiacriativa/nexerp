@@ -909,8 +909,6 @@ const Faturamento = () => {
                           <TableHead className="min-w-[100px]">Número</TableHead>
                           <TableHead className="min-w-[100px]">Data</TableHead>
                           <TableHead className="min-w-[150px]">Cliente</TableHead>
-                          <TableHead className="min-w-[120px]">Valor Bruto</TableHead>
-                          <TableHead className="min-w-[100px]">Desconto</TableHead>
                           <TableHead className="min-w-[120px]">Valor Líquido</TableHead>
                           <TableHead className="min-w-[100px]">Status</TableHead>
                           <TableHead className="text-right min-w-[120px]">Ações</TableHead>
@@ -923,10 +921,6 @@ const Faturamento = () => {
                             <TableCell>{formatDateForDisplay(budget.sale_date)}</TableCell>
                             <TableCell className="max-w-[150px] truncate" title={budget.customer_name}>
                               {budget.customer_name}
-                            </TableCell>
-                            <TableCell>{formatCurrency(Number(budget.total_amount))}</TableCell>
-                            <TableCell>
-                              {budget.discount_amount > 0 ? formatCurrency(Number(budget.discount_amount)) : "-"}
                             </TableCell>
                             <TableCell className="font-medium">{formatCurrency(Number(budget.net_amount))}</TableCell>
                             <TableCell>
