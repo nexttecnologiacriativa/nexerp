@@ -153,19 +153,19 @@ const Relatorios = () => {
 
       console.log('Fetching report data for period:', startDateStr, 'to', endDateStr);
 
-      // Fetch TODAS as receitas (accounts_receivable) - incluindo pagas e pendentes
+      // Fetch TODAS as receitas (accounts_receivable) - filtradas por due_date
       const { data: allReceivables, error: receivablesError } = await supabase
         .from('accounts_receivable')
         .select('*')
         .eq('company_id', companyId)
-        .gte('created_at', startDateStr)
-        .lte('created_at', endDateStr);
+        .gte('due_date', startDateStr)
+        .lte('due_date', endDateStr);
 
       if (receivablesError) {
         console.error('Error fetching receivables:', receivablesError);
       }
 
-      // Fetch receitas PAGAS (para fluxo de caixa real)
+      // Fetch receitas PAGAS (para fluxo de caixa real) - filtradas por payment_date
       const { data: paidReceivables } = await supabase
         .from('accounts_receivable')
         .select('*')
@@ -174,19 +174,19 @@ const Relatorios = () => {
         .gte('payment_date', startDateStr)
         .lte('payment_date', endDateStr);
 
-      // Fetch TODAS as despesas (accounts_payable) - incluindo pagas e pendentes
+      // Fetch TODAS as despesas (accounts_payable) - filtradas por due_date
       const { data: allPayables, error: payablesError } = await supabase
         .from('accounts_payable')
         .select('*')
         .eq('company_id', companyId)
-        .gte('created_at', startDateStr)
-        .lte('created_at', endDateStr);
+        .gte('due_date', startDateStr)
+        .lte('due_date', endDateStr);
 
       if (payablesError) {
         console.error('Error fetching payables:', payablesError);
       }
 
-      // Fetch despesas PAGAS (para fluxo de caixa real)
+      // Fetch despesas PAGAS (para fluxo de caixa real) - filtradas por payment_date
       const { data: paidPayables } = await supabase
         .from('accounts_payable')
         .select('*')
@@ -268,6 +268,15 @@ const Relatorios = () => {
         costCenters: costCenters?.length || 0
       });
 
+      // Log detalhado para debug
+      const totalPaidReceivables = paidReceivables?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0;
+      const totalPaidPayables = paidPayables?.reduce((sum, p) => sum + Number(p.amount || 0), 0) || 0;
+      console.log('Total valores pagos:', {
+        receitas: totalPaidReceivables,
+        despesas: totalPaidPayables,
+        lucro: totalPaidReceivables - totalPaidPayables
+      });
+
       // Armazenar dados brutos para o modal
       setRawData({
         receivables: allReceivables || [],
@@ -317,25 +326,25 @@ const Relatorios = () => {
       const monthEnd = endOfMonth(current);
       const monthKey = format(current, 'MMM yyyy', { locale: ptBR });
 
-      // Receitas do período (TODAS - não apenas as pagas)
+      // Receitas do período (TODAS - filtradas por due_date)
       const monthReceivables = receivables.filter((r: any) => {
-        const date = new Date(r.created_at);
+        const date = new Date(r.due_date);
         return date >= monthStart && date <= monthEnd;
       });
 
-      // Receitas PAGAS no período (para fluxo de caixa real)
+      // Receitas PAGAS no período (filtradas por payment_date)
       const monthPaidReceivables = paidReceivables.filter((r: any) => {
         const date = new Date(r.payment_date);
         return date >= monthStart && date <= monthEnd;
       });
 
-      // Despesas do período (TODAS - não apenas as pagas)
+      // Despesas do período (TODAS - filtradas por due_date)
       const monthPayables = payables.filter((p: any) => {
-        const date = new Date(p.created_at);  
+        const date = new Date(p.due_date);  
         return date >= monthStart && date <= monthEnd;
       });
 
-      // Despesas PAGAS no período (para fluxo de caixa real)
+      // Despesas PAGAS no período (filtradas por payment_date)
       const monthPaidPayables = paidPayables.filter((p: any) => {
         const date = new Date(p.payment_date);  
         return date >= monthStart && date <= monthEnd;
@@ -471,20 +480,14 @@ const Relatorios = () => {
       }
     });
 
-    // Para receitas, vamos usar as vendas que podem ter sido associadas indiretamente
-    // Como accounts_receivable não tem cost_center_id, vamos usar vendas como proxy
-    paidReceivables.forEach((revenue: any) => {
-      // Se não há centro específico, distribuir proporcionalmente ou usar um centro padrão
-      // Por simplicidade, vamos usar o primeiro centro ativo para mostrar o conceito
-      const firstCenterId = Object.keys(costCenterData)[0];
-      if (firstCenterId) {
-        costCenterData[firstCenterId].revenue += Number(revenue.amount) || 0;
-      }
-    });
-
-    // Calcular lucro (receita - despesa) para cada centro
+    // IMPORTANTE: Receitas (accounts_receivable) NÃO possuem cost_center_id
+    // Centros de custos servem apenas para controlar DESPESAS
+    // As receitas nos centros de custos ficarão zeradas por padrão
+    
+    // Calcular "lucro" (na verdade é negativo, pois só temos despesas) para cada centro
     Object.keys(costCenterData).forEach(centerId => {
       const center = costCenterData[centerId];
+      // Lucro/Prejuízo = Receitas (0) - Despesas
       center.profit = center.revenue - center.expenses;
     });
 
