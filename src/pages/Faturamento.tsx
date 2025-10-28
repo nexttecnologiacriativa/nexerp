@@ -171,14 +171,8 @@ const Faturamento = () => {
       // Calculate metrics for sales only (not budgets)
       const totalSales = actualSales.length;
 
-      // Calcular receita total apenas de contratos pagos (cruzar com contas a receber pagas)
-      const { data: paidReceivables } = await supabase
-        .from("accounts_receivable")
-        .select("amount")
-        .eq("company_id", companyId)
-        .eq("status", "paid");
-
-      const totalRevenue = paidReceivables?.reduce((sum, receivable) => sum + Number(receivable.amount), 0) || 0;
+      // Calcular receita total de todas as vendas (independente se foram pagas)
+      const totalRevenue = actualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
       const averageTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 
       // Calculate budget metrics
