@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Edit, Trash2, Tag, Palette } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Tag, Palette, TrendingUp, TrendingDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -387,8 +387,12 @@ const Categorias = () => {
     subcategory.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Separar categorias por tipo
+  const revenueCategories = filteredCategories.filter(cat => cat.type === 'revenue');
+  const expenseCategories = filteredCategories.filter(cat => cat.type === 'expense');
+
   // Group subcategories by category
-  const categoriesWithSubcategories = categories.map(category => ({
+  const categoriesWithSubcategories = (categoryList: Category[]) => categoryList.map(category => ({
     ...category,
     subcategories: subcategories.filter(sub => sub.category_id === category.id)
   }));
@@ -596,24 +600,36 @@ const Categorias = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Categories with Subcategories in Cascade */}
-      <div className="space-y-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : categoriesWithSubcategories.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-10">
-              <Tag className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-2 text-sm font-semibold">Nenhuma categoria encontrada</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Comece cadastrando a primeira categoria da sua empresa.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          categoriesWithSubcategories.map((category) => (
+      {/* Categories with Subcategories - Separated by Type */}
+      <Tabs defaultValue="revenue" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="revenue" className="gap-2">
+            <TrendingUp className="h-4 w-4" />
+            Categorias de Receita ({revenueCategories.length})
+          </TabsTrigger>
+          <TabsTrigger value="expense" className="gap-2">
+            <TrendingDown className="h-4 w-4" />
+            Categorias de Despesa ({expenseCategories.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="revenue" className="space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : revenueCategories.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-10">
+                <Tag className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-semibold">Nenhuma categoria de receita encontrada</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Comece cadastrando categorias de receita para sua empresa.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            categoriesWithSubcategories(revenueCategories).map((category) => (
             <Card key={category.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -711,7 +727,123 @@ const Categorias = () => {
             </Card>
           ))
         )}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="expense" className="space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : expenseCategories.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-10">
+                <Tag className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-semibold">Nenhuma categoria de despesa encontrada</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Comece cadastrando categorias de despesa para sua empresa.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            categoriesWithSubcategories(expenseCategories).map((category) => (
+            <Card key={category.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-6 h-6 rounded-full border"
+                      style={{ backgroundColor: category.color || '#3B82F6' }}
+                    />
+                    <div>
+                      <CardTitle className="text-lg">{category.name}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        {category.description && (
+                          <CardDescription>{category.description}</CardDescription>
+                        )}
+                        <Badge variant="outline" className="text-xs">
+                          {category.type === 'revenue' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={category.status === 'active' ? 'default' : 'secondary'}>
+                      {category.status === 'active' ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(category)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(category.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              {category.subcategories && category.subcategories.length > 0 && (
+                <CardContent>
+                  <div className="border rounded-lg">
+                    <div className="bg-muted/50 px-4 py-2 border-b">
+                      <p className="text-sm font-medium">Subcategorias ({category.subcategories.length})</p>
+                    </div>
+                    <div className="divide-y">
+                      {category.subcategories.map((subcategory) => (
+                        <div key={subcategory.id} className="flex items-center justify-between p-3 hover:bg-muted/50">
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            <div 
+                              className="w-4 h-4 rounded-full border flex-shrink-0"
+                              style={{ backgroundColor: subcategory.color || '#6B7280' }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{subcategory.name}</p>
+                              {subcategory.description && (
+                                <p className="text-xs text-muted-foreground truncate">{subcategory.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1 ml-2">
+                            <Badge 
+                              variant={subcategory.status === 'active' ? 'default' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {subcategory.status === 'active' ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditSub(subcategory)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteSub(subcategory.id)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))
+        )}
+        </TabsContent>
+      </Tabs>
 
       {/* Modal de confirmação para exclusão */}
       <ConfirmDialog
