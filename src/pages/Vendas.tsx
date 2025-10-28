@@ -440,43 +440,43 @@ const Vendas = () => {
 
       if (itemsError) throw itemsError;
 
-      // Create accounts receivable entries only for sales (not budgets)
-      if (saleType !== "budget") {
-        // Ensure at least one installment exists
-        const finalInstallments =
-          installments.length > 0
-            ? installments
-            : [
-                {
-                  number: 1,
-                  amount: finalAmount,
-                  due_date: paymentInfo.due_date || formData.sale_date,
-                },
-              ];
+      // Create accounts receivable entries
+      // Ensure at least one installment exists
+      const finalInstallments =
+        installments.length > 0
+          ? installments
+          : [
+              {
+                number: 1,
+                amount: finalAmount,
+                due_date: paymentInfo.due_date || formData.sale_date,
+              },
+            ];
 
-        const receivableEntries = finalInstallments.map((installment, index) => ({
-          company_id: userProfile.company_id,
-          customer_id: formData.client_id,
-          description:
-            finalInstallments.length === 1
-              ? `${saleType === "sale" ? "Venda" : "Venda Recorrente"} ${formData.sale_number}`
-              : `${saleType === "sale" ? "Venda" : "Venda Recorrente"} ${formData.sale_number} - Parcela ${installment.number}/${finalInstallments.length}`,
-          amount: installment.amount,
-          due_date: installment.due_date,
-          status: "pending" as const,
-          payment_method: paymentInfo.payment_method as any,
-          notes: `Gerado automaticamente da ${saleType === "sale" ? "venda" : "venda recorrente"} ${formData.sale_number}`,
-          bank_account_id: paymentInfo.receiving_account || null,
-          is_recurring: saleType === "recurring",
-          recurrence_frequency: saleType === "recurring" ? "monthly" : null,
-          recurrence_interval: saleType === "recurring" ? 1 : null,
-          recurrence_end_date: null,
-        }));
+      const saleTypeLabel = saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente";
+      
+      const receivableEntries = finalInstallments.map((installment, index) => ({
+        company_id: userProfile.company_id,
+        customer_id: formData.client_id,
+        description:
+          finalInstallments.length === 1
+            ? `${saleTypeLabel} ${formData.sale_number}`
+            : `${saleTypeLabel} ${formData.sale_number} - Parcela ${installment.number}/${finalInstallments.length}`,
+        amount: installment.amount,
+        due_date: installment.due_date,
+        status: "pending" as const,
+        payment_method: paymentInfo.payment_method as any,
+        notes: `Gerado automaticamente do ${saleTypeLabel.toLowerCase()} ${formData.sale_number}`,
+        bank_account_id: paymentInfo.receiving_account || null,
+        is_recurring: saleType === "recurring",
+        recurrence_frequency: saleType === "recurring" ? "monthly" : null,
+        recurrence_interval: saleType === "recurring" ? 1 : null,
+        recurrence_end_date: null,
+      }));
 
-        const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
+      const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
 
-        if (receivableError) throw receivableError;
-      }
+      if (receivableError) throw receivableError;
 
       const saleTypeText = saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente";
       toast.success(`${saleTypeText} ${saleType === "budget" ? "criado" : "criada"} com sucesso!`);
