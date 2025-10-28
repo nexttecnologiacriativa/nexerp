@@ -43,6 +43,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { IndicatorDetailsDialog } from '@/components/IndicatorDetailsDialog';
 
 interface ReportData {
   financial: {
@@ -84,6 +85,10 @@ const Relatorios = () => {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('last6months');
   const [dateRange, setDateRange] = useState<{from: Date, to: Date} | undefined>();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<'revenue' | 'expenses' | 'profit' | 'bankBalance' | 'margin' | null>(null);
+  const [dialogData, setDialogData] = useState<any>(null);
+  const [rawData, setRawData] = useState<any>(null);
   const { toast } = useToast();
 
   const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff'];
@@ -261,6 +266,15 @@ const Relatorios = () => {
         products: products?.length || 0,
         bankAccounts: bankAccounts?.length || 0,
         costCenters: costCenters?.length || 0
+      });
+
+      // Armazenar dados brutos para o modal
+      setRawData({
+        receivables: allReceivables || [],
+        paidReceivables: paidReceivables || [],
+        payables: allPayables || [],
+        paidPayables: paidPayables || [],
+        bankAccounts: bankAccounts || []
       });
 
       // Processar dados para gráficos
@@ -522,6 +536,44 @@ const Relatorios = () => {
     fetchReportData();
   }, [selectedPeriod, dateRange]);
 
+  const handleIndicatorClick = (type: 'revenue' | 'expenses' | 'profit' | 'bankBalance' | 'margin') => {
+    if (!rawData) return;
+
+    const data: any = {};
+
+    if (type === 'revenue') {
+      data.receivables = rawData.paidReceivables;
+    } else if (type === 'expenses') {
+      data.payables = rawData.paidPayables;
+    } else if (type === 'profit') {
+      data.receivables = rawData.paidReceivables;
+      data.payables = rawData.paidPayables;
+    } else if (type === 'bankBalance') {
+      data.accounts = rawData.bankAccounts;
+    } else if (type === 'margin') {
+      const revenue = rawData.paidReceivables?.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0) || 0;
+      const expenses = rawData.paidPayables?.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0) || 0;
+      data.revenue = revenue;
+      data.profit = revenue - expenses;
+    }
+
+    setDialogType(type);
+    setDialogData(data);
+    setDialogOpen(true);
+  };
+
+  const getPeriodLabel = () => {
+    if (selectedPeriod === 'custom' && dateRange?.from && dateRange?.to) {
+      return `${format(dateRange.from, 'dd/MM/yyyy')} - ${format(dateRange.to, 'dd/MM/yyyy')}`;
+    }
+    const labels: any = {
+      'last3months': 'Últimos 3 meses',
+      'last6months': 'Últimos 6 meses',
+      'last12months': 'Últimos 12 meses'
+    };
+    return labels[selectedPeriod] || 'Período personalizado';
+  };
+
   const exportToCSV = (data: any[], filename: string) => {
     if (!data.length) return;
 
@@ -641,7 +693,10 @@ const Relatorios = () => {
 
         <TabsContent value="financial" className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <Card className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
+            <Card 
+              className="relative overflow-hidden bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleIndicatorClick('revenue')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Receita Recebida</CardTitle>
                 <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -660,7 +715,10 @@ const Relatorios = () => {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800">
+            <Card 
+              className="relative overflow-hidden bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleIndicatorClick('expenses')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Despesas Pagas</CardTitle>
                 <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -679,11 +737,14 @@ const Relatorios = () => {
               </div>
             </Card>
 
-            <Card className={`relative overflow-hidden border-2 ${
-              reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
-                ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-300 dark:border-emerald-700'
-                : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-300 dark:border-orange-700'
-            }`}>
+            <Card 
+              className={`relative overflow-hidden border-2 cursor-pointer hover:shadow-lg transition-shadow ${
+                reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
+                  ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 border-emerald-300 dark:border-emerald-700'
+                  : 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-300 dark:border-orange-700'
+              }`}
+              onClick={() => handleIndicatorClick('profit')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${
                   reportData?.financial.cashFlow.reduce((sum, item) => sum + item.lucro, 0) >= 0
@@ -723,7 +784,10 @@ const Relatorios = () => {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
+            <Card 
+              className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleIndicatorClick('bankBalance')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Saldo em Bancos</CardTitle>
                 <Landmark className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -742,7 +806,10 @@ const Relatorios = () => {
               </div>
             </Card>
 
-            <Card className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800">
+            <Card 
+              className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleIndicatorClick('margin')}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Margem de Lucro</CardTitle>
                 <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -1307,6 +1374,14 @@ const Relatorios = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <IndicatorDetailsDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        type={dialogType}
+        data={dialogData}
+        period={getPeriodLabel()}
+      />
     </div>
   );
 };
