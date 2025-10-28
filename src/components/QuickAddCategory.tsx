@@ -11,9 +11,10 @@ interface QuickAddCategoryProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: (categoryId: string) => void;
   companyId: string;
+  type: 'revenue' | 'expense';
 }
 
-export function QuickAddCategory({ open, onOpenChange, onSuccess, companyId }: QuickAddCategoryProps) {
+export function QuickAddCategory({ open, onOpenChange, onSuccess, companyId, type }: QuickAddCategoryProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -39,6 +40,7 @@ export function QuickAddCategory({ open, onOpenChange, onSuccess, companyId }: Q
             name: formData.name,
             description: formData.description,
             color: formData.color,
+            type: type,
             status: "active",
           },
         ])
@@ -69,7 +71,7 @@ export function QuickAddCategory({ open, onOpenChange, onSuccess, companyId }: Q
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Cadastro Rápido - Categoria</DialogTitle>
+          <DialogTitle>Cadastro Rápido - Categoria de {type === 'revenue' ? 'Receita' : 'Despesa'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

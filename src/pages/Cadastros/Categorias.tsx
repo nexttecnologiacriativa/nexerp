@@ -21,6 +21,7 @@ interface Category {
   description: string;
   color: string;
   status: 'active' | 'inactive' | 'pending';
+  type: 'revenue' | 'expense';
   created_at: string;
 }
 
@@ -54,6 +55,7 @@ const Categorias = () => {
     name: '',
     description: '',
     color: '#3B82F6',
+    type: 'expense' as 'revenue' | 'expense',
   });
 
   const [subFormData, setSubFormData] = useState({
@@ -105,7 +107,7 @@ const Categorias = () => {
         .order('name');
 
       if (categoriesError) throw categoriesError;
-      setCategories(categoriesData || []);
+      setCategories((categoriesData || []) as Category[]);
 
       // Fetch subcategories with category names
       const { data: subcategoriesData, error: subcategoriesError } = await supabase
@@ -147,6 +149,7 @@ const Categorias = () => {
       name: '',
       description: '',
       color: '#3B82F6',
+      type: 'expense',
     });
     setEditingCategory(null);
   };
@@ -187,6 +190,7 @@ const Categorias = () => {
         name: formData.name,
         description: formData.description,
         color: formData.color,
+        type: formData.type,
         company_id: profile.company_id,
       };
 
@@ -301,6 +305,7 @@ const Categorias = () => {
       name: category.name,
       description: category.description || '',
       color: category.color || '#3B82F6',
+      type: category.type || 'expense',
     });
     setEditingCategory(category);
     setDialogOpen(true);
@@ -436,6 +441,22 @@ const Categorias = () => {
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       required
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Tipo *</Label>
+                    <Select
+                      value={formData.type}
+                      onValueChange={(value: 'revenue' | 'expense') => setFormData(prev => ({ ...prev, type: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="revenue">Receita</SelectItem>
+                        <SelectItem value="expense">Despesa</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">
@@ -596,16 +617,21 @@ const Categorias = () => {
             <Card key={category.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
+                   <div className="flex items-center space-x-3">
                     <div 
                       className="w-6 h-6 rounded-full border"
                       style={{ backgroundColor: category.color || '#3B82F6' }}
                     />
                     <div>
                       <CardTitle className="text-lg">{category.name}</CardTitle>
-                      {category.description && (
-                        <CardDescription>{category.description}</CardDescription>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {category.description && (
+                          <CardDescription>{category.description}</CardDescription>
+                        )}
+                        <Badge variant="outline" className="text-xs">
+                          {category.type === 'revenue' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

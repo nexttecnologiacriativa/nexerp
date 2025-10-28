@@ -1393,6 +1393,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
             onOpenChange={setQuickAddCategoryOpen}
             onSuccess={handleQuickAddCategory}
             companyId={userProfile.company_id}
+            type="revenue"
           />
           <QuickAddSubcategory
             open={quickAddSubcategoryOpen}

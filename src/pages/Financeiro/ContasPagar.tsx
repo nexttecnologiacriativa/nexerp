@@ -276,6 +276,7 @@ const ContasPagar = () => {
         .from('categories')
         .select('id, name, color')
         .eq('status', 'active')
+        .eq('type', 'expense')
         .order('name');
 
       if (error) throw error;
@@ -459,6 +460,7 @@ const ContasPagar = () => {
           name: categoryFormData.name,
           description: categoryFormData.description || null,
           color: categoryFormData.color,
+          type: 'expense',
           company_id: profile.company_id,
           status: 'active'
         })

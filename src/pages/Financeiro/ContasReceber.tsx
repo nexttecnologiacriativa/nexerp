@@ -280,6 +280,7 @@ const ContasReceber = () => {
         .from('categories')
         .select('id, name, color')
         .eq('status', 'active')
+        .eq('type', 'revenue')
         .order('name');
 
       if (error) throw error;
@@ -499,6 +500,7 @@ const ContasReceber = () => {
           name: categoryFormData.name,
           description: categoryFormData.description || null,
           color: categoryFormData.color,
+          type: 'revenue',
           company_id: profile.company_id,
           status: 'active'
         })

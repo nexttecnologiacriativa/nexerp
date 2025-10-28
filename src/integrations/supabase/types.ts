@@ -374,6 +374,7 @@ export type Database = {
           id: string
           name: string
           status: Database["public"]["Enums"]["status_type"]
+          type: string
           updated_at: string
         }
         Insert: {
@@ -384,6 +385,7 @@ export type Database = {
           id?: string
           name: string
           status?: Database["public"]["Enums"]["status_type"]
+          type?: string
           updated_at?: string
         }
         Update: {
@@ -394,6 +396,7 @@ export type Database = {
           id?: string
           name?: string
           status?: Database["public"]["Enums"]["status_type"]
+          type?: string
           updated_at?: string
         }
         Relationships: [
@@ -1185,18 +1188,9 @@ export type Database = {
         Args: { company_uuid: string }
         Returns: string
       }
-      generate_next_payable: {
-        Args: { parent_id: string }
-        Returns: string
-      }
-      generate_next_receivable: {
-        Args: { parent_id: string }
-        Returns: string
-      }
-      get_user_company_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_next_payable: { Args: { parent_id: string }; Returns: string }
+      generate_next_receivable: { Args: { parent_id: string }; Returns: string }
+      get_user_company_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1205,7 +1199,7 @@ export type Database = {
         Returns: boolean
       }
       process_recurring_transactions: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_payables: number
           created_receivables: number
