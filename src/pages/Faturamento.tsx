@@ -197,9 +197,11 @@ const Faturamento = () => {
       );
       const budgetData = formattedData.filter(
         (sale) =>
-          sale.sale_number?.startsWith("ORC") ||
+          (sale.sale_number?.startsWith("ORC") ||
           // Orçamentos começam com ORC
-          sale.notes?.toLowerCase().includes("orçamento"), // Ou têm "orçamento" nas notas
+          sale.notes?.toLowerCase().includes("orçamento")) &&
+          // Ou têm "orçamento" nas notas
+          sale.status !== "inactive", // Excluir orçamentos aprovados (convertidos em venda)
       );
       setSales(actualSales);
       setBudgets(budgetData);
