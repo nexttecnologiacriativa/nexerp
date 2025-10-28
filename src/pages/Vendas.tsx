@@ -413,13 +413,25 @@ const Vendas = () => {
 
       // Create accounts receivable entries only for sales (not budgets)
       if (saleType !== "budget") {
-        const receivableEntries = installments.map((installment, index) => ({
+        // Ensure at least one installment exists
+        const finalInstallments =
+          installments.length > 0
+            ? installments
+            : [
+                {
+                  number: 1,
+                  amount: totalAmount,
+                  due_date: paymentInfo.due_date || formData.sale_date,
+                },
+              ];
+
+        const receivableEntries = finalInstallments.map((installment, index) => ({
           company_id: userProfile.company_id,
           customer_id: formData.client_id,
           description:
-            installments.length === 1
+            finalInstallments.length === 1
               ? `${saleType === "sale" ? "Venda" : "Venda Recorrente"} ${formData.sale_number}`
-              : `${saleType === "sale" ? "Venda" : "Venda Recorrente"} ${formData.sale_number} - Parcela ${installment.number}/${installments.length}`,
+              : `${saleType === "sale" ? "Venda" : "Venda Recorrente"} ${formData.sale_number} - Parcela ${installment.number}/${finalInstallments.length}`,
           amount: installment.amount,
           due_date: installment.due_date,
           status: "pending" as const,
