@@ -89,11 +89,13 @@ interface SalesFormProps {
   defaultType?: "budget" | "sale";
   onSuccess?: () => void;
   onCancel?: () => void;
+  editSaleId?: string;
 }
 
-const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps) => {
+const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: SalesFormProps) => {
   const [loading, setLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(!!editSaleId);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -163,18 +165,27 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     loadData();
   }, []);
 
-  // Generate next sale number when sale type changes
+  // Load sale data if in edit mode
   useEffect(() => {
-    if (userProfile?.company_id) {
+    if (editSaleId && userProfile?.company_id) {
+      loadSaleData(editSaleId);
+    }
+  }, [editSaleId, userProfile?.company_id]);
+
+  // Generate next sale number when sale type changes (only if not editing)
+  useEffect(() => {
+    if (userProfile?.company_id && !isEditMode) {
       updateSaleNumber();
     }
-    // Update status based on sale type
-    if (saleType === "budget") {
-      setFormData((prev) => ({ ...prev, status: "pending" }));
-    } else {
-      setFormData((prev) => ({ ...prev, status: "approved" }));
+    // Update status based on sale type (only if not editing)
+    if (!isEditMode) {
+      if (saleType === "budget") {
+        setFormData((prev) => ({ ...prev, status: "pending" }));
+      } else {
+        setFormData((prev) => ({ ...prev, status: "approved" }));
+      }
     }
-  }, [saleType, userProfile?.company_id]);
+  }, [saleType, userProfile?.company_id, isEditMode]);
 
   const updateSaleNumber = async () => {
     try {
@@ -199,6 +210,98 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   useEffect(() => {
     generateInstallments();
   }, [paymentInfo.installments, paymentInfo.due_date, saleItems]);
+
+  const loadSaleData = async (saleId: string) => {
+    try {
+      const { data: saleData, error: saleError } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          sale_items (
+            id,
+            service_id,
+            description,
+            quantity,
+            unit_price,
+            total_price
+          )
+        `)
+        .eq("id", saleId)
+        .single();
+
+      if (saleError) {
+        console.error("Error loading sale:", saleError);
+        toast.error("Erro ao carregar dados da venda");
+        return;
+      }
+
+      // Determine sale type from sale_number
+      const isBudget = saleData.sale_number?.startsWith("ORC");
+      setSaleType(isBudget ? "budget" : "sale");
+
+      // Load form data
+      setFormData({
+        sale_number: saleData.sale_number || "",
+        client_id: saleData.customer_id || "",
+        sale_date: saleData.sale_date || dateToISOString(new Date()),
+        category_id: "",
+        subcategory_id: "",
+        cost_center_id: "",
+        salesperson: "",
+        status: saleData.status || "pending",
+        notes: saleData.notes || "",
+        tags: [],
+      });
+
+      // Load sale items
+      if (saleData.sale_items && saleData.sale_items.length > 0) {
+        const items = saleData.sale_items.map((item: any) => ({
+          id: item.id,
+          service_id: item.service_id || "",
+          service_name: "",
+          description: item.description || "",
+          quantity: item.quantity || 1,
+          unit_price: item.unit_price || 0,
+          total: item.total_price || 0,
+        }));
+        setSaleItems(items);
+      }
+
+      // Load payment info from accounts_receivable
+      const { data: receivables } = await supabase
+        .from("accounts_receivable")
+        .select("*")
+        .eq("document_number", saleData.sale_number)
+        .order("due_date", { ascending: true });
+
+      if (receivables && receivables.length > 0) {
+        const firstReceivable = receivables[0];
+        setPaymentInfo({
+          payment_method: firstReceivable.payment_method || "",
+          receiving_account: firstReceivable.bank_account_id || "",
+          installments: receivables.length,
+          due_date: firstReceivable.due_date || dateToISOString(new Date()),
+          discount_type: "fixed",
+          discount_value: Math.abs(saleData.discount_amount || 0),
+          addition_type: "fixed",
+          addition_value: 0,
+        });
+
+        // Load installments
+        const loadedInstallments = receivables.map((r: any, idx: number) => ({
+          number: idx + 1,
+          amount: r.amount || 0,
+          due_date: r.due_date || dateToISOString(new Date()),
+        }));
+        setInstallments(loadedInstallments);
+      }
+
+      toast.success("Dados carregados com sucesso");
+    } catch (error) {
+      console.error("Error loading sale data:", error);
+      toast.error("Erro ao carregar dados da venda");
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -488,8 +591,128 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     return dateToISOString(baseDate);
   };
 
+  const handleUpdate = async () => {
+    try {
+      const subtotal = getTotalAmount();
+      const discountAmount = getDiscountAmount();
+      const additionAmount = getAdditionAmount();
+      const finalAmount = getFinalAmount();
+
+      console.log("=== ATUALIZANDO VENDA ===");
+      console.log("Sale ID:", editSaleId);
+
+      // Update sale
+      const { error: saleError } = await supabase
+        .from("sales")
+        .update({
+          customer_id: formData.client_id,
+          total_amount: subtotal,
+          discount_amount: discountAmount - additionAmount,
+          net_amount: finalAmount,
+          sale_date: formData.sale_date,
+          notes: formData.tags.length > 0 ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}` : formData.notes,
+        })
+        .eq("id", editSaleId);
+
+      if (saleError) {
+        console.error("Erro ao atualizar venda:", saleError);
+        throw saleError;
+      }
+
+      // Delete old sale items
+      const { error: deleteItemsError } = await supabase
+        .from("sale_items")
+        .delete()
+        .eq("sale_id", editSaleId);
+
+      if (deleteItemsError) {
+        console.error("Erro ao deletar itens antigos:", deleteItemsError);
+        throw deleteItemsError;
+      }
+
+      // Create new sale items
+      const saleItemsData = saleItems.map((item) => ({
+        sale_id: editSaleId,
+        service_id: item.service_id,
+        description: item.description || item.service_name || "Serviço",
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total,
+      }));
+
+      const { error: itemsError } = await supabase.from("sale_items").insert(saleItemsData);
+
+      if (itemsError) {
+        console.error("Erro ao criar novos itens:", itemsError);
+        throw itemsError;
+      }
+
+      // Delete old accounts receivable
+      const { error: deleteReceivablesError } = await supabase
+        .from("accounts_receivable")
+        .delete()
+        .eq("document_number", formData.sale_number);
+
+      if (deleteReceivablesError) {
+        console.error("Erro ao deletar contas a receber antigas:", deleteReceivablesError);
+        throw deleteReceivablesError;
+      }
+
+      // Create new accounts receivable entries
+      const finalInstallments =
+        installments.length > 0
+          ? installments
+          : [
+              {
+                number: 1,
+                amount: finalAmount,
+                due_date: paymentInfo.due_date || dateToISOString(new Date()),
+              },
+            ];
+
+      const saleTypeLabel = saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente";
+
+      const receivableEntries = finalInstallments.map((installment) => ({
+        company_id: userProfile.company_id,
+        customer_id: formData.client_id,
+        description:
+          finalInstallments.length === 1
+            ? `${saleTypeLabel} ${formData.sale_number}`
+            : `${saleTypeLabel} ${formData.sale_number} - Parcela ${installment.number}/${finalInstallments.length}`,
+        amount: installment.amount,
+        due_date: installment.due_date,
+        status: "pending" as const,
+        payment_method: (paymentInfo.payment_method || null) as any,
+        notes: `Gerado automaticamente do ${saleTypeLabel.toLowerCase()} ${formData.sale_number}`,
+        bank_account_id: paymentInfo.receiving_account || null,
+        is_recurring: false,
+        document_number: formData.sale_number,
+      }));
+
+      const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
+
+      if (receivableError) {
+        console.error("Erro ao criar contas a receber:", receivableError);
+        throw receivableError;
+      }
+
+      toast.success("Orçamento atualizado com sucesso!");
+
+      if (onSuccess) {
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("=== ERRO AO ATUALIZAR VENDA ===", error);
+      toast.error(`Erro ao atualizar: ${error?.message || "Erro desconhecido"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = async () => {
     console.log("=== INICIANDO SALVAMENTO DE VENDA ===");
+    console.log("IsEditMode:", isEditMode);
+    console.log("EditSaleId:", editSaleId);
     console.log("UserProfile:", userProfile);
     console.log("FormData:", formData);
     console.log("SaleItems:", saleItems);
@@ -519,6 +742,12 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
     setLoading(true);
 
     try {
+      // If editing, update existing sale
+      if (isEditMode && editSaleId) {
+        return await handleUpdate();
+      }
+
+      // Otherwise, create new sale
       const subtotal = getTotalAmount();
       const discountAmount = getDiscountAmount();
       const additionAmount = getAdditionAmount();
@@ -1372,8 +1601,8 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
               className="min-w-[120px]"
             >
               {loading
-                ? "Salvando..."
-                : `Salvar ${saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente"}`}
+                ? isEditMode ? "Atualizando..." : "Salvando..."
+                : isEditMode ? `Atualizar ${saleType === "budget" ? "Orçamento" : "Venda"}` : `Salvar ${saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente"}`}
             </Button>
           </div>
         </CardContent>

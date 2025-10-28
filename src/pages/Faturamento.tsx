@@ -114,6 +114,7 @@ const Faturamento = () => {
   const [viewingSale, setViewingSale] = useState<SaleDetails | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [installments, setInstallments] = useState<Installment[]>([]);
+  const [editingBudgetId, setEditingBudgetId] = useState<string | undefined>(undefined);
   useEffect(() => {
     fetchBillingData();
   }, [periodFilter, selectedMonth, customStartDate, customEndDate]);
@@ -347,6 +348,22 @@ const Faturamento = () => {
   const handleEditSale = (saleId: string) => {
     // Por enquanto só abre um novo formulário - implementar edição depois
     setShowSalesForm(true);
+  };
+
+  const handleEditBudget = (budgetId: string) => {
+    setEditingBudgetId(budgetId);
+    setShowBudgetForm(true);
+  };
+
+  const handleBudgetFormSuccess = () => {
+    setShowBudgetForm(false);
+    setEditingBudgetId(undefined);
+    fetchBillingData();
+  };
+
+  const handleBudgetFormCancel = () => {
+    setShowBudgetForm(false);
+    setEditingBudgetId(undefined);
   };
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -845,15 +862,13 @@ const Faturamento = () => {
             </DialogTrigger>
             <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Novo Orçamento</DialogTitle>
+                <DialogTitle>{editingBudgetId ? "Editar Orçamento" : "Novo Orçamento"}</DialogTitle>
               </DialogHeader>
               <SalesForm
                 defaultType="budget"
-                onSuccess={() => {
-                  setShowBudgetForm(false);
-                  fetchBillingData();
-                }}
-                onCancel={() => setShowBudgetForm(false)}
+                editSaleId={editingBudgetId}
+                onSuccess={handleBudgetFormSuccess}
+                onCancel={handleBudgetFormCancel}
               />
             </DialogContent>
           </Dialog>
@@ -1219,6 +1234,14 @@ const Faturamento = () => {
                                     <CheckCircle className="h-4 w-4" />
                                   </Button>
                                 )}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditBudget(budget.id)}
+                                  title="Editar orçamento"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
