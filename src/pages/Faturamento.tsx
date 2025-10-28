@@ -759,7 +759,7 @@ const Faturamento = () => {
             <div className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600 break-all">
               {formatCurrency(metrics.totalRevenue)}
             </div>
-            <p className="text-xs text-muted-foreground">apenas contratos pagos</p>
+            <p className="text-xs text-muted-foreground">apenas vendas efetivas</p>
           </CardContent>
         </Card>
 
