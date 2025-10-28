@@ -173,18 +173,16 @@ const FluxoCaixa = () => {
       // Sort by date
       entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
-      // Calculate running balance for each entry if viewing specific account
-      if (accountId) {
-        let runningBalance = initialBalance;
-        entries.forEach(entry => {
-          if (entry.type === 'income') {
-            runningBalance += entry.amount;
-          } else {
-            runningBalance -= entry.amount;
-          }
-          entry.balance = runningBalance;
-        });
-      }
+      // Calculate running balance for each entry
+      let runningBalance = accountId ? initialBalance : 0;
+      entries.forEach(entry => {
+        if (entry.type === 'income') {
+          runningBalance += entry.amount;
+        } else {
+          runningBalance -= entry.amount;
+        }
+        entry.balance = runningBalance;
+      });
       
       setCashFlowData(entries);
 
@@ -363,13 +361,13 @@ const FluxoCaixa = () => {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
-                {accountId && <TableHead className="text-right">Saldo</TableHead>}
+                <TableHead className="text-right">Saldo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={accountId ? 5 : 4} className="text-center">Nenhuma movimentação encontrada</TableCell>
+                  <TableCell colSpan={5} className="text-center">Nenhuma movimentação encontrada</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((entry) => (
@@ -387,11 +385,9 @@ const FluxoCaixa = () => {
                       {entry.type === 'income' ? '+' : '-'}
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.amount)}
                     </TableCell>
-                    {accountId && (
-                      <TableCell className="text-right font-semibold">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.balance || 0)}
-                      </TableCell>
-                    )}
+                    <TableCell className="text-right font-semibold">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.balance || 0)}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
