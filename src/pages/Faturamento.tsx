@@ -1084,17 +1084,27 @@ const Faturamento = () => {
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Valor Total</span>
+                      <span className="text-muted-foreground">Subtotal</span>
                       <span className="font-medium">{formatCurrency(Number(viewingSale.total_amount))}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Desconto</span>
-                      <span className="font-medium text-destructive">
-                        - {formatCurrency(Number(viewingSale.discount_amount))}
-                      </span>
-                    </div>
+                    {Number(viewingSale.discount_amount) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Desconto</span>
+                        <span className="font-medium text-red-600">
+                          - {formatCurrency(Number(viewingSale.discount_amount))}
+                        </span>
+                      </div>
+                    )}
+                    {Number(viewingSale.discount_amount) < 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Acréscimo</span>
+                        <span className="font-medium text-green-600">
+                          + {formatCurrency(Math.abs(Number(viewingSale.discount_amount)))}
+                        </span>
+                      </div>
+                    )}
                     <div className="border-t pt-2 flex justify-between">
-                      <span className="font-semibold">Valor Líquido</span>
+                      <span className="font-semibold">Valor Total</span>
                       <span className="font-bold text-lg">{formatCurrency(Number(viewingSale.net_amount))}</span>
                     </div>
                     {viewingSale.payment_method && (
