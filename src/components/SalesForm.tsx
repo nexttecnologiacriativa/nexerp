@@ -14,7 +14,7 @@ import { CalendarIcon, Plus, Trash2, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { dateToISOString } from "@/lib/date-utils";
+import { dateToISOString, parseISODate } from "@/lib/date-utils";
 import { QuickAddCustomer } from "@/components/QuickAddCustomer";
 import { QuickAddCategory } from "@/components/QuickAddCategory";
 import { QuickAddSubcategory } from "@/components/QuickAddSubcategory";
@@ -483,7 +483,7 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel }: SalesFormProps
   };
 
   const calculateInstallmentDate = (installmentNumber: number) => {
-    const baseDate = new Date(paymentInfo.due_date || formData.sale_date);
+    const baseDate = parseISODate(paymentInfo.due_date || formData.sale_date);
     baseDate.setMonth(baseDate.getMonth() + installmentNumber - 1);
     return dateToISOString(baseDate);
   };
