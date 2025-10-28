@@ -275,6 +275,8 @@ const Faturamento = () => {
 
       if (error) throw error;
 
+      console.log("Viewing sale:", data.sale_number);
+
       // Buscar parcelas relacionadas
       const {
         data: { user },
@@ -282,13 +284,15 @@ const Faturamento = () => {
       if (user) {
         const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
         if (profile?.company_id) {
+          // Buscar por document_number primeiro (mais preciso), depois por description
           const { data: receivables } = await supabase
             .from("accounts_receivable")
             .select("id, description, amount, due_date, payment_date, status")
             .eq("company_id", profile.company_id)
-            .ilike("description", `%${data.sale_number}%`)
+            .or(`document_number.eq.${data.sale_number},description.ilike.%${data.sale_number}%`)
             .order("due_date", { ascending: true });
 
+          console.log("Found installments:", receivables?.length || 0, "for sale", data.sale_number);
           setInstallments(receivables || []);
         }
       }
@@ -296,6 +300,7 @@ const Faturamento = () => {
       setViewingSale(data as SaleDetails);
       setIsViewDialogOpen(true);
     } catch (error: any) {
+      console.error("Error viewing sale:", error);
       toast({
         title: "Erro ao carregar venda",
         description: error.message,
