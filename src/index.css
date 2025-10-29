@@ -63,11 +63,13 @@ All colors MUST be HSL.
     --gradient-primary: linear-gradient(135deg, hsl(209 100% 22%), hsl(209 100% 28%));
     --gradient-secondary: linear-gradient(135deg, hsl(89 60% 51%), hsl(89 60% 45%));
     --gradient-premium: linear-gradient(135deg, hsl(209 100% 22%), hsl(89 60% 51%));
+    --gradient-auth-bg: linear-gradient(135deg, hsl(207 100% 45%), hsl(207 100% 25%));
 
     /* Shadows */
     --shadow-premium: 0 20px 40px -12px hsl(209 100% 22% / 0.15);
     --shadow-card: 0 4px 20px -4px hsl(220 13% 69% / 0.15);
     --shadow-elevated: 0 8px 30px -8px hsl(209 100% 22% / 0.2);
+    --shadow-auth-card: 0 20px 60px -10px rgba(0, 0, 0, 0.2);
 
     /* Sidebar system */
     --sidebar-background: 209 100% 22%;
@@ -178,6 +180,26 @@ All colors MUST be HSL.
   /* Premium layouts */
   .layout-premium {
     @apply min-h-screen bg-gradient-to-br from-background to-muted/30;
+  }
+
+  /* Auth page styles */
+  .auth-gradient-bg {
+    background: var(--gradient-auth-bg);
+  }
+
+  .auth-card {
+    box-shadow: var(--shadow-auth-card);
+    @apply border-0;
+  }
+
+  .auth-button-green {
+    background-color: hsl(var(--secondary));
+    @apply text-white font-semibold transition-all duration-300;
+  }
+
+  .auth-button-green:hover {
+    background-color: hsl(var(--secondary-hover));
+    @apply opacity-95;
   }
 }
 

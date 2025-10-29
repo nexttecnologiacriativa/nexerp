@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Eye, EyeOff, Building2, Mail, Lock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useAuth } from "@/components/AuthContext";
 import { TwoFactorDialog } from "@/components/TwoFactorDialog";
+import TestimonialCarousel from "@/components/TestimonialCarousel";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const navigate = useNavigate();
   const { signIn, verifyTwoFactor } = useAuth();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
@@ -69,117 +71,105 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background dark:bg-background">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
-        <div className="text-center">
-          <Logo className="h-12 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground">Bem-vindo ao NexERP</h1>
-          <p className="text-muted-foreground">Entre na sua conta para continuar</p>
-        </div>
-
-        {/* Login Form */}
-        <Card className="card-premium">
-          <CardHeader>
-            <CardTitle>Fazer Login</CardTitle>
-            <CardDescription>
-              Digite suas credenciais para acessar o sistema
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleLogin}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="company">Empresa</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="company"
-                    placeholder="Nome da empresa"
-                    className="pl-9"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                    required
-                  />
-                </div>
+    <div className="min-h-screen flex auth-gradient-bg">
+      <div className="w-full grid lg:grid-cols-2">
+        {/* Left Column - Login Form */}
+        <div className="flex items-center justify-center p-8">
+          <Card className="w-full max-w-md auth-card">
+            <CardHeader className="space-y-4 text-center pb-8">
+              <div className="flex justify-center">
+                <Logo className="h-10" />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <div>
+                <CardTitle className="text-2xl font-bold">Bem-vindo de volta</CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Entre com suas credenciais para acessar o sistema
+                </p>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     placeholder="seu@email.com"
-                    className="pl-9"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
+                    disabled={loading}
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Sua senha"
-                    className="pl-9 pr-9"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                  />
-                  <button
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                      disabled={loading}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                    variant="link"
+                    className="px-0 text-sm"
+                    onClick={() => toast({ description: "Funcionalidade em desenvolvimento" })}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                    Esqueceu sua senha?
+                  </Button>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between">
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-primary hover:text-primary-hover underline"
+                <Button
+                  type="submit"
+                  className="w-full auth-button-green"
+                  disabled={loading}
                 >
-                  Esqueci minha senha
-                </Link>
+                  {loading ? "Entrando..." : "Continuar"}
+                </Button>
+              </form>
+
+              <div className="text-center text-sm">
+                <span className="text-muted-foreground">Não tem uma conta? </span>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="px-1"
+                  onClick={() => navigate("/auth")}
+                >
+                  Cadastre-se
+                </Button>
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Button 
-                type="submit" 
-                variant="premium" 
-                className="w-full" 
-                size="lg"
-                disabled={loading || !formData.email || !formData.password}
-              >
-                {loading ? 'Entrando...' : 'Entrar no Sistema'}
-              </Button>
+          </Card>
+        </div>
 
-              <Separator />
-
-              <div className="text-center text-sm text-muted-foreground">
-                Não tem uma conta?{" "}
-                <Link
-                  to="/register"
-                  className="text-primary hover:text-primary-hover underline font-medium"
-                >
-                  Cadastre-se grátis
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center text-xs text-muted-foreground">
-          © 2024 NexERP. Todos os direitos reservados.
+        {/* Right Column - Testimonials */}
+        <div className="hidden lg:flex bg-white/10 backdrop-blur-sm">
+          <TestimonialCarousel />
         </div>
       </div>
 

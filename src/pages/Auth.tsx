@@ -4,15 +4,17 @@ import { useAuth } from "@/components/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Building2, Mail, Lock, User } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
 import Logo from "@/components/Logo";
 import { TwoFactorDialog } from "@/components/TwoFactorDialog";
+import TestimonialCarousel from "@/components/TestimonialCarousel";
+import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, verifyTwoFactor } = useAuth();
+  const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
@@ -88,170 +90,105 @@ const Auth = () => {
   };
 
   return (
-    <div className="layout-premium flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
-        <div className="text-center">
-          <Logo className="h-12 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground">Bem-vindo ao NexERP</h1>
-          <p className="text-muted-foreground">Sistema ERP completo para sua empresa</p>
+    <div className="min-h-screen flex auth-gradient-bg">
+      <div className="w-full grid lg:grid-cols-2">
+        {/* Left Column - Login Form */}
+        <div className="flex items-center justify-center p-8">
+          <Card className="w-full max-w-md auth-card">
+            <CardHeader className="space-y-4 text-center pb-8">
+              <div className="flex justify-center">
+                <Logo className="h-10" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold">Bem-vindo de volta</CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Entre com suas credenciais para acessar o sistema
+                </p>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={loginData.email}
+                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={loginData.password}
+                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                      required
+                      disabled={loading}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={loading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 text-sm"
+                    onClick={() => toast({ description: "Funcionalidade em desenvolvimento" })}
+                  >
+                    Esqueceu sua senha?
+                  </Button>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full auth-button-green"
+                  disabled={loading}
+                >
+                  {loading ? "Entrando..." : "Continuar"}
+                </Button>
+              </form>
+
+              <div className="text-center text-sm">
+                <span className="text-muted-foreground">Não tem uma conta? </span>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="px-1"
+                  onClick={() => toast({ description: "Funcionalidade em desenvolvimento" })}
+                >
+                  Cadastre-se
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Auth Forms */}
-        <Card className="card-premium">
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <CardHeader>
-                <CardTitle>Fazer Login</CardTitle>
-                <CardDescription>
-                  Digite suas credenciais para acessar o sistema
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">E-mail</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        className="pl-9"
-                        value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="login-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Sua senha"
-                        className="pl-9 pr-9"
-                        value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" variant="premium" className="w-full" size="lg" disabled={loading}>
-                    {loading ? "Entrando..." : "Entrar no Sistema"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <CardHeader>
-                <CardTitle>Criar Conta</CardTitle>
-                <CardDescription>
-                  Cadastre-se gratuitamente para começar a usar o NexERP
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleSignup}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Nome Completo</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-name"
-                        placeholder="Seu nome completo"
-                        className="pl-9"
-                        value={signupData.fullName}
-                        onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-company">Empresa</Label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-company"
-                        placeholder="Nome da empresa"
-                        className="pl-9"
-                        value={signupData.company}
-                        onChange={(e) => setSignupData({ ...signupData, company: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">E-mail</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        className="pl-9"
-                        value={signupData.email}
-                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Senha</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Criar senha"
-                        className="pl-9 pr-9"
-                        value={signupData.password}
-                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" variant="premium" className="w-full" size="lg" disabled={loading}>
-                    {loading ? "Criando conta..." : "Criar Conta Grátis"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center text-xs text-muted-foreground">
-          © 2024 NexERP. Todos os direitos reservados.
+        {/* Right Column - Testimonials */}
+        <div className="hidden lg:flex bg-white/10 backdrop-blur-sm">
+          <TestimonialCarousel />
         </div>
       </div>
 
