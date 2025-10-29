@@ -19,7 +19,7 @@ export default function PopulateDemoData() {
       }
 
       const response = await fetch(
-        `https://aetsstbmwrdxfnygqwsv.supabase.co/functions/v1/populate-demo-data`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/populate-demo-data`,
         {
           method: 'POST',
           headers: {

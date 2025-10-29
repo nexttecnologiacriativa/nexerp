@@ -10,8 +10,8 @@ SELECT cron.schedule(
   $$
   SELECT
     net.http_post(
-        url:='https://aetsstbmwrdxfnygqwsv.supabase.co/functions/v1/generate-recurring-accounts',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFldHNzdGJtd3JkeGZueWdxd3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU4MDU0NzIsImV4cCI6MjA3MTM4MTQ3Mn0.58m6a0d_zrJL9AVU0id7kuqdhAacEJ1fBg6JKa3JpVc"}'::jsonb,
+        url:='${VITE_SUPABASE_URL}/functions/v1/generate-recurring-accounts',
+        headers:='{"Content-Type": "application/json", "Authorization": "Bearer ${VITE_SUPABASE_PUBLISHABLE_KEY}"}'::jsonb,
         body:=concat('{"timestamp": "', now(), '"}')::jsonb
     ) as request_id;
   $$
