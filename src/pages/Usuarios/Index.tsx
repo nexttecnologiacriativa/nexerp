@@ -129,10 +129,9 @@ const Usuarios = () => {
           description: "As informações do usuário foram atualizadas com sucesso.",
         });
       } else {
-        // Invite new user via edge function
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
+        // Create new user
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
           toast({
             title: "Erro de autenticação",
             description: "Faça login novamente",
@@ -141,34 +140,58 @@ const Usuarios = () => {
           return;
         }
 
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://supabase-erpnex.next.dev.br/";
-        
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/invite-user`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: formData.email,
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', currentUser.id)
+          .single();
+
+        if (!currentProfile?.company_id) {
+          toast({
+            title: "Erro",
+            description: "Usuário não está vinculado a uma empresa",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Generate temporary password
+        const tempPassword = crypto.randomUUID();
+
+        // Create user
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: tempPassword,
+          options: {
+            data: {
               full_name: formData.full_name,
-              phone: formData.phone,
-              role: formData.role
-            }),
+              company_name: currentProfile.company_id
+            }
           }
-        );
+        });
 
-        const result = await response.json();
+        if (signUpError) throw signUpError;
 
-        if (!response.ok) {
-          throw new Error(result.error || 'Erro ao convidar usuário');
+        // Update profile with role and other data
+        if (signUpData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({
+              full_name: formData.full_name,
+              phone: formData.phone || null,
+              role: formData.role || 'user',
+              company_id: currentProfile.company_id
+            })
+            .eq('id', signUpData.user.id);
+
+          if (profileError) {
+            console.error('Error updating profile:', profileError);
+          }
         }
 
         toast({
-          title: "Usuário convidado!",
-          description: "Um email foi enviado com instruções para definir a senha.",
+          title: "Usuário criado!",
+          description: "O usuário foi criado com sucesso. Ele receberá um email para confirmar a conta.",
         });
       }
 
