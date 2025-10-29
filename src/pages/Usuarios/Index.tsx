@@ -101,6 +101,15 @@ const Usuarios = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.full_name || !formData.email) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha nome completo e email",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       if (editingUser) {
         // Update existing user
@@ -120,23 +129,57 @@ const Usuarios = () => {
           description: "As informações do usuário foram atualizadas com sucesso.",
         });
       } else {
-        // Create new user invitation
+        // Invite new user via edge function
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          toast({
+            title: "Erro de autenticação",
+            description: "Faça login novamente",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://supabase-erpnex.next.dev.br/";
+        
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/invite-user`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: formData.email,
+              full_name: formData.full_name,
+              phone: formData.phone,
+              role: formData.role
+            }),
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Erro ao convidar usuário');
+        }
+
         toast({
-          title: "Funcionalidade em desenvolvimento",
-          description: "A criação de novos usuários será implementada em breve.",
-          variant: "default",
+          title: "Usuário convidado!",
+          description: "Um email foi enviado com instruções para definir a senha.",
         });
-        return;
       }
 
       setDialogOpen(false);
       resetForm();
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving user:', error);
       toast({
         title: "Erro ao salvar usuário",
-        description: "Não foi possível salvar as informações do usuário",
+        description: error.message || "Não foi possível salvar as informações do usuário",
         variant: "destructive",
       });
     }
