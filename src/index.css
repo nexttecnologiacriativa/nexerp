@@ -188,7 +188,7 @@ All colors MUST be HSL.
   }
 
   .auth-card {
-    background-color: hsl(209 100% 22%);
+    background-color: hsl(var(--primary));
     box-shadow: var(--shadow-auth-card);
     @apply border-0;
   }
