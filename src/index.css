@@ -184,12 +184,33 @@ All colors MUST be HSL.
 
   /* Auth page styles */
   .auth-gradient-bg {
-    background: var(--gradient-auth-bg);
+    @apply bg-white;
   }
 
   .auth-card {
+    background-color: hsl(209 100% 22%);
     box-shadow: var(--shadow-auth-card);
     @apply border-0;
+  }
+
+  .auth-card .text-foreground {
+    @apply text-white;
+  }
+
+  .auth-card .text-muted-foreground {
+    @apply text-white/70;
+  }
+
+  .auth-card input {
+    @apply bg-white/10 border-white/20 text-white placeholder:text-white/50;
+  }
+
+  .auth-card input:focus {
+    @apply bg-white/15 border-white/30;
+  }
+
+  .auth-card label {
+    @apply text-white/90;
   }
 
   .auth-button-green {

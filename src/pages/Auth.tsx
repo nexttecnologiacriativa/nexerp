@@ -187,7 +187,7 @@ const Auth = () => {
         </div>
 
         {/* Right Column - Testimonials */}
-        <div className="hidden lg:flex bg-white/10 backdrop-blur-sm">
+        <div className="hidden lg:flex bg-primary/95">
           <TestimonialCarousel />
         </div>
       </div>
