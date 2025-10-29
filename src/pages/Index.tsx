@@ -34,7 +34,7 @@ const Index = () => {
             <Button variant="outline" onClick={() => navigate("/auth")}>
               Entrar
             </Button>
-            <Button variant="premium" onClick={() => navigate("/auth")}>
+            <Button variant="secondary" onClick={() => navigate("/auth")}>
               Começar Grátis
             </Button>
           </div>
