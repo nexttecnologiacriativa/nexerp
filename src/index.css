@@ -217,12 +217,22 @@ All colors MUST be HSL.
     @apply text-white/90;
   }
 
-  .auth-card button[variant="link"] {
-    @apply text-secondary hover:text-secondary-hover !important;
+  .auth-card button[variant="link"],
+  .auth-card button[type="button"][class*="variant-link"] {
+    color: hsl(var(--secondary)) !important;
+  }
+
+  .auth-card button[variant="link"]:hover,
+  .auth-card button[type="button"][class*="variant-link"]:hover {
+    color: hsl(var(--secondary-hover)) !important;
   }
 
   .auth-card a {
-    @apply text-secondary hover:text-secondary-hover !important;
+    color: hsl(var(--secondary)) !important;
+  }
+
+  .auth-card a:hover {
+    color: hsl(var(--secondary-hover)) !important;
   }
 
   .auth-button-green {
