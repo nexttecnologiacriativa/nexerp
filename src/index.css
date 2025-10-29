@@ -190,15 +190,15 @@ All colors MUST be HSL.
   .auth-card {
     background-color: hsl(209 100% 22%) !important;
     box-shadow: var(--shadow-auth-card);
-    @apply border-0;
+    @apply border-0 p-8;
   }
 
   .auth-card .text-foreground {
-    @apply text-white;
+    @apply text-white !important;
   }
 
   .auth-card .text-muted-foreground {
-    @apply text-white/70;
+    @apply text-white/90 !important;
   }
 
   .auth-card input {
@@ -211,6 +211,14 @@ All colors MUST be HSL.
 
   .auth-card label {
     @apply text-white/90;
+  }
+
+  .auth-card button[variant="link"] {
+    @apply text-white !important;
+  }
+
+  .auth-card a {
+    @apply text-white !important;
   }
 
   .auth-button-green {
