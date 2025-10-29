@@ -78,7 +78,7 @@ const Login = () => {
           <Card className="w-full max-w-md auth-card">
             <CardHeader className="space-y-4 text-center pb-8">
               <div className="flex justify-center">
-                <Logo className="h-10" variant="dark" />
+                <Logo className="h-10" />
               </div>
               <div>
                 <CardTitle className="text-2xl font-bold">Bem-vindo de volta</CardTitle>
@@ -168,7 +168,7 @@ const Login = () => {
         </div>
 
         {/* Right Column - Testimonials */}
-        <div className="hidden lg:flex bg-white/10 backdrop-blur-sm">
+        <div className="hidden lg:flex bg-primary/95">
           <TestimonialCarousel />
         </div>
       </div>
