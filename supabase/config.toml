@@ -1,4 +1,4 @@
-project_id = "aetsstbmwrdxfnygqwsv"
+project_id = "${VITE_SUPABASE_PROJECT_ID}"
 
 [api]
 enabled = true
