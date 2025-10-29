@@ -168,7 +168,7 @@ const Login = () => {
         </div>
 
         {/* Right Column - Testimonials */}
-        <div className="hidden lg:flex bg-primary/95">
+        <div className="hidden lg:flex bg-white/10 backdrop-blur-sm">
           <TestimonialCarousel />
         </div>
       </div>
