@@ -24,7 +24,7 @@ const Index = () => {
   }
   return <div className="layout-premium">
       {/* Header */}
-      <header className="border-b border-border bg-background backdrop-blur-sm sticky top-0 z-50 dark:bg-background">
+      <header className="border-b border-primary/20 bg-primary backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Logo className="h-8" />
