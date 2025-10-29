@@ -8,7 +8,7 @@ console.log('ENV CHECK:', {
   key: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ? 'present' : 'missing'
 });
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "http://supabasekong-lok8s4sok4csg00c8wg4s8w0.5.161.206.208.sslip.io";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://supabase-erpnex.next.dev.br/";
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTc2MTY3NzcwMCwiZXhwIjo0OTE3MzUxMzAwLCJyb2xlIjoiYW5vbiJ9.bYf9YzPeuhDKiI0wE-piDj6XdVNXpihQGYLbyNxPrt8";
 
 // Import the supabase client like this:
