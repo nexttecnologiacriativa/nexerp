@@ -188,7 +188,7 @@ All colors MUST be HSL.
   }
 
   .auth-card {
-    background-color: hsl(var(--primary));
+    background-color: hsl(209 100% 22%) !important;
     box-shadow: var(--shadow-auth-card);
     @apply border-0;
   }
@@ -214,12 +214,12 @@ All colors MUST be HSL.
   }
 
   .auth-button-green {
-    background-color: hsl(var(--secondary));
+    background-color: hsl(89 60% 51%) !important;
     @apply text-white font-semibold transition-all duration-300;
   }
 
   .auth-button-green:hover {
-    background-color: hsl(var(--secondary-hover));
+    background-color: hsl(89 60% 45%) !important;
     @apply opacity-95;
   }
 }
