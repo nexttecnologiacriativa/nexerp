@@ -186,6 +186,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         title: "Logout realizado com sucesso!",
         description: "Até logo!",
       });
+      window.location.href = '/auth';
     }
   };
 

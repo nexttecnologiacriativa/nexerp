@@ -46,15 +46,7 @@ const Layout = ({ children }: LayoutProps) => {
                     {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                   </span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={async () => {
-                    await signOut();
-                    window.location.href = '/auth';
-                  }} 
-                  title="Sair"
-                >
+                <Button variant="ghost" size="icon" onClick={signOut} title="Sair">
                   <LogOut className="h-4 w-4" />
                 </Button>
               </div>
