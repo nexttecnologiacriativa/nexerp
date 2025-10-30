@@ -191,7 +191,8 @@ const Auth = () => {
 
                     <Button
                       type="submit"
-                      className="w-full auth-button-green"
+                      variant="secondary"
+                      className="w-full"
                       disabled={loading}
                     >
                       {loading ? "Entrando..." : "Entrar"}
@@ -272,7 +273,8 @@ const Auth = () => {
 
                     <Button
                       type="submit"
-                      className="w-full auth-button-green"
+                      variant="secondary"
+                      className="w-full"
                       disabled={loading}
                     >
                       {loading ? "Cadastrando..." : "Criar Conta"}
