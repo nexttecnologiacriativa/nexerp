@@ -205,6 +205,22 @@ export function AppSidebar() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
+                    <NavLink to="/super-admin/empresas" className={getNavCls}>
+                      <Building2 className="h-4 w-4" />
+                      {!collapsed && <span>Empresas</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/super-admin/usuarios" className={getNavCls}>
+                      <UserCog className="h-4 w-4" />
+                      {!collapsed && <span>Usuários</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
                     <NavLink to="/super-admin/planos" className={getNavCls}>
                       <Zap className="h-4 w-4" />
                       {!collapsed && <span>Planos</span>}

@@ -13,6 +13,8 @@ import Auth from "./pages/Auth";
 import SuperAdminDashboard from "./pages/SuperAdmin/Index";
 import SuperAdminPlanos from "./pages/SuperAdmin/Planos";
 import SuperAdminAssinaturas from "./pages/SuperAdmin/Assinaturas";
+import SuperAdminEmpresas from "./pages/SuperAdmin/Empresas";
+import SuperAdminUsuarios from "./pages/SuperAdmin/Usuarios";
 import Dashboard from "./pages/Dashboard";
 import ContasPagar from "./pages/Financeiro/ContasPagar";
 import ContasReceber from "./pages/Financeiro/ContasReceber";
@@ -134,6 +136,20 @@ const App = () => (
               <ProtectedRoute>
                 <SuperAdminRoute>
                   <SuperAdminDashboard />
+                </SuperAdminRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/super-admin/empresas" element={
+              <ProtectedRoute>
+                <SuperAdminRoute>
+                  <SuperAdminEmpresas />
+                </SuperAdminRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/super-admin/usuarios" element={
+              <ProtectedRoute>
+                <SuperAdminRoute>
+                  <SuperAdminUsuarios />
                 </SuperAdminRoute>
               </ProtectedRoute>
             } />
