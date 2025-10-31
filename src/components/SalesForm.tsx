@@ -347,7 +347,8 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
           .from("categories")
           .select("id, name, color")
           .eq("company_id", profileData.company_id)
-          .eq("status", "active"),
+          .eq("status", "active")
+          .eq("type", "revenue"),
         supabase
           .from("subcategories")
           .select("id, category_id, name, color")
@@ -406,7 +407,8 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
       .from("categories")
       .select("id, name, color")
       .eq("company_id", userProfile.company_id)
-      .eq("status", "active");
+      .eq("status", "active")
+      .eq("type", "revenue");
 
     if (data) {
       setCategories(data);
