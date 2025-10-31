@@ -507,7 +507,7 @@ const Faturamento = () => {
   };
 
   const handleApproveBudget = async (budget: Sale) => {
-    if (!confirm(`Deseja aprovar o orçamento ${budget.sale_number}? Ele se tornará uma venda efetiva.`)) {
+    if (!confirm(`Deseja aprovar o orçamento ${budget.sale_number}? Ele será convertido em venda.`)) {
       return;
     }
 
@@ -520,11 +520,12 @@ const Faturamento = () => {
       const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
       if (!profile?.company_id) return;
 
-      // Buscar os itens do orçamento
-      const { data: budgetItems } = await supabase
-        .from("sale_items")
+      // Buscar contas a receber relacionadas ao orçamento para excluir
+      const { data: oldReceivables } = await supabase
+        .from("accounts_receivable")
         .select("*")
-        .eq("sale_id", budget.id);
+        .eq("company_id", profile.company_id)
+        .or(`document_number.eq.${budget.sale_number},description.ilike.%${budget.sale_number}%`);
 
       // Gerar novo número de venda
       const { data: salesData } = await supabase
@@ -549,72 +550,49 @@ const Faturamento = () => {
         newSaleNumber = `${periodPrefix}${nextNumber}`;
       }
 
-      // Criar nova venda efetiva
-      const { data: newSale, error: saleError } = await supabase
+      // Atualizar o orçamento existente para se tornar a venda
+      const { error: updateError } = await supabase
         .from("sales")
-        .insert([{
-          company_id: profile.company_id,
-          customer_id: budget.customer_id,
+        .update({ 
           sale_number: newSaleNumber,
           sale_date: dateToISOString(new Date()),
-          total_amount: budget.total_amount,
-          discount_amount: budget.discount_amount,
-          net_amount: budget.net_amount,
-          payment_method: budget.payment_method as "bank_slip" | "bank_transfer" | "cash" | "check" | "credit_card" | "debit_card" | "pix" | undefined,
           status: "active",
-          notes: `Aprovado do orçamento ${budget.sale_number}`,
-        }])
-        .select()
-        .single();
+          notes: budget.notes ? `${budget.notes}\n\nAprovado de orçamento ${budget.sale_number}` : `Aprovado de orçamento ${budget.sale_number}`
+        })
+        .eq("id", budget.id);
 
-      if (saleError) {
-        console.error("Error creating sale:", saleError);
+      if (updateError) {
+        console.error("Error updating sale:", updateError);
         toast({
-          title: "Erro ao criar venda",
-          description: "Não foi possível criar a venda efetiva.",
+          title: "Erro ao aprovar orçamento",
+          description: "Não foi possível converter o orçamento em venda.",
           variant: "destructive",
         });
         return;
       }
 
-      // Copiar os itens para a nova venda
-      if (budgetItems && budgetItems.length > 0) {
-        const newItems = budgetItems.map((item) => ({
-          sale_id: newSale.id,
-          product_id: item.product_id,
-          service_id: item.service_id,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-        }));
-
-        const { error: itemsError } = await supabase.from("sale_items").insert(newItems);
-
-        if (itemsError) {
-          console.error("Error creating sale items:", itemsError);
-        }
+      // Excluir contas a receber antigas do orçamento
+      if (oldReceivables && oldReceivables.length > 0) {
+        const oldReceivableIds = oldReceivables.map(r => r.id);
+        await supabase
+          .from("accounts_receivable")
+          .delete()
+          .in("id", oldReceivableIds);
       }
 
-      // Buscar contas a receber relacionadas ao orçamento
-      const { data: budgetReceivables } = await supabase
-        .from("accounts_receivable")
-        .select("*")
-        .eq("company_id", profile.company_id)
-        .or(`document_number.eq.${budget.sale_number},description.ilike.%${budget.sale_number}%`);
-
-      // Criar contas a receber para a nova venda
-      if (budgetReceivables && budgetReceivables.length > 0) {
-        const newReceivables = budgetReceivables.map((receivable) => ({
+      // Criar novas contas a receber com o número da venda
+      if (oldReceivables && oldReceivables.length > 0) {
+        const newReceivables = oldReceivables.map((receivable) => ({
           company_id: profile.company_id,
           customer_id: budget.customer_id,
-          description: receivable.description.replace(budget.sale_number, newSaleNumber),
+          description: receivable.description.replace(/Orçamento/gi, "Venda").replace(budget.sale_number, newSaleNumber),
           amount: receivable.amount,
           due_date: receivable.due_date,
           payment_method: receivable.payment_method,
           bank_account_id: receivable.bank_account_id,
           document_number: newSaleNumber,
           status: "pending" as const,
+          notes: `Gerado automaticamente da venda ${newSaleNumber}. Aprovado de orçamento ${budget.sale_number}.`,
         }));
 
         const { error: receivablesError } = await supabase
@@ -623,23 +601,19 @@ const Faturamento = () => {
 
         if (receivablesError) {
           console.error("Error creating receivables:", receivablesError);
+          toast({
+            title: "Aviso",
+            description: "Venda criada mas houve erro ao criar contas a receber.",
+            variant: "default",
+          });
         }
       }
-
-      // Atualizar status do orçamento para inativo (aprovado)
-      await supabase
-        .from("sales")
-        .update({ 
-          status: "inactive",
-          notes: `Aprovado e convertido em venda ${newSaleNumber}`
-        })
-        .eq("id", budget.id);
 
       await fetchBillingData();
 
       toast({
         title: "Orçamento aprovado!",
-        description: `Venda efetiva ${newSaleNumber} criada com sucesso.`,
+        description: `Convertido em venda ${newSaleNumber} com sucesso.`,
       });
     } catch (error) {
       console.error("Error approving budget:", error);
