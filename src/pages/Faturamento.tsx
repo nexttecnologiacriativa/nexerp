@@ -1134,7 +1134,7 @@ const Faturamento = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="active">Ativo</SelectItem>
+                      <SelectItem value="active">Em andamento</SelectItem>
                       <SelectItem value="cancelled">Cancelado</SelectItem>
                       <SelectItem value="pending">Pendente</SelectItem>
                       <SelectItem value="overdue">Atrasado</SelectItem>
@@ -1176,7 +1176,7 @@ const Faturamento = () => {
                             <TableCell>
                               <Badge variant={getStatusVariant(budget.status)} className="text-xs">
                                 {budget.status === "active"
-                                  ? "Ativo"
+                                  ? "Em andamento"
                                   : budget.status === "cancelled"
                                     ? "Cancelado"
                                     : budget.status === "overdue"
