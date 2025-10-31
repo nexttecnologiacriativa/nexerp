@@ -188,20 +188,12 @@ const Faturamento = () => {
           customer_name: sale.customers?.name || "Cliente não informado",
         })) || [];
 
-      // Separate sales from budgets based on sale_number prefix or notes
+      // Separate sales from budgets based on sale_number prefix
       const actualSales = formattedData.filter(
-        (sale) =>
-          !sale.sale_number?.startsWith("ORC") &&
-          // Orçamentos não começam com ORC
-          !sale.notes?.toLowerCase().includes("orçamento"), // Ou não têm "orçamento" nas notas
+        (sale) => sale.sale_number?.startsWith("VND")
       );
       const budgetData = formattedData.filter(
-        (sale) =>
-          (sale.sale_number?.startsWith("ORC") ||
-          // Orçamentos começam com ORC
-          sale.notes?.toLowerCase().includes("orçamento")) &&
-          // Ou têm "orçamento" nas notas
-          sale.status !== "inactive", // Excluir orçamentos aprovados (convertidos em venda)
+        (sale) => sale.sale_number?.startsWith("ORC")
       );
       setSales(actualSales);
       setBudgets(budgetData);
@@ -243,7 +235,7 @@ const Faturamento = () => {
           
         const previousActualSales =
           previousSales?.filter(
-            (sale) => !sale.sale_number?.startsWith("ORC") && !sale.notes?.toLowerCase().includes("orçamento"),
+            (sale) => sale.sale_number?.startsWith("VND")
           ) || [];
         previousRevenue = previousActualSales.reduce((sum, sale) => sum + Number(sale.net_amount), 0);
         monthlyGrowth = previousRevenue > 0 ? ((totalRevenue - previousRevenue) / previousRevenue) * 100 : 0;
@@ -557,7 +549,7 @@ const Faturamento = () => {
           sale_number: newSaleNumber,
           sale_date: dateToISOString(new Date()),
           status: "active",
-          notes: budget.notes ? `${budget.notes}\n\nAprovado de orçamento ${budget.sale_number}` : `Aprovado de orçamento ${budget.sale_number}`
+          notes: `Convertido do budget ${budget.sale_number}`
         })
         .eq("id", budget.id);
 
