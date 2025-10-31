@@ -7,8 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Users, Package, FileText, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DateInput } from "@/components/ui/date-input";
+import { dateToISOString, getTodayISO } from "@/lib/date-utils";
 
 interface FinancialData {
   receivable: number;
@@ -41,14 +43,46 @@ const Dashboard = () => {
   });
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState("current");
+  const [selectedPeriod, setSelectedPeriod] = useState("30");
   const [showValues, setShowValues] = useState(true);
+  const [customStartDate, setCustomStartDate] = useState<string>(getTodayISO());
+  const [customEndDate, setCustomEndDate] = useState<string>(getTodayISO());
 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
     }
-  }, [user, selectedPeriod]);
+  }, [user, selectedPeriod, customStartDate, customEndDate]);
+
+  const getDateRange = () => {
+    const today = new Date();
+    let startDate: Date;
+    let endDate: Date = today;
+
+    switch (selectedPeriod) {
+      case "30":
+        startDate = subDays(today, 30);
+        break;
+      case "60":
+        startDate = subDays(today, 60);
+        break;
+      case "90":
+        startDate = subDays(today, 90);
+        break;
+      case "custom":
+        return {
+          startDate: customStartDate,
+          endDate: customEndDate
+        };
+      default:
+        startDate = subDays(today, 30);
+    }
+
+    return {
+      startDate: dateToISOString(startDate),
+      endDate: dateToISOString(endDate)
+    };
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -73,6 +107,8 @@ const Dashboard = () => {
         return;
       }
 
+      const dateRange = getDateRange();
+
       // Execute all queries in parallel for better performance
       const [
         receivablesResult,
@@ -86,16 +122,20 @@ const Dashboard = () => {
         // Receivables
         supabase
           .from('accounts_receivable')
-          .select('amount, status')
+          .select('amount, status, due_date')
           .eq('company_id', profile.company_id)
-          .eq('status', 'pending'),
+          .eq('status', 'pending')
+          .gte('due_date', dateRange.startDate)
+          .lte('due_date', dateRange.endDate),
         
         // Payables
         supabase
           .from('accounts_payable')
-          .select('amount, status')
+          .select('amount, status, due_date')
           .eq('company_id', profile.company_id)
-          .eq('status', 'pending'),
+          .eq('status', 'pending')
+          .gte('due_date', dateRange.startDate)
+          .lte('due_date', dateRange.endDate),
         
         // Bank accounts
         supabase
@@ -131,6 +171,8 @@ const Dashboard = () => {
           .select('*', { count: 'exact', head: true })
           .eq('company_id', profile.company_id)
           .eq('status', 'active')
+          .gte('created_at', dateRange.startDate)
+          .lte('created_at', dateRange.endDate)
       ]);
 
       const totalReceivable = receivablesResult.data?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
@@ -164,7 +206,9 @@ const Dashboard = () => {
 
   const fetchMonthlyTrends = async (companyId: string) => {
     try {
-      // Simplify to only get last 3 months for better performance
+      const dateRange = getDateRange();
+      
+      // Get data for last 3 months
       const monthsPromises = [];
       for (let i = 2; i >= 0; i--) {
         const date = subMonths(new Date(), i);
@@ -177,15 +221,17 @@ const Dashboard = () => {
             .from('accounts_receivable')
             .select('amount')
             .eq('company_id', companyId)
-            .gte('created_at', startDate.toISOString())
-            .lte('created_at', endDate.toISOString()),
+            .eq('status', 'paid')
+            .gte('payment_date', dateToISOString(startDate))
+            .lte('payment_date', dateToISOString(endDate)),
           
           supabase
             .from('accounts_payable')
             .select('amount')
             .eq('company_id', companyId)
-            .gte('created_at', startDate.toISOString())
-            .lte('created_at', endDate.toISOString())
+            .eq('status', 'paid')
+            .gte('payment_date', dateToISOString(startDate))
+            .lte('payment_date', dateToISOString(endDate))
         ]).then(([incomeResult, expensesResult]) => {
           const monthIncome = incomeResult.data?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
           const monthExpenses = expensesResult.data?.reduce((sum, item) => sum + parseFloat(String(item.amount) || '0'), 0) || 0;
@@ -267,14 +313,38 @@ const Dashboard = () => {
               <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="current">Mês Atual</SelectItem>
-              <SelectItem value="last">Último Mês</SelectItem>
-              <SelectItem value="quarter">Último Trimestre</SelectItem>
-              <SelectItem value="year">Último Ano</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="60">Últimos 60 dias</SelectItem>
+              <SelectItem value="90">Últimos 90 dias</SelectItem>
+              <SelectItem value="custom">Período Personalizado</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
+
+      {/* Custom Date Range */}
+      {selectedPeriod === "custom" && (
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Data Inicial</label>
+              <DateInput
+                value={customStartDate}
+                onChange={setCustomStartDate}
+                placeholder="dd/mm/aaaa"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Data Final</label>
+              <DateInput
+                value={customEndDate}
+                onChange={setCustomEndDate}
+                placeholder="dd/mm/aaaa"
+              />
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Main Financial Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
