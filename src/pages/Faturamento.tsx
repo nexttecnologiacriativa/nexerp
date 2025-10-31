@@ -512,12 +512,7 @@ const Faturamento = () => {
       const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user.id).single();
       if (!profile?.company_id) return;
 
-      // Buscar contas a receber relacionadas ao orçamento para excluir
-      const { data: oldReceivables } = await supabase
-        .from("accounts_receivable")
-        .select("*")
-        .eq("company_id", profile.company_id)
-        .or(`document_number.eq.${budget.sale_number},description.ilike.%${budget.sale_number}%`);
+      console.log("Aprovando orçamento:", budget.sale_number, "ID:", budget.id);
 
       // Gerar novo número de venda
       const { data: salesData } = await supabase
@@ -542,62 +537,61 @@ const Faturamento = () => {
         newSaleNumber = `${periodPrefix}${nextNumber}`;
       }
 
-      // Atualizar o orçamento existente para se tornar a venda
-      const { error: updateError } = await supabase
+      console.log("Novo número de venda:", newSaleNumber);
+
+      // Atualizar o orçamento para venda
+      const { data: updatedSale, error: updateError } = await supabase
         .from("sales")
         .update({ 
           sale_number: newSaleNumber,
           sale_date: dateToISOString(new Date()),
           status: "active",
-          notes: `Convertido do budget ${budget.sale_number}`
+          notes: `Convertido do orçamento ${budget.sale_number}`
         })
-        .eq("id", budget.id);
+        .eq("id", budget.id)
+        .select()
+        .single();
 
       if (updateError) {
-        console.error("Error updating sale:", updateError);
+        console.error("Erro ao atualizar venda:", updateError);
         toast({
           title: "Erro ao aprovar orçamento",
-          description: "Não foi possível converter o orçamento em venda.",
+          description: updateError.message,
           variant: "destructive",
         });
         return;
       }
 
-      // Excluir contas a receber antigas do orçamento
-      if (oldReceivables && oldReceivables.length > 0) {
-        const oldReceivableIds = oldReceivables.map(r => r.id);
-        await supabase
-          .from("accounts_receivable")
-          .delete()
-          .in("id", oldReceivableIds);
+      console.log("Venda atualizada:", updatedSale);
+
+      // Buscar e atualizar contas a receber
+      const { data: receivables, error: receivablesError } = await supabase
+        .from("accounts_receivable")
+        .select("*")
+        .eq("company_id", profile.company_id)
+        .or(`document_number.eq.${budget.sale_number},description.ilike.%${budget.sale_number}%`);
+
+      if (receivablesError) {
+        console.error("Erro ao buscar receivables:", receivablesError);
       }
 
-      // Criar novas contas a receber com o número da venda
-      if (oldReceivables && oldReceivables.length > 0) {
-        const newReceivables = oldReceivables.map((receivable) => ({
-          company_id: profile.company_id,
-          customer_id: budget.customer_id,
-          description: receivable.description.replace(/Orçamento/gi, "Venda").replace(budget.sale_number, newSaleNumber),
-          amount: receivable.amount,
-          due_date: receivable.due_date,
-          payment_method: receivable.payment_method,
-          bank_account_id: receivable.bank_account_id,
-          document_number: newSaleNumber,
-          status: "pending" as const,
-          notes: `Gerado automaticamente da venda ${newSaleNumber}. Aprovado de orçamento ${budget.sale_number}.`,
-        }));
+      console.log("Contas a receber encontradas:", receivables?.length);
 
-        const { error: receivablesError } = await supabase
-          .from("accounts_receivable")
-          .insert(newReceivables);
+      // Atualizar contas a receber existentes
+      if (receivables && receivables.length > 0) {
+        for (const receivable of receivables) {
+          const { error: updateRecError } = await supabase
+            .from("accounts_receivable")
+            .update({
+              document_number: newSaleNumber,
+              description: receivable.description.replace(budget.sale_number, newSaleNumber).replace(/Orçamento/gi, "Venda"),
+              notes: `Convertido de orçamento ${budget.sale_number} para venda ${newSaleNumber}`
+            })
+            .eq("id", receivable.id);
 
-        if (receivablesError) {
-          console.error("Error creating receivables:", receivablesError);
-          toast({
-            title: "Aviso",
-            description: "Venda criada mas houve erro ao criar contas a receber.",
-            variant: "default",
-          });
+          if (updateRecError) {
+            console.error("Erro ao atualizar receivable:", updateRecError);
+          }
         }
       }
 
@@ -608,7 +602,7 @@ const Faturamento = () => {
         description: `Convertido em venda ${newSaleNumber} com sucesso.`,
       });
     } catch (error) {
-      console.error("Error approving budget:", error);
+      console.error("Erro ao aprovar orçamento:", error);
       toast({
         title: "Erro",
         description: "Não foi possível aprovar o orçamento.",
