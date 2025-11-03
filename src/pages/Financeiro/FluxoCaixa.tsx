@@ -7,11 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Download, Filter, ArrowLeft } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Calendar as CalendarIcon, Download, Filter, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatDateForDisplay, parseISODate, dateToISOString } from "@/lib/date-utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface CashFlowEntry {
   id: string;
@@ -41,16 +44,18 @@ const FluxoCaixa = () => {
   const [cashFlowData, setCashFlowData] = useState<CashFlowEntry[]>([]);
   const [dailyBalances, setDailyBalances] = useState<DailyBalance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState("current");
+  const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedType, setSelectedType] = useState("all");
   const [bankAccountName, setBankAccountName] = useState<string>("");
   const [initialBalance, setInitialBalance] = useState<number>(0);
+  const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
+  const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (user) {
       fetchCashFlowData();
     }
-  }, [user, selectedPeriod]);
+  }, [user, selectedPeriod, customStartDate, customEndDate]);
 
   const fetchCashFlowData = async () => {
     try {
@@ -76,19 +81,34 @@ const FluxoCaixa = () => {
       // Calculate date range based on selected period
       let startDate: Date;
       let endDate: Date;
+      let useAllDates = false;
       
       switch (selectedPeriod) {
-        case "last":
-          startDate = startOfMonth(subMonths(new Date(), 1));
-          endDate = endOfMonth(subMonths(new Date(), 1));
+        case "today":
+          startDate = startOfDay(new Date());
+          endDate = endOfDay(new Date());
           break;
-        case "quarter":
-          startDate = startOfMonth(subMonths(new Date(), 3));
+        case "month":
+          startDate = startOfMonth(new Date());
           endDate = endOfMonth(new Date());
           break;
         case "year":
-          startDate = startOfMonth(subMonths(new Date(), 12));
-          endDate = endOfMonth(new Date());
+          startDate = startOfYear(new Date());
+          endDate = endOfYear(new Date());
+          break;
+        case "custom":
+          if (customStartDate && customEndDate) {
+            startDate = startOfDay(customStartDate);
+            endDate = endOfDay(customEndDate);
+          } else {
+            startDate = startOfMonth(new Date());
+            endDate = endOfMonth(new Date());
+          }
+          break;
+        case "all":
+          useAllDates = true;
+          startDate = new Date(2000, 0, 1); // Data arbitrária antiga
+          endDate = new Date(2099, 11, 31); // Data arbitrária futura
           break;
         default:
           startDate = startOfMonth(new Date());
@@ -108,9 +128,14 @@ const FluxoCaixa = () => {
           categories:category_id (name),
           subcategories:subcategory_id (name)
         `)
-        .eq('status', 'paid')
-        .gte('payment_date', dateToISOString(startDate))
-        .lte('payment_date', dateToISOString(endDate));
+        .eq('status', 'paid');
+      
+      // Aplicar filtros de data apenas se não for "all"
+      if (!useAllDates) {
+        receivablesQuery = receivablesQuery
+          .gte('payment_date', dateToISOString(startDate))
+          .lte('payment_date', dateToISOString(endDate));
+      }
 
       // Filtrar por conta bancária se accountId estiver definido
       if (accountId) {
@@ -132,9 +157,14 @@ const FluxoCaixa = () => {
           categories:category_id (name),
           subcategories:subcategory_id (name)
         `)
-        .eq('status', 'paid')
-        .gte('payment_date', dateToISOString(startDate))
-        .lte('payment_date', dateToISOString(endDate));
+        .eq('status', 'paid');
+      
+      // Aplicar filtros de data apenas se não for "all"
+      if (!useAllDates) {
+        payablesQuery = payablesQuery
+          .gte('payment_date', dateToISOString(startDate))
+          .lte('payment_date', dateToISOString(endDate));
+      }
 
       // Filtrar por conta bancária se accountId estiver definido
       if (accountId) {
@@ -311,18 +341,71 @@ const FluxoCaixa = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-3">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Selecionar período" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="current">Mês Atual</SelectItem>
-              <SelectItem value="last">Último Mês</SelectItem>
-              <SelectItem value="quarter">Último Trimestre</SelectItem>
-              <SelectItem value="year">Último Ano</SelectItem>
+              <SelectItem value="month">Por Mês</SelectItem>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="year">Este Ano</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
+          
+          {selectedPeriod === "custom" && (
+            <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !customStartDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customStartDate ? format(customStartDate, "dd/MM/yyyy") : "Data inicial"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customStartDate}
+                    onSelect={setCustomStartDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[180px] justify-start text-left font-normal",
+                      !customEndDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customEndDate ? format(customEndDate, "dd/MM/yyyy") : "Data final"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customEndDate}
+                    onSelect={setCustomEndDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
           
           <Button variant="outline" onClick={exportCashFlow}>
             <Download className="h-4 w-4 mr-2" />
