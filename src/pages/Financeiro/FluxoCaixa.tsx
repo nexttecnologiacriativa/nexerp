@@ -123,18 +123,18 @@ const FluxoCaixa = () => {
           description,
           amount,
           payment_date,
+          due_date,
           status,
           customers:customer_id (name),
           categories:category_id (name),
           subcategories:subcategory_id (name)
-        `)
-        .eq('status', 'paid');
+        `);
       
       // Aplicar filtros de data apenas se não for "all"
       if (!useAllDates) {
         receivablesQuery = receivablesQuery
-          .gte('payment_date', dateToISOString(startDate))
-          .lte('payment_date', dateToISOString(endDate));
+          .gte('due_date', dateToISOString(startDate))
+          .lte('due_date', dateToISOString(endDate));
       }
 
       // Filtrar por conta bancária se accountId estiver definido
@@ -152,18 +152,18 @@ const FluxoCaixa = () => {
           description,
           amount,
           payment_date,
+          due_date,
           status,
           suppliers:supplier_id (name),
           categories:category_id (name),
           subcategories:subcategory_id (name)
-        `)
-        .eq('status', 'paid');
+        `);
       
       // Aplicar filtros de data apenas se não for "all"
       if (!useAllDates) {
         payablesQuery = payablesQuery
-          .gte('payment_date', dateToISOString(startDate))
-          .lte('payment_date', dateToISOString(endDate));
+          .gte('due_date', dateToISOString(startDate))
+          .lte('due_date', dateToISOString(endDate));
       }
 
       // Filtrar por conta bancária se accountId estiver definido
@@ -179,7 +179,7 @@ const FluxoCaixa = () => {
       receivables?.forEach(item => {
         entries.push({
           id: item.id,
-          date: item.payment_date || '',
+          date: item.payment_date || item.due_date || '',
           description: item.description,
           type: "income",
           amount: item.amount,
@@ -191,7 +191,7 @@ const FluxoCaixa = () => {
       payables?.forEach(item => {
         entries.push({
           id: item.id,
-          date: item.payment_date || '',
+          date: item.payment_date || item.due_date || '',
           description: item.description,
           type: "expense",
           amount: item.amount,
@@ -203,13 +203,15 @@ const FluxoCaixa = () => {
       // Sort by date
       entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
-      // Calculate running balance for each entry
+      // Calculate running balance for each entry (apenas para pagos)
       let runningBalance = accountId ? initialBalance : 0;
       entries.forEach(entry => {
-        if (entry.type === 'income') {
-          runningBalance += entry.amount;
-        } else {
-          runningBalance -= entry.amount;
+        if (entry.status === 'paid') {
+          if (entry.type === 'income') {
+            runningBalance += entry.amount;
+          } else {
+            runningBalance -= entry.amount;
+          }
         }
         entry.balance = runningBalance;
       });
@@ -443,6 +445,7 @@ const FluxoCaixa = () => {
                 <TableHead>Data</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead className="text-right">Saldo</TableHead>
               </TableRow>
@@ -450,7 +453,7 @@ const FluxoCaixa = () => {
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center">Nenhuma movimentação encontrada</TableCell>
+                  <TableCell colSpan={6} className="text-center">Nenhuma movimentação encontrada</TableCell>
                 </TableRow>
               ) : (
                 filteredData.map((entry) => (
@@ -462,6 +465,23 @@ const FluxoCaixa = () => {
                     <TableCell>
                       <Badge variant={entry.type === 'income' ? 'default' : 'destructive'}>
                         {entry.type === 'income' ? 'Receita' : 'Despesa'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={
+                          entry.status === 'paid' 
+                            ? 'default' 
+                            : entry.status === 'overdue' 
+                              ? 'destructive' 
+                              : 'secondary'
+                        }
+                      >
+                        {entry.status === 'paid' 
+                          ? 'Pago' 
+                          : entry.status === 'overdue' 
+                            ? 'Atrasado' 
+                            : 'Pendente'}
                       </Badge>
                     </TableCell>
                     <TableCell className={`text-right font-medium ${entry.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
