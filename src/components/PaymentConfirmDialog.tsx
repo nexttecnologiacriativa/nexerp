@@ -2,7 +2,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateInput } from "@/components/ui/date-input";
 import { useState } from "react";
+import { getTodayISO } from "@/lib/date-utils";
 
 interface PaymentConfirmDialogProps {
   open: boolean;
@@ -12,7 +14,7 @@ interface PaymentConfirmDialogProps {
   bankAccounts: Array<{ id: string; name: string; bank_name: string }>;
   currentBankAccountId?: string | null;
   currentPaymentMethod?: string | null;
-  onConfirm: (bankAccountId: string, paymentMethod: string) => void;
+  onConfirm: (bankAccountId: string, paymentMethod: string, paymentDate: string) => void;
   type: "payment" | "receipt";
 }
 
@@ -29,12 +31,13 @@ export function PaymentConfirmDialog({
 }: PaymentConfirmDialogProps) {
   const [bankAccountId, setBankAccountId] = useState(currentBankAccountId || "");
   const [paymentMethod, setPaymentMethod] = useState(currentPaymentMethod || "");
+  const [paymentDate, setPaymentDate] = useState(getTodayISO());
 
   const handleConfirm = () => {
-    if (!bankAccountId || !paymentMethod) {
+    if (!bankAccountId || !paymentMethod || !paymentDate) {
       return;
     }
-    onConfirm(bankAccountId, paymentMethod);
+    onConfirm(bankAccountId, paymentMethod, paymentDate);
     onOpenChange(false);
   };
 
@@ -101,6 +104,17 @@ export function PaymentConfirmDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payment-date">
+              Data do {type === "payment" ? "Pagamento" : "Recebimento"} *
+            </Label>
+            <DateInput
+              id="payment-date"
+              value={paymentDate}
+              onChange={setPaymentDate}
+            />
+          </div>
         </div>
 
         <DialogFooter>
@@ -114,7 +128,7 @@ export function PaymentConfirmDialog({
           <Button 
             type="button"
             onClick={handleConfirm}
-            disabled={!bankAccountId || !paymentMethod}
+            disabled={!bankAccountId || !paymentMethod || !paymentDate}
           >
             Confirmar {type === "payment" ? "Pagamento" : "Recebimento"}
           </Button>

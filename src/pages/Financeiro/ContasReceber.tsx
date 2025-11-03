@@ -747,7 +747,7 @@ const ContasReceber = () => {
     setPaymentConfirmOpen(true);
   };
 
-  const confirmPayment = async (bankAccountId: string, paymentMethod: string) => {
+  const confirmPayment = async (bankAccountId: string, paymentMethod: string, paymentDate: string) => {
     if (!accountToReceiveId) return;
 
     try {
@@ -755,7 +755,7 @@ const ContasReceber = () => {
         .from('accounts_receivable')
         .update({
           status: 'paid',
-          payment_date: getTodayISO(),
+          payment_date: paymentDate,
           bank_account_id: bankAccountId,
           payment_method: paymentMethod as 'cash' | 'credit_card' | 'debit_card' | 'pix' | 'bank_transfer' | 'bank_slip' | 'check'
         })
