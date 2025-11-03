@@ -46,6 +46,7 @@ const FluxoCaixa = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedType, setSelectedType] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [bankAccountName, setBankAccountName] = useState<string>("");
   const [initialBalance, setInitialBalance] = useState<number>(0);
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>();
@@ -303,8 +304,22 @@ const FluxoCaixa = () => {
   };
 
   const filteredData = cashFlowData.filter(entry => {
-    if (selectedType === "all") return true;
-    return entry.type === selectedType;
+    // Filtro por tipo
+    if (selectedType !== "all" && entry.type !== selectedType) {
+      return false;
+    }
+    
+    // Filtro por status
+    if (selectedStatus !== "all") {
+      if (selectedStatus === "open" && entry.status === "paid") {
+        return false;
+      }
+      if (selectedStatus === "paid" && entry.status !== "paid") {
+        return false;
+      }
+    }
+    
+    return true;
   });
 
   if (loading) {
@@ -421,7 +436,7 @@ const FluxoCaixa = () => {
         <CardHeader>
           <CardTitle>Movimentações Financeiras</CardTitle>
           <CardDescription>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center space-x-2">
                 <Filter className="h-4 w-4" />
                 <Select value={selectedType} onValueChange={setSelectedType}>
@@ -432,6 +447,19 @@ const FluxoCaixa = () => {
                     <SelectItem value="all">Todos os tipos</SelectItem>
                     <SelectItem value="income">Receitas</SelectItem>
                     <SelectItem value="expense">Despesas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="open">Em aberto</SelectItem>
+                    <SelectItem value="paid">Já recebido</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
