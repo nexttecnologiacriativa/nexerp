@@ -303,6 +303,30 @@ const FluxoCaixa = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  // Opções de status dinâmicas baseadas no tipo selecionado
+  const getStatusOptions = () => {
+    if (selectedType === "income") {
+      return [
+        { value: "all", label: "Todos os status" },
+        { value: "pending", label: "Pendente" },
+        { value: "received", label: "Recebido" }
+      ];
+    } else if (selectedType === "expense") {
+      return [
+        { value: "all", label: "Todos os status" },
+        { value: "pending", label: "Pendente" },
+        { value: "paid", label: "Pago" }
+      ];
+    } else {
+      return [
+        { value: "all", label: "Todos os status" },
+        { value: "pending", label: "Pendente" },
+        { value: "paid", label: "Pago" },
+        { value: "received", label: "Recebido" }
+      ];
+    }
+  };
+
   const filteredData = cashFlowData.filter(entry => {
     // Filtro por tipo
     if (selectedType !== "all" && entry.type !== selectedType) {
@@ -311,10 +335,13 @@ const FluxoCaixa = () => {
     
     // Filtro por status
     if (selectedStatus !== "all") {
-      if (selectedStatus === "open" && entry.status === "paid") {
+      if (selectedStatus === "pending" && entry.status === "paid") {
         return false;
       }
       if (selectedStatus === "paid" && entry.status !== "paid") {
+        return false;
+      }
+      if (selectedStatus === "received" && entry.status !== "paid") {
         return false;
       }
     }
@@ -457,9 +484,11 @@ const FluxoCaixa = () => {
                     <SelectValue placeholder="Filtrar por status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos os status</SelectItem>
-                    <SelectItem value="open">Em aberto</SelectItem>
-                    <SelectItem value="paid">Já recebido</SelectItem>
+                    {getStatusOptions().map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
