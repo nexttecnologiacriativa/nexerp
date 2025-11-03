@@ -1,11 +1,11 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
-import { Search, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
-import { Input } from "@/components/ui/input";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import SettingsDropdown from "@/components/SettingsDropdown";
+import { GlobalSearch } from "@/components/GlobalSearch";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -23,13 +23,7 @@ const Layout = ({ children }: LayoutProps) => {
           <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <div className="relative w-96 max-w-sm">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar clientes, produtos, notas..."
-                  className="pl-9"
-                />
-              </div>
+              <GlobalSearch />
             </div>
 
             <div className="flex items-center gap-2">
