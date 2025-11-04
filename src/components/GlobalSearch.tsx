@@ -45,8 +45,7 @@ export function GlobalSearch() {
 
   useEffect(() => {
     const searchData = async () => {
-      // Limpa resultados imediatamente quando query está vazio ou muito curto
-      if (!query || query.length < 2) {
+      if (!query || query.length < 1) {
         setResults([]);
         setLoading(false);
         return;
@@ -135,7 +134,7 @@ export function GlobalSearch() {
             id: customer.id,
             type: 'Cliente',
             title: customer.name,
-            subtitle: customer.email,
+            subtitle: customer.email || customer.document,
             path: '/cadastros/clientes',
             icon: User
           });
@@ -179,7 +178,7 @@ export function GlobalSearch() {
             id: supplier.id,
             type: 'Fornecedor',
             title: supplier.name,
-            subtitle: supplier.email,
+            subtitle: supplier.email || supplier.document,
             path: '/cadastros/fornecedores',
             icon: Users
           });
@@ -208,24 +207,19 @@ export function GlobalSearch() {
         });
 
         setResults(searchResults);
+        setLoading(false);
       } catch (error) {
         console.error('Search error:', error);
-      } finally {
         setLoading(false);
       }
     };
 
-    // Debounce apenas se query não estiver vazio
-    if (query && query.length >= 2) {
-      const debounceTimer = setTimeout(() => {
-        searchData();
-      }, 300);
-      return () => clearTimeout(debounceTimer);
-    } else {
-      // Limpa imediatamente se query for vazio
-      setResults([]);
-      setLoading(false);
-    }
+    // Debounce reduzido para resposta mais rápida
+    const debounceTimer = setTimeout(() => {
+      searchData();
+    }, 150);
+
+    return () => clearTimeout(debounceTimer);
   }, [query, user?.id]);
 
   const handleSelect = (path: string) => {
@@ -269,13 +263,13 @@ export function GlobalSearch() {
             </div>
           )}
           
-          {!loading && query.length >= 2 && results.length === 0 && (
+          {!loading && query.length >= 1 && results.length === 0 && (
             <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
           )}
 
-          {!loading && query.length < 2 && (
+          {!loading && query.length < 1 && (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              Digite pelo menos 2 caracteres para buscar
+              Digite para começar a buscar
             </div>
           )}
 
