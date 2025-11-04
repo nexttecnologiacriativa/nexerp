@@ -41,6 +41,14 @@ export function GlobalSearch() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults([]);
+    }
+  }, [open]);
+
   useEffect(() => {
     const searchData = async () => {
       if (!query || query.length < 2) {
