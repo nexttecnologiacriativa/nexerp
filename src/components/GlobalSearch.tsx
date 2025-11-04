@@ -8,6 +8,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Search, User, Package, ShoppingCart, FileText, Users, Briefcase, DollarSign, Banknote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthContext";
@@ -41,14 +43,6 @@ export function GlobalSearch() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  // Reset state when dialog closes
-  useEffect(() => {
-    if (!open) {
-      setQuery("");
-      setResults([]);
-    }
-  }, [open]);
-
   useEffect(() => {
     const searchData = async () => {
       if (!query || query.length < 2) {
@@ -75,12 +69,12 @@ export function GlobalSearch() {
         const companyId = profileData.company_id;
         const searchTerm = `%${query}%`;
 
-        // Search Customers
+        // Search Customers (busca em nome, email e documento)
         const { data: customers } = await supabase
           .from('customers')
-          .select('id, name, email')
+          .select('id, name, email, document')
           .eq('company_id', companyId)
-          .ilike('name', searchTerm)
+          .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
           .limit(5);
 
         customers?.forEach(customer => {
@@ -94,12 +88,12 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Products
+        // Search Products (busca em nome, descrição e SKU)
         const { data: products } = await supabase
           .from('products')
-          .select('id, name, price')
+          .select('id, name, price, description, sku')
           .eq('company_id', companyId)
-          .ilike('name', searchTerm)
+          .or(`name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`)
           .limit(5);
 
         products?.forEach(product => {
@@ -113,12 +107,12 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Services
+        // Search Services (busca em nome e descrição)
         const { data: services } = await supabase
           .from('services')
-          .select('id, name, price')
+          .select('id, name, price, description')
           .eq('company_id', companyId)
-          .ilike('name', searchTerm)
+          .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
           .limit(5);
 
         services?.forEach(service => {
@@ -151,12 +145,12 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Suppliers
+        // Search Suppliers (busca em nome, email e documento)
         const { data: suppliers } = await supabase
           .from('suppliers')
-          .select('id, name, email')
+          .select('id, name, email, document')
           .eq('company_id', companyId)
-          .ilike('name', searchTerm)
+          .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
           .limit(5);
 
         suppliers?.forEach(supplier => {
@@ -170,12 +164,12 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Accounts Receivable
+        // Search Accounts Receivable (busca em descrição e número de documento)
         const { data: receivables } = await supabase
           .from('accounts_receivable')
-          .select('id, description, amount')
+          .select('id, description, amount, document_number')
           .eq('company_id', companyId)
-          .ilike('description', searchTerm)
+          .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
           .limit(5);
 
         receivables?.forEach(receivable => {
@@ -189,12 +183,12 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Accounts Payable
+        // Search Accounts Payable (busca em descrição e número de documento)
         const { data: payables } = await supabase
           .from('accounts_payable')
-          .select('id, description, amount')
+          .select('id, description, amount, document_number')
           .eq('company_id', companyId)
-          .ilike('description', searchTerm)
+          .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
           .limit(5);
 
         payables?.forEach(payable => {
@@ -225,8 +219,9 @@ export function GlobalSearch() {
 
   const handleSelect = (path: string) => {
     setOpen(false);
-    navigate(path);
     setQuery("");
+    setResults([]);
+    navigate(path);
   };
 
   // Group results by type
@@ -248,8 +243,11 @@ export function GlobalSearch() {
       </div>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
+        <VisuallyHidden>
+          <DialogTitle>Busca Global</DialogTitle>
+        </VisuallyHidden>
         <CommandInput 
-          placeholder="Buscar clientes, produtos, vendas..." 
+          placeholder="Buscar clientes, produtos, vendas, serviços..." 
           value={query}
           onValueChange={setQuery}
         />
