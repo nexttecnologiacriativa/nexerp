@@ -45,8 +45,10 @@ export function GlobalSearch() {
 
   useEffect(() => {
     const searchData = async () => {
+      // Limpa resultados imediatamente quando query está vazio ou muito curto
       if (!query || query.length < 2) {
         setResults([]);
+        setLoading(false);
         return;
       }
 
@@ -69,15 +71,66 @@ export function GlobalSearch() {
         const companyId = profileData.company_id;
         const searchTerm = `%${query}%`;
 
-        // Search Customers (busca em nome, email e documento)
-        const { data: customers } = await supabase
-          .from('customers')
-          .select('id, name, email, document')
-          .eq('company_id', companyId)
-          .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
-          .limit(5);
+        // Faz todas as buscas em paralelo
+        const [customers, products, services, sales, suppliers, receivables, payables] = await Promise.all([
+          // Search Customers
+          supabase
+            .from('customers')
+            .select('id, name, email, document')
+            .eq('company_id', companyId)
+            .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
+            .limit(5),
+          
+          // Search Products
+          supabase
+            .from('products')
+            .select('id, name, price, description, sku')
+            .eq('company_id', companyId)
+            .or(`name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`)
+            .limit(5),
+          
+          // Search Services
+          supabase
+            .from('services')
+            .select('id, name, price, description')
+            .eq('company_id', companyId)
+            .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
+            .limit(5),
+          
+          // Search Sales
+          supabase
+            .from('sales')
+            .select('id, sale_number, net_amount, customers(name)')
+            .eq('company_id', companyId)
+            .ilike('sale_number', searchTerm)
+            .limit(5),
+          
+          // Search Suppliers
+          supabase
+            .from('suppliers')
+            .select('id, name, email, document')
+            .eq('company_id', companyId)
+            .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
+            .limit(5),
+          
+          // Search Accounts Receivable
+          supabase
+            .from('accounts_receivable')
+            .select('id, description, amount, document_number')
+            .eq('company_id', companyId)
+            .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
+            .limit(5),
+          
+          // Search Accounts Payable
+          supabase
+            .from('accounts_payable')
+            .select('id, description, amount, document_number')
+            .eq('company_id', companyId)
+            .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
+            .limit(5)
+        ]);
 
-        customers?.forEach(customer => {
+        customers.data?.forEach(customer => {
           searchResults.push({
             id: customer.id,
             type: 'Cliente',
@@ -88,15 +141,7 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Products (busca em nome, descrição e SKU)
-        const { data: products } = await supabase
-          .from('products')
-          .select('id, name, price, description, sku')
-          .eq('company_id', companyId)
-          .or(`name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`)
-          .limit(5);
-
-        products?.forEach(product => {
+        products.data?.forEach(product => {
           searchResults.push({
             id: product.id,
             type: 'Produto',
@@ -107,15 +152,7 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Services (busca em nome e descrição)
-        const { data: services } = await supabase
-          .from('services')
-          .select('id, name, price, description')
-          .eq('company_id', companyId)
-          .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
-          .limit(5);
-
-        services?.forEach(service => {
+        services.data?.forEach(service => {
           searchResults.push({
             id: service.id,
             type: 'Serviço',
@@ -126,15 +163,7 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Sales
-        const { data: sales } = await supabase
-          .from('sales')
-          .select('id, sale_number, net_amount, customers(name)')
-          .eq('company_id', companyId)
-          .ilike('sale_number', searchTerm)
-          .limit(5);
-
-        sales?.forEach(sale => {
+        sales.data?.forEach(sale => {
           searchResults.push({
             id: sale.id,
             type: 'Venda',
@@ -145,15 +174,7 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Suppliers (busca em nome, email e documento)
-        const { data: suppliers } = await supabase
-          .from('suppliers')
-          .select('id, name, email, document')
-          .eq('company_id', companyId)
-          .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
-          .limit(5);
-
-        suppliers?.forEach(supplier => {
+        suppliers.data?.forEach(supplier => {
           searchResults.push({
             id: supplier.id,
             type: 'Fornecedor',
@@ -164,15 +185,7 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Accounts Receivable (busca em descrição e número de documento)
-        const { data: receivables } = await supabase
-          .from('accounts_receivable')
-          .select('id, description, amount, document_number')
-          .eq('company_id', companyId)
-          .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
-          .limit(5);
-
-        receivables?.forEach(receivable => {
+        receivables.data?.forEach(receivable => {
           searchResults.push({
             id: receivable.id,
             type: 'Conta a Receber',
@@ -183,15 +196,7 @@ export function GlobalSearch() {
           });
         });
 
-        // Search Accounts Payable (busca em descrição e número de documento)
-        const { data: payables } = await supabase
-          .from('accounts_payable')
-          .select('id, description, amount, document_number')
-          .eq('company_id', companyId)
-          .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
-          .limit(5);
-
-        payables?.forEach(payable => {
+        payables.data?.forEach(payable => {
           searchResults.push({
             id: payable.id,
             type: 'Conta a Pagar',
@@ -210,11 +215,17 @@ export function GlobalSearch() {
       }
     };
 
-    const debounceTimer = setTimeout(() => {
-      searchData();
-    }, 300);
-
-    return () => clearTimeout(debounceTimer);
+    // Debounce apenas se query não estiver vazio
+    if (query && query.length >= 2) {
+      const debounceTimer = setTimeout(() => {
+        searchData();
+      }, 300);
+      return () => clearTimeout(debounceTimer);
+    } else {
+      // Limpa imediatamente se query for vazio
+      setResults([]);
+      setLoading(false);
+    }
   }, [query, user?.id]);
 
   const handleSelect = (path: string) => {
