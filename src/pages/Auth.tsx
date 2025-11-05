@@ -88,25 +88,48 @@ const Auth = () => {
       });
       return;
     }
+
+    if (signupData.password.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter no mínimo 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setLoading(true);
     
-    const { error } = await signUp(
-      signupData.email, 
-      signupData.password, 
-      signupData.fullName, 
-      signupData.company || 'Minha Empresa'
-    );
-    
-    if (!error) {
+    try {
+      const { error } = await signUp(
+        signupData.email, 
+        signupData.password, 
+        signupData.fullName, 
+        signupData.company || 'Minha Empresa'
+      );
+      
+      if (error) {
+        // Error is already shown by AuthContext
+        console.error('Signup error:', error);
+      } else {
+        // Clear form
+        setSignupData({
+          fullName: "",
+          email: "",
+          password: "",
+          company: ""
+        });
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
       toast({
-        title: "Cadastro realizado!",
-        description: "Verifique seu email para confirmar o cadastro.",
+        title: "Erro no cadastro",
+        description: "Ocorreu um erro ao criar sua conta. Tente novamente.",
+        variant: "destructive",
       });
-      // Não navega automaticamente, aguarda confirmação do email
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
