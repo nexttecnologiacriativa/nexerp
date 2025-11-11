@@ -28,6 +28,8 @@ port = 54326
 [auth]
 enabled = true
 port = 54327
+site_url = "https://erpnex.com.br"
+additional_redirect_urls = ["https://erpnex.com.br"]
 
 [edge_runtime]
 enabled = true
