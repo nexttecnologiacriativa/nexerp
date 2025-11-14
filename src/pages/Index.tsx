@@ -13,6 +13,8 @@ const Index = () => {
   } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
+    console.log('VITE_GOTRUE_SITE_URL:', import.meta.env.VITE_GOTRUE_SITE_URL);
+    
     if (!loading && user) {
       navigate("/dashboard");
     }
