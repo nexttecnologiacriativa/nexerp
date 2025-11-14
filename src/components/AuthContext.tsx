@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         email,
         password,
       });
-      
+
       if (error) {
         toast({
           title: "Erro no login",
@@ -86,9 +86,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Verificar se o usuário tem 2FA ativado
       if (data.user?.user_metadata?.two_factor_enabled) {
         // Não fazer logout, apenas retornar indicador de 2FA necessário
-        return { 
-          error: null, 
-          requiresTwoFactor: true, 
+        return {
+          error: null,
+          requiresTwoFactor: true,
           tempSession: { email, password, user: data.user }
         };
       }
@@ -97,7 +97,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         title: "Login realizado com sucesso!",
         description: "Bem-vindo ao NexERP",
       });
-      
+
       return { error: null };
     } catch (error) {
       return { error };
@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signUp = async (email: string, password: string, fullName: string, companyName?: string) => {
     try {
       const redirectUrl = import.meta.env.VITE_GOTRUE_SITE_URL || "";
-      
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           }
         }
       });
-      
+
       if (error) {
         toast({
           title: "Erro no cadastro",
@@ -166,7 +166,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           description: "Verifique seu email para confirmar a conta",
         });
       }
-      
+
       return { error };
     } catch (error) {
       return { error };
