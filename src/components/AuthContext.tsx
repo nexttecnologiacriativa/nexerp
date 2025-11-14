@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signUp = async (email: string, password: string, fullName: string, companyName?: string) => {
     try {
-      const redirectUrl = import.meta.env.VITE_GOTRUE_SITE_URL!;
+      const redirectUrl = import.meta.env.VITE_GOTRUE_SITE_URL || "";
       
       const { error } = await supabase.auth.signUp({
         email,

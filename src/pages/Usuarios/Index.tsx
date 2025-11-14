@@ -163,6 +163,7 @@ const Usuarios = () => {
           email: formData.email,
           password: tempPassword,
           options: {
+            emailRedirectTo: import.meta.env.VITE_GOTRUE_SITE_URL || "",
             data: {
               full_name: formData.full_name,
               company_name: currentProfile.company_id
