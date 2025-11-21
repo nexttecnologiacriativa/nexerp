@@ -16,6 +16,7 @@ interface BankAccount {
   id: string;
   name: string;
   bank_name: string;
+  agency: string;
   account_number: string;
   account_type: 'checking' | 'savings' | 'credit';
   balance: number;
@@ -35,6 +36,7 @@ const Bancos = () => {
   const [formData, setFormData] = useState({
     name: '',
     bank_name: '',
+    agency: '',
     account_number: '',
     account_type: 'checking',
     balance: '',
@@ -98,6 +100,7 @@ const Bancos = () => {
     setFormData({
       name: '',
       bank_name: '',
+      agency: '',
       account_number: '',
       account_type: 'checking',
       balance: '',
@@ -130,6 +133,7 @@ const Bancos = () => {
       const accountData = {
         name: formData.name,
         bank_name: formData.bank_name,
+        agency: formData.agency,
         account_number: formData.account_number,
         account_type: formData.account_type as 'checking' | 'savings' | 'credit',
         balance: parseFloat(formData.balance) || 0,
@@ -178,6 +182,7 @@ const Bancos = () => {
     setFormData({
       name: account.name,
       bank_name: account.bank_name || '',
+      agency: account.agency || '',
       account_number: account.account_number || '',
       account_type: account.account_type,
       balance: account.balance?.toString() || '',
@@ -220,6 +225,7 @@ const Bancos = () => {
   const filteredAccounts = bankAccounts.filter(account =>
     account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     account.bank_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    account.agency?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     account.account_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -293,6 +299,16 @@ const Bancos = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="agency">Agência</Label>
+                  <Input
+                    id="agency"
+                    value={formData.agency}
+                    onChange={(e) => setFormData(prev => ({ ...prev, agency: e.target.value }))}
+                    placeholder="1234"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="account_number">Número da Conta</Label>
                   <Input
@@ -420,6 +436,7 @@ const Bancos = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Banco</TableHead>
+                  <TableHead>Agência</TableHead>
                   <TableHead>Número</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Saldo</TableHead>
@@ -436,6 +453,7 @@ const Bancos = () => {
                   >
                     <TableCell className="font-medium">{account.name}</TableCell>
                     <TableCell>{account.bank_name}</TableCell>
+                    <TableCell>{account.agency}</TableCell>
                     <TableCell>{account.account_number}</TableCell>
                     <TableCell>{getAccountTypeLabel(account.account_type)}</TableCell>
                     <TableCell>

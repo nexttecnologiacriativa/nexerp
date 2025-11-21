@@ -18,6 +18,7 @@ export function QuickAddBankAccount({ open, onOpenChange, onSuccess, companyId }
   const [formData, setFormData] = useState({
     name: "",
     bank_name: "",
+    agency: "",
     account_number: "",
   });
 
@@ -38,6 +39,7 @@ export function QuickAddBankAccount({ open, onOpenChange, onSuccess, companyId }
             company_id: companyId,
             name: formData.name,
             bank_name: formData.bank_name,
+            agency: formData.agency || null,
             account_number: formData.account_number || "N/A",
             account_type: "checking",
             balance: 0,
@@ -57,6 +59,7 @@ export function QuickAddBankAccount({ open, onOpenChange, onSuccess, companyId }
       setFormData({
         name: "",
         bank_name: "",
+        agency: "",
         account_number: "",
       });
     } catch (error: any) {
@@ -96,14 +99,26 @@ export function QuickAddBankAccount({ open, onOpenChange, onSuccess, companyId }
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="account_number">Número da Conta</Label>
-            <Input
-              id="account_number"
-              value={formData.account_number}
-              onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-              placeholder="1234-5 (opcional)"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="agency">Agência</Label>
+              <Input
+                id="agency"
+                value={formData.agency}
+                onChange={(e) => setFormData({ ...formData, agency: e.target.value })}
+                placeholder="1234"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="account_number">Número da Conta</Label>
+              <Input
+                id="account_number"
+                value={formData.account_number}
+                onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
+                placeholder="1234-5"
+              />
+            </div>
           </div>
 
           <DialogFooter>
