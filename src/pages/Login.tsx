@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import Logo from "@/components/Logo";
 import { useAuth } from "@/components/AuthContext";
 import { TwoFactorDialog } from "@/components/TwoFactorDialog";
+import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";
 import TestimonialCarousel from "@/components/TestimonialCarousel";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,6 +19,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [tempSession, setTempSession] = useState<any>(null);
   
   const [formData, setFormData] = useState({
@@ -137,7 +139,7 @@ const Login = () => {
                     type="button"
                     variant="link"
                     className="px-0 text-sm"
-                    onClick={() => toast({ description: "Funcionalidade em desenvolvimento" })}
+                    onClick={() => setShowForgotPassword(true)}
                   >
                     Esqueceu sua senha?
                   </Button>
@@ -179,6 +181,12 @@ const Login = () => {
         onVerify={handleTwoFactorVerify}
         onCancel={handleTwoFactorCancel}
         loading={loading}
+      />
+
+      {/* Forgot Password Dialog */}
+      <ForgotPasswordDialog
+        open={showForgotPassword}
+        onOpenChange={setShowForgotPassword}
       />
     </div>
   );
