@@ -33,6 +33,7 @@ import Planos from "./pages/Planos";
 import Faturamento from "./pages/Faturamento";
 import PopulateDemoData from "./pages/PopulateDemoData";
 import Layout from "./components/Layout";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
             <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Layout><Dashboard /></Layout>
