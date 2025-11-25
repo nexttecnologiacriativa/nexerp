@@ -29,7 +29,9 @@ port = 54326
 enabled = true
 port = 54327
 site_url = "https://erpnex.com.br"
-additional_redirect_urls = ["https://erpnex.com.br", "https://erpnex.com.br/reset-password"]
+additional_redirect_urls = ["https://erpnex.com.br/**", "https://erpnex.com.br/reset-password"]
+enable_signup = true
+enable_anonymous_sign_ins = false
 
 [edge_runtime]
 enabled = true
