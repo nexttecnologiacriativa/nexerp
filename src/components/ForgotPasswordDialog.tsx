@@ -30,7 +30,8 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
 
     setLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/auth?reset=true`;
+      // Usar a URL correta para self-hosted
+      const redirectUrl = "https://erpnex.com.br/reset-password";
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
