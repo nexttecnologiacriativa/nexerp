@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   TrendingUp,
   TrendingDown,
@@ -115,6 +116,9 @@ const Faturamento = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [editingBudgetId, setEditingBudgetId] = useState<string | undefined>(undefined);
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Sale | null>(null);
   useEffect(() => {
     fetchBillingData();
   }, [periodFilter, selectedMonth, customStartDate, customEndDate]);
@@ -585,10 +589,19 @@ const Faturamento = () => {
     }
   };
 
-  const handleApproveBudget = async (budget: Sale) => {
-    if (!confirm(`Deseja aprovar o orçamento ${budget.sale_number}? Ele será convertido em venda.`)) {
-      return;
-    }
+  const openApproveDialog = (budget: Sale) => {
+    setSelectedBudget(budget);
+    setApproveDialogOpen(true);
+  };
+
+  const openRejectDialog = (budget: Sale) => {
+    setSelectedBudget(budget);
+    setRejectDialogOpen(true);
+  };
+
+  const handleApproveBudget = async () => {
+    if (!selectedBudget) return;
+    const budget = selectedBudget;
 
     try {
       const {
@@ -698,10 +711,9 @@ const Faturamento = () => {
     }
   };
 
-  const handleRejectBudget = async (budget: Sale) => {
-    if (!confirm(`Deseja recusar o orçamento ${budget.sale_number}?`)) {
-      return;
-    }
+  const handleRejectBudget = async () => {
+    if (!selectedBudget) return;
+    const budget = selectedBudget;
 
     try {
       const { error: updateError } = await supabase
@@ -1314,7 +1326,7 @@ const Faturamento = () => {
                                     <Button
                                       variant="default"
                                       size="sm"
-                                      onClick={() => handleApproveBudget(budget)}
+                                      onClick={() => openApproveDialog(budget)}
                                       title="Aprovar orçamento e converter em venda efetiva"
                                       className="bg-green-600 hover:bg-green-700"
                                     >
@@ -1323,7 +1335,7 @@ const Faturamento = () => {
                                     <Button
                                       variant="destructive"
                                       size="sm"
-                                      onClick={() => handleRejectBudget(budget)}
+                                      onClick={() => openRejectDialog(budget)}
                                       title="Recusar orçamento"
                                     >
                                       <AlertCircle className="h-4 w-4" />
@@ -1582,6 +1594,29 @@ const Faturamento = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Approve Budget Dialog */}
+        <ConfirmDialog
+          open={approveDialogOpen}
+          onOpenChange={setApproveDialogOpen}
+          title="Aprovar Orçamento"
+          description={selectedBudget ? `Deseja aprovar o orçamento ${selectedBudget.sale_number}?\n\nO orçamento será convertido em uma venda efetiva e as parcelas serão atualizadas automaticamente.` : ""}
+          confirmText="Aprovar"
+          cancelText="Cancelar"
+          onConfirm={handleApproveBudget}
+        />
+
+        {/* Reject Budget Dialog */}
+        <ConfirmDialog
+          open={rejectDialogOpen}
+          onOpenChange={setRejectDialogOpen}
+          title="Recusar Orçamento"
+          description={selectedBudget ? `Deseja recusar o orçamento ${selectedBudget.sale_number}?\n\nO orçamento será marcado como recusado e permanecerá no histórico.` : ""}
+          confirmText="Recusar"
+          cancelText="Cancelar"
+          onConfirm={handleRejectBudget}
+          variant="destructive"
+        />
       </div>
     </div>
   );
