@@ -423,7 +423,7 @@ const Faturamento = () => {
     switch (status) {
       case "active":
       case "em_andamento":
-        return "secondary";
+        return "default";
       case "aprovado":
       case "approved":
         return "default";
