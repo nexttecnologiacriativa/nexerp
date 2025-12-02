@@ -284,6 +284,22 @@ const Faturamento = () => {
       setLoading(false);
     }
   };
+
+  // Helper functions for status display - defined before use
+  const getSituacaoFromNotes = (notes: string | undefined): string | null => {
+    if (!notes) return null;
+    const match = notes.match(/Situação:\s*(\w+)/i);
+    return match ? match[1].toLowerCase() : null;
+  };
+
+  const getDisplayStatus = (sale: Sale): string => {
+    const situacao = getSituacaoFromNotes(sale.notes);
+    if (situacao) {
+      return situacao;
+    }
+    return sale.status;
+  };
+
   const filteredSales = sales.filter((sale) => {
     const matchesStatus = statusFilter === "all" || sale.status === statusFilter;
     return matchesStatus;
@@ -394,21 +410,6 @@ const Faturamento = () => {
       default:
         return "outline";
     }
-  };
-
-  // Extract situação from notes field
-  const getSituacaoFromNotes = (notes: string | undefined): string | null => {
-    if (!notes) return null;
-    const match = notes.match(/Situação:\s*(\w+)/i);
-    return match ? match[1].toLowerCase() : null;
-  };
-
-  const getDisplayStatus = (sale: Sale): string => {
-    const situacao = getSituacaoFromNotes(sale.notes);
-    if (situacao) {
-      return situacao;
-    }
-    return sale.status;
   };
 
   const getStatusLabel = (status: string) => {
