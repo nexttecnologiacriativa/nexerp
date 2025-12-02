@@ -188,12 +188,15 @@ const Faturamento = () => {
           customer_name: sale.customers?.name || "Cliente não informado",
         })) || [];
 
-      // Separate sales from budgets based on sale_number prefix
+      // Separate sales from budgets based on sale_number prefix and status
+      // Vendas: VND ou ORC com status aprovado
       const actualSales = formattedData.filter(
-        (sale) => sale.sale_number?.startsWith("VND")
+        (sale) => sale.sale_number?.startsWith("VND") || 
+        (sale.sale_number?.startsWith("ORC") && (sale.status as string) === "aprovado")
       );
+      // Orçamentos: ORC que NÃO estão aprovados (pendente, recusado, etc)
       const budgetData = formattedData.filter(
-        (sale) => sale.sale_number?.startsWith("ORC")
+        (sale) => sale.sale_number?.startsWith("ORC") && (sale.status as string) !== "aprovado"
       );
       setSales(actualSales);
       setBudgets(budgetData);
@@ -368,17 +371,39 @@ const Faturamento = () => {
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "active":
+      case "aprovado":
         return "default";
       case "cancelled":
+      case "recusado":
+      case "reprovado":
         return "destructive";
       case "pending":
         return "secondary";
       case "overdue":
         return "destructive";
-      case "reprovado":
-        return "destructive";
       default:
         return "outline";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "active":
+        return "Em andamento";
+      case "aprovado":
+        return "Aprovado";
+      case "cancelled":
+        return "Cancelado";
+      case "recusado":
+        return "Recusado";
+      case "reprovado":
+        return "Reprovado";
+      case "overdue":
+        return "Atrasado";
+      case "pending":
+        return "Pendente";
+      default:
+        return status;
     }
   };
   const getSaleType = (sale: Sale) => {
@@ -1140,6 +1165,7 @@ const Faturamento = () => {
                       <SelectItem value="cancelled">Cancelado</SelectItem>
                       <SelectItem value="pending">Pendente</SelectItem>
                       <SelectItem value="overdue">Atrasado</SelectItem>
+                      <SelectItem value="recusado">Recusado</SelectItem>
                       <SelectItem value="reprovado">Reprovado</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1178,15 +1204,7 @@ const Faturamento = () => {
                             <TableCell className="font-medium">{formatCurrency(Number(budget.net_amount))}</TableCell>
                             <TableCell>
                               <Badge variant={getStatusVariant(budget.status)} className="text-xs">
-                                {budget.status === "active"
-                                  ? "Em andamento"
-                                  : budget.status === "cancelled"
-                                    ? "Cancelado"
-                                    : budget.status === "overdue"
-                                      ? "Atrasado"
-                                      : budget.status === "reprovado"
-                                        ? "Reprovado"
-                                        : "Pendente"}
+                                {getStatusLabel(budget.status)}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
