@@ -194,6 +194,8 @@ const Faturamento = () => {
           const match = sale.notes.match(/Situação:\s*(\w+)/i);
           if (match) return match[1].toLowerCase();
         }
+        // Map database status to display status
+        if (sale.status === "inactive") return "recusado";
         return sale.status;
       };
 
@@ -203,9 +205,11 @@ const Faturamento = () => {
         (sale) => sale.sale_number?.startsWith("VND") || 
         (sale.sale_number?.startsWith("ORC") && getDisplayStatusFromSale(sale) === "aprovado")
       );
-      // Orçamentos: ORC que NÃO estão aprovados (pendente, recusado, etc)
+      // Dinheiro na Mesa: ORC que NÃO estão aprovados E NÃO estão recusados
       const budgetData = formattedData.filter(
-        (sale) => sale.sale_number?.startsWith("ORC") && getDisplayStatusFromSale(sale) !== "aprovado"
+        (sale) => sale.sale_number?.startsWith("ORC") && 
+          getDisplayStatusFromSale(sale) !== "aprovado" && 
+          getDisplayStatusFromSale(sale) !== "recusado"
       );
       setSales(actualSales);
       setBudgets(budgetData);
@@ -297,6 +301,8 @@ const Faturamento = () => {
     if (situacao) {
       return situacao;
     }
+    // Map database status to display status
+    if (sale.status === "inactive") return "recusado";
     return sale.status;
   };
 
@@ -663,6 +669,48 @@ const Faturamento = () => {
       toast({
         title: "Erro",
         description: "Não foi possível aprovar o orçamento.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectBudget = async (budget: Sale) => {
+    if (!confirm(`Deseja recusar o orçamento ${budget.sale_number}?`)) {
+      return;
+    }
+
+    try {
+      const { error: updateError } = await supabase
+        .from("sales")
+        .update({ 
+          status: "inactive",
+          notes: budget.notes 
+            ? `${budget.notes}\n\nSituação: recusado` 
+            : `Situação: recusado`
+        })
+        .eq("id", budget.id);
+
+      if (updateError) {
+        console.error("Erro ao recusar orçamento:", updateError);
+        toast({
+          title: "Erro ao recusar orçamento",
+          description: updateError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await fetchBillingData();
+
+      toast({
+        title: "Orçamento recusado",
+        description: `Orçamento ${budget.sale_number} foi marcado como recusado.`,
+      });
+    } catch (error) {
+      console.error("Erro ao recusar orçamento:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível recusar o orçamento.",
         variant: "destructive",
       });
     }
@@ -1239,15 +1287,27 @@ const Faturamento = () => {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end space-x-1">
-                                {budget.status === "pending" && (
-                                  <Button
-                                    variant="default"
-                                    size="sm"
-                                    onClick={() => handleApproveBudget(budget)}
-                                    title="Aprovar orçamento e converter em venda efetiva"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                  </Button>
+                                {/* Show approve/reject buttons only for pending budgets (not approved or rejected) */}
+                                {getDisplayStatus(budget) !== "aprovado" && getDisplayStatus(budget) !== "recusado" && (
+                                  <>
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => handleApproveBudget(budget)}
+                                      title="Aprovar orçamento e converter em venda efetiva"
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      <CheckCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleRejectBudget(budget)}
+                                      title="Recusar orçamento"
+                                    >
+                                      <AlertCircle className="h-4 w-4" />
+                                    </Button>
+                                  </>
                                 )}
                                 <Button
                                   variant="outline"
