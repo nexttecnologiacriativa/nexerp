@@ -188,15 +188,24 @@ const Faturamento = () => {
           customer_name: sale.customers?.name || "Cliente não informado",
         })) || [];
 
+      // Helper to get display status from sale
+      const getDisplayStatusFromSale = (sale: any): string => {
+        if (sale.notes) {
+          const match = sale.notes.match(/Situação:\s*(\w+)/i);
+          if (match) return match[1].toLowerCase();
+        }
+        return sale.status;
+      };
+
       // Separate sales from budgets based on sale_number prefix and status
       // Vendas: VND ou ORC com status aprovado
       const actualSales = formattedData.filter(
         (sale) => sale.sale_number?.startsWith("VND") || 
-        (sale.sale_number?.startsWith("ORC") && (sale.status as string) === "aprovado")
+        (sale.sale_number?.startsWith("ORC") && getDisplayStatusFromSale(sale) === "aprovado")
       );
       // Orçamentos: ORC que NÃO estão aprovados (pendente, recusado, etc)
       const budgetData = formattedData.filter(
-        (sale) => sale.sale_number?.startsWith("ORC") && (sale.status as string) !== "aprovado"
+        (sale) => sale.sale_number?.startsWith("ORC") && getDisplayStatusFromSale(sale) !== "aprovado"
       );
       setSales(actualSales);
       setBudgets(budgetData);
@@ -280,7 +289,8 @@ const Faturamento = () => {
     return matchesStatus;
   });
   const filteredBudgets = budgets.filter((budget) => {
-    const matchesStatus = statusFilter === "all" || budget.status === statusFilter;
+    const displayStatus = getDisplayStatus(budget);
+    const matchesStatus = statusFilter === "all" || displayStatus === statusFilter;
     return matchesStatus;
   });
   const handleViewSale = async (saleId: string) => {
@@ -384,6 +394,21 @@ const Faturamento = () => {
       default:
         return "outline";
     }
+  };
+
+  // Extract situação from notes field
+  const getSituacaoFromNotes = (notes: string | undefined): string | null => {
+    if (!notes) return null;
+    const match = notes.match(/Situação:\s*(\w+)/i);
+    return match ? match[1].toLowerCase() : null;
+  };
+
+  const getDisplayStatus = (sale: Sale): string => {
+    const situacao = getSituacaoFromNotes(sale.notes);
+    if (situacao) {
+      return situacao;
+    }
+    return sale.status;
   };
 
   const getStatusLabel = (status: string) => {
@@ -1203,8 +1228,8 @@ const Faturamento = () => {
                             </TableCell>
                             <TableCell className="font-medium">{formatCurrency(Number(budget.net_amount))}</TableCell>
                             <TableCell>
-                              <Badge variant={getStatusVariant(budget.status)} className="text-xs">
-                                {getStatusLabel(budget.status)}
+                              <Badge variant={getStatusVariant(getDisplayStatus(budget))} className="text-xs">
+                                {getStatusLabel(getDisplayStatus(budget))}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
