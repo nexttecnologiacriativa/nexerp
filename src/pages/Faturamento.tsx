@@ -398,9 +398,11 @@ const Faturamento = () => {
     switch (status) {
       case "active":
       case "aprovado":
+      case "approved":
         return "default";
       case "cancelled":
       case "recusado":
+      case "rejected":
       case "reprovado":
         return "destructive";
       case "pending":
@@ -417,10 +419,12 @@ const Faturamento = () => {
       case "active":
         return "Em andamento";
       case "aprovado":
+      case "approved":
         return "Aprovado";
       case "cancelled":
         return "Cancelado";
       case "recusado":
+      case "rejected":
         return "Recusado";
       case "reprovado":
         return "Reprovado";
