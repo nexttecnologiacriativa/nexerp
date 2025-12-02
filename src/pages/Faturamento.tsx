@@ -304,18 +304,21 @@ const Faturamento = () => {
     if (sale.status === "inactive") return "recusado";
     
     // Check if budget is overdue (sale_date in the past and not rejected/approved)
-    if (sale.sale_number?.startsWith("ORC")) {
-      const saleDate = new Date(sale.sale_date);
+    if (sale.sale_number?.startsWith("ORC") && sale.status === "active") {
+      // Parse date without timezone issues by splitting the string
+      const [year, month, day] = sale.sale_date.split('-').map(Number);
+      const saleDate = new Date(year, month - 1, day); // month is 0-indexed
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       saleDate.setHours(0, 0, 0, 0);
-      if (saleDate < today && sale.status === "active") {
+      
+      // Only mark as "atrasado" if sale_date is strictly before today
+      if (saleDate.getTime() < today.getTime()) {
         return "atrasado";
       }
-    }
-    
-    // For budgets, "active" means "em_andamento"
-    if (sale.sale_number?.startsWith("ORC") && sale.status === "active") {
+      
+      // If not overdue, it's "em_andamento"
       return "em_andamento";
     }
     
