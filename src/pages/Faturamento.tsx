@@ -303,6 +303,23 @@ const Faturamento = () => {
     }
     // Map database status to display status
     if (sale.status === "inactive") return "recusado";
+    
+    // Check if budget is overdue (sale_date in the past and not rejected/approved)
+    if (sale.sale_number?.startsWith("ORC")) {
+      const saleDate = new Date(sale.sale_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      saleDate.setHours(0, 0, 0, 0);
+      if (saleDate < today && sale.status === "active") {
+        return "atrasado";
+      }
+    }
+    
+    // For budgets, "active" means "em_andamento"
+    if (sale.sale_number?.startsWith("ORC") && sale.status === "active") {
+      return "em_andamento";
+    }
+    
     return sale.status;
   };
 
@@ -403,6 +420,8 @@ const Faturamento = () => {
   const getStatusVariant = (status: string) => {
     switch (status) {
       case "active":
+      case "em_andamento":
+        return "secondary";
       case "aprovado":
       case "approved":
         return "default";
@@ -414,6 +433,7 @@ const Faturamento = () => {
       case "pending":
         return "secondary";
       case "overdue":
+      case "atrasado":
         return "destructive";
       default:
         return "outline";
@@ -423,6 +443,7 @@ const Faturamento = () => {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case "active":
+      case "em_andamento":
         return "Em andamento";
       case "aprovado":
       case "approved":
@@ -435,6 +456,7 @@ const Faturamento = () => {
       case "reprovado":
         return "Reprovado";
       case "overdue":
+      case "atrasado":
         return "Atrasado";
       case "pending":
         return "Pendente";
@@ -1239,12 +1261,9 @@ const Faturamento = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="active">Em andamento</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                      <SelectItem value="pending">Pendente</SelectItem>
-                      <SelectItem value="overdue">Atrasado</SelectItem>
+                      <SelectItem value="em_andamento">Em andamento</SelectItem>
+                      <SelectItem value="atrasado">Atrasado</SelectItem>
                       <SelectItem value="recusado">Recusado</SelectItem>
-                      <SelectItem value="reprovado">Reprovado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
