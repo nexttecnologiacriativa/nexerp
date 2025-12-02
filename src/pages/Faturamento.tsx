@@ -419,11 +419,11 @@ const Faturamento = () => {
       currency: "BRL",
     }).format(value);
   };
-  const getStatusVariant = (status: string) => {
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "success" | "outline" => {
     switch (status) {
       case "active":
       case "em_andamento":
-        return "default";
+        return "success";
       case "aprovado":
       case "approved":
         return "default";
