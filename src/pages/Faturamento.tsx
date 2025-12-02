@@ -375,6 +375,8 @@ const Faturamento = () => {
         return "secondary";
       case "overdue":
         return "destructive";
+      case "reprovado":
+        return "destructive";
       default:
         return "outline";
     }
@@ -1138,6 +1140,7 @@ const Faturamento = () => {
                       <SelectItem value="cancelled">Cancelado</SelectItem>
                       <SelectItem value="pending">Pendente</SelectItem>
                       <SelectItem value="overdue">Atrasado</SelectItem>
+                      <SelectItem value="reprovado">Reprovado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1181,7 +1184,9 @@ const Faturamento = () => {
                                     ? "Cancelado"
                                     : budget.status === "overdue"
                                       ? "Atrasado"
-                                      : "Pendente"}
+                                      : budget.status === "reprovado"
+                                        ? "Reprovado"
+                                        : "Pendente"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">
