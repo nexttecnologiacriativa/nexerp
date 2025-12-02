@@ -603,7 +603,17 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
       console.log("=== ATUALIZANDO VENDA ===");
       console.log("Sale ID:", editSaleId);
 
-      // Update sale
+      // Update sale - map status values to valid database enum values
+      const statusMapping: Record<string, "active" | "inactive" | "pending"> = {
+        "active": "active",
+        "aprovado": "active",
+        "recusado": "inactive",
+        "reprovado": "inactive",
+        "cancelled": "inactive",
+        "pending": "pending",
+      };
+      const mappedStatus = statusMapping[formData.status] || "active";
+
       const { error: saleError } = await supabase
         .from("sales")
         .update({
@@ -612,7 +622,10 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
           discount_amount: discountAmount - additionAmount,
           net_amount: finalAmount,
           sale_date: formData.sale_date,
-          notes: formData.tags.length > 0 ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}` : formData.notes,
+          notes: formData.tags.length > 0 
+            ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}\n\nSituação: ${formData.status}` 
+            : `${formData.notes || ''}\n\nSituação: ${formData.status}`,
+          status: mappedStatus,
         })
         .eq("id", editSaleId);
 
