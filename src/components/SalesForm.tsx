@@ -602,6 +602,8 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
 
       console.log("=== ATUALIZANDO VENDA ===");
       console.log("Sale ID:", editSaleId);
+      console.log("Status:", formData.status);
+      console.log("Sale Number:", formData.sale_number);
 
       // Update sale - map status values to valid database enum values
       const statusMapping: Record<string, "active" | "inactive" | "pending"> = {
@@ -614,6 +616,32 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
       };
       const mappedStatus = statusMapping[formData.status] || "active";
 
+      // Check if budget is being approved - convert to effective sale
+      let newSaleNumber = formData.sale_number;
+      const isBeingApproved = formData.status === "aprovado" && formData.sale_number?.startsWith("ORC");
+      
+      if (isBeingApproved) {
+        // Generate new VND number
+        const { data: lastSale } = await supabase
+          .from("sales")
+          .select("sale_number")
+          .eq("company_id", userProfile.company_id)
+          .like("sale_number", "VND-%")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        let nextNumber = 1;
+        if (lastSale?.sale_number) {
+          const lastNumber = parseInt(lastSale.sale_number.replace("VND-", ""), 10);
+          if (!isNaN(lastNumber)) {
+            nextNumber = lastNumber + 1;
+          }
+        }
+        newSaleNumber = `VND-${nextNumber.toString().padStart(4, "0")}`;
+        console.log("Convertendo orçamento para venda:", formData.sale_number, "->", newSaleNumber);
+      }
+
       const { error: saleError } = await supabase
         .from("sales")
         .update({
@@ -622,9 +650,10 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
           discount_amount: discountAmount - additionAmount,
           net_amount: finalAmount,
           sale_date: formData.sale_date,
+          sale_number: newSaleNumber,
           notes: formData.tags.length > 0 
-            ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}\n\nSituação: ${formData.status}` 
-            : `${formData.notes || ''}\n\nSituação: ${formData.status}`,
+            ? `${formData.notes}\n\nTags: ${formData.tags.join(", ")}\n\nSituação: ${formData.status}${isBeingApproved ? `\n\nConvertido de: ${formData.sale_number}` : ''}` 
+            : `${formData.notes || ''}\n\nSituação: ${formData.status}${isBeingApproved ? `\n\nConvertido de: ${formData.sale_number}` : ''}`,
           status: mappedStatus,
         })
         .eq("id", editSaleId);
@@ -685,23 +714,24 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
               },
             ];
 
-      const saleTypeLabel = saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente";
+      // Use "Venda" label if budget was approved, otherwise use original type
+      const saleTypeLabel = isBeingApproved ? "Venda" : (saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente");
 
       const receivableEntries = finalInstallments.map((installment) => ({
         company_id: userProfile.company_id,
         customer_id: formData.client_id,
         description:
           finalInstallments.length === 1
-            ? `${saleTypeLabel} ${formData.sale_number}`
-            : `${saleTypeLabel} ${formData.sale_number} - Parcela ${installment.number}/${finalInstallments.length}`,
+            ? `${saleTypeLabel} ${newSaleNumber}`
+            : `${saleTypeLabel} ${newSaleNumber} - Parcela ${installment.number}/${finalInstallments.length}`,
         amount: installment.amount,
         due_date: installment.due_date,
         status: "pending" as const,
         payment_method: (paymentInfo.payment_method || null) as any,
-        notes: `Gerado automaticamente do ${saleTypeLabel.toLowerCase()} ${formData.sale_number}`,
+        notes: `Gerado automaticamente do ${saleTypeLabel.toLowerCase()} ${newSaleNumber}`,
         bank_account_id: paymentInfo.receiving_account || null,
         is_recurring: false,
-        document_number: formData.sale_number,
+        document_number: newSaleNumber,
       }));
 
       const { error: receivableError } = await supabase.from("accounts_receivable").insert(receivableEntries);
@@ -711,7 +741,10 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
         throw receivableError;
       }
 
-      toast.success("Orçamento atualizado com sucesso!");
+      const successMessage = isBeingApproved 
+        ? `Orçamento aprovado e convertido em Venda ${newSaleNumber}!` 
+        : "Orçamento atualizado com sucesso!";
+      toast.success(successMessage);
 
       if (onSuccess) {
         onSuccess();
