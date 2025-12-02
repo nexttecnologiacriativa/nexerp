@@ -940,16 +940,10 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">
-            {isEditMode 
-              ? `Editar ${saleType === "budget" ? "Orçamento" : "Venda"} ${formData.sale_number}`
-              : `Novo ${saleType === "budget" ? "Orçamento" : "Venda"} ${formData.sale_number}`
-            }
+            {saleType === "budget" ? "Orçamento" : "Venda"} {formData.sale_number}
           </h2>
           <p className="text-muted-foreground">
-            {isEditMode 
-              ? `Edite ${saleType === "budget" ? "o orçamento" : "a venda"}`
-              : `Cadastre ${saleType === "budget" ? "um novo orçamento" : "uma nova venda"}`
-            }
+            {saleType === "budget" ? "Preencha os dados do orçamento" : "Preencha os dados da venda"}
           </p>
         </div>
       </div>
@@ -1613,8 +1607,8 @@ const SalesForm = ({ defaultType = "sale", onSuccess, onCancel, editSaleId }: Sa
               className="min-w-[120px]"
             >
               {loading
-                ? isEditMode ? "Atualizando..." : "Salvando..."
-                : isEditMode ? `Atualizar ${saleType === "budget" ? "Orçamento" : "Venda"}` : `Salvar ${saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente"}`}
+                ? "Salvando..."
+                : `Salvar ${saleType === "budget" ? "Orçamento" : saleType === "sale" ? "Venda" : "Venda Recorrente"}`}
             </Button>
           </div>
         </CardContent>
