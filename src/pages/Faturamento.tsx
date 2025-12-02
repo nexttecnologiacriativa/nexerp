@@ -205,11 +205,10 @@ const Faturamento = () => {
         (sale) => sale.sale_number?.startsWith("VND") || 
         (sale.sale_number?.startsWith("ORC") && getDisplayStatusFromSale(sale) === "aprovado")
       );
-      // Dinheiro na Mesa: ORC que NÃO estão aprovados E NÃO estão recusados
+      // Dinheiro na Mesa: ORC que NÃO estão aprovados (mantém recusados visíveis)
       const budgetData = formattedData.filter(
         (sale) => sale.sale_number?.startsWith("ORC") && 
-          getDisplayStatusFromSale(sale) !== "aprovado" && 
-          getDisplayStatusFromSale(sale) !== "recusado"
+          getDisplayStatusFromSale(sale) !== "aprovado"
       );
       setSales(actualSales);
       setBudgets(budgetData);
