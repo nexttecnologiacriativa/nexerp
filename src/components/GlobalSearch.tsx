@@ -247,7 +247,7 @@ export function GlobalSearch() {
         </div>
       </div>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
+      <CommandDialog open={open} onOpenChange={setOpen} shouldFilter={false}>
         <VisuallyHidden>
           <DialogTitle>Busca Global</DialogTitle>
         </VisuallyHidden>
