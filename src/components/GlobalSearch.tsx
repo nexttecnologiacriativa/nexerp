@@ -102,92 +102,60 @@ export function GlobalSearch() {
         // Faz todas as buscas em paralelo
         const [customers, products, services, sales, suppliers, receivables, payables, banks] = await Promise.all([
           // Search Customers
-          (isEntitySearch && !matchedEntities.includes('Cliente')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('customers')
-            .select('id, name, email, document')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Cliente') 
-              ? `name.neq.` // Busca todos 
-              : `name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5),
+          (isEntitySearch && !matchedEntities.includes('Cliente')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Cliente'))
+              ? supabase.from('customers').select('id, name, email, document').eq('company_id', companyId).limit(10)
+              : supabase.from('customers').select('id, name, email, document').eq('company_id', companyId).or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`).limit(5),
           
           // Search Products
-          (isEntitySearch && !matchedEntities.includes('Produto')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('products')
-            .select('id, name, price, description, sku')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Produto')
-              ? `name.neq.`
-              : `name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5),
+          (isEntitySearch && !matchedEntities.includes('Produto')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Produto'))
+              ? supabase.from('products').select('id, name, price, description, sku').eq('company_id', companyId).limit(10)
+              : supabase.from('products').select('id, name, price, description, sku').eq('company_id', companyId).or(`name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`).limit(5),
           
           // Search Services
-          (isEntitySearch && !matchedEntities.includes('Serviço')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('services')
-            .select('id, name, price, description')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Serviço')
-              ? `name.neq.`
-              : `name.ilike.${searchTerm},description.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5),
+          (isEntitySearch && !matchedEntities.includes('Serviço')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Serviço'))
+              ? supabase.from('services').select('id, name, price, description').eq('company_id', companyId).limit(10)
+              : supabase.from('services').select('id, name, price, description').eq('company_id', companyId).or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`).limit(5),
           
           // Search Sales
-          (isEntitySearch && !matchedEntities.includes('Venda')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('sales')
-            .select('id, sale_number, net_amount, customers(name)')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Venda')
-              ? `sale_number.neq.`
-              : `sale_number.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5),
+          (isEntitySearch && !matchedEntities.includes('Venda')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Venda'))
+              ? supabase.from('sales').select('id, sale_number, net_amount, customers(name)').eq('company_id', companyId).limit(10)
+              : supabase.from('sales').select('id, sale_number, net_amount, customers(name)').eq('company_id', companyId).ilike('sale_number', searchTerm).limit(5),
           
           // Search Suppliers
-          (isEntitySearch && !matchedEntities.includes('Fornecedor')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('suppliers')
-            .select('id, name, email, document')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Fornecedor')
-              ? `name.neq.`
-              : `name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5),
+          (isEntitySearch && !matchedEntities.includes('Fornecedor')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Fornecedor'))
+              ? supabase.from('suppliers').select('id, name, email, document').eq('company_id', companyId).limit(10)
+              : supabase.from('suppliers').select('id, name, email, document').eq('company_id', companyId).or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`).limit(5),
           
           // Search Accounts Receivable
-          (isEntitySearch && !matchedEntities.includes('Conta a Receber')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('accounts_receivable')
-            .select('id, description, amount, document_number')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Conta a Receber')
-              ? `description.neq.`
-              : `description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5),
+          (isEntitySearch && !matchedEntities.includes('Conta a Receber')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Conta a Receber'))
+              ? supabase.from('accounts_receivable').select('id, description, amount, document_number').eq('company_id', companyId).limit(10)
+              : supabase.from('accounts_receivable').select('id, description, amount, document_number').eq('company_id', companyId).or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`).limit(5),
           
           // Search Accounts Payable
-          (isEntitySearch && !matchedEntities.includes('Conta a Pagar')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('accounts_payable')
-            .select('id, description, amount, document_number')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Conta a Pagar')
-              ? `description.neq.`
-              : `description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5),
+          (isEntitySearch && !matchedEntities.includes('Conta a Pagar')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Conta a Pagar'))
+              ? supabase.from('accounts_payable').select('id, description, amount, document_number').eq('company_id', companyId).limit(10)
+              : supabase.from('accounts_payable').select('id, description, amount, document_number').eq('company_id', companyId).or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`).limit(5),
           
           // Search Bank Accounts
-          (isEntitySearch && !matchedEntities.includes('Banco')) ? Promise.resolve({ data: [] }) :
-          supabase
-            .from('bank_accounts')
-            .select('id, name, bank_name, account_number, balance')
-            .eq('company_id', companyId)
-            .or(isEntitySearch && matchedEntities.includes('Banco')
-              ? `name.neq.`
-              : `name.ilike.${searchTerm},bank_name.ilike.${searchTerm},account_number.ilike.${searchTerm}`)
-            .limit(isEntitySearch ? 10 : 5)
+          (isEntitySearch && !matchedEntities.includes('Banco')) 
+            ? Promise.resolve({ data: [] as any[] }) 
+            : (isEntitySearch && matchedEntities.includes('Banco'))
+              ? supabase.from('bank_accounts').select('id, name, bank_name, account_number, balance').eq('company_id', companyId).limit(10)
+              : supabase.from('bank_accounts').select('id, name, bank_name, account_number, balance').eq('company_id', companyId).or(`name.ilike.${searchTerm},bank_name.ilike.${searchTerm},account_number.ilike.${searchTerm}`).limit(5),
         ]);
 
         customers.data?.forEach(customer => {
