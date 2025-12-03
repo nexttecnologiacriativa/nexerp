@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, DollarSign, Users, Package, FileText, BarChart3, Settings, Building2, CreditCard, Receipt, UserCog, LogOut, ChevronDown, Truck, Tag, Shield, Zap, DollarSignIcon } from "lucide-react";
 import { useHasRole } from "@/hooks/use-has-role";
 import { useUserRole } from "@/hooks/use-user-role";
+import { useAuth } from "@/components/AuthContext";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar, SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -86,6 +87,7 @@ export function AppSidebar() {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const { hasRole: isSuperAdmin, loading: loadingRole } = useHasRole('super_admin');
   const { role: userRole, loading: loadingUserRole } = useUserRole();
+  const { signOut } = useAuth();
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({
     isActive
@@ -245,8 +247,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
         {!collapsed && <div className="space-y-2">
-            
-            <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent">
+            <Button variant="ghost" size="sm" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Sair
             </Button>
