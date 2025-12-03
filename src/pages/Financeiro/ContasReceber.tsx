@@ -1068,8 +1068,8 @@ const ContasReceber = () => {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-              <div className="flex-1 overflow-y-auto pr-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+              <div className="flex-1 overflow-y-auto px-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 [&>div]:min-w-0">
                 <div className="space-y-2">
                   <Label htmlFor="customer_id">Cliente *</Label>
                   <Select value={formData.customer_id} onValueChange={(value) => {
