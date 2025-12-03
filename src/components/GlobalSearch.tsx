@@ -1,19 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Search, User, Package, ShoppingCart, FileText, Users, Briefcase, DollarSign, Banknote, Landmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthContext";
-
 interface SearchResult {
   id: string;
   type: string;
@@ -22,23 +14,22 @@ interface SearchResult {
   path: string;
   icon: any;
 }
-
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
-
+  const {
+    user
+  } = useAuth();
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        setOpen(open => !open);
       }
     };
-
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
@@ -52,22 +43,18 @@ export function GlobalSearch() {
     'Fornecedor': ['fornecedor', 'fornecedores', 'supplier', 'suppliers'],
     'Conta a Receber': ['receber', 'conta a receber', 'contas a receber', 'receivable', 'receivables'],
     'Conta a Pagar': ['pagar', 'conta a pagar', 'contas a pagar', 'payable', 'payables'],
-    'Banco': ['banco', 'bancos', 'bank', 'banks', 'conta bancaria', 'conta bancária', 'contas bancarias', 'contas bancárias'],
+    'Banco': ['banco', 'bancos', 'bank', 'banks', 'conta bancaria', 'conta bancária', 'contas bancarias', 'contas bancárias']
   };
-
   const getMatchedEntities = (searchQuery: string): string[] => {
     const normalizedQuery = searchQuery.toLowerCase().trim();
     const matched: string[] = [];
-    
     for (const [entity, aliases] of Object.entries(entityAliases)) {
       if (aliases.some(alias => alias.includes(normalizedQuery) || normalizedQuery.includes(alias))) {
         matched.push(entity);
       }
     }
-    
     return matched;
   };
-
   useEffect(() => {
     const searchData = async () => {
       if (!query || query.length < 1) {
@@ -75,89 +62,58 @@ export function GlobalSearch() {
         setLoading(false);
         return;
       }
-
       setLoading(true);
       const searchResults: SearchResult[] = [];
-
       try {
         // Get company_id
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('company_id')
-          .eq('id', user?.id)
-          .single();
-
+        const {
+          data: profileData
+        } = await supabase.from('profiles').select('company_id').eq('id', user?.id).single();
         if (!profileData?.company_id) {
           setLoading(false);
           return;
         }
-
         const companyId = profileData.company_id;
         const searchTerm = `%${query}%`;
-        
+
         // Verifica se está buscando por tipo de entidade
         const matchedEntities = getMatchedEntities(query);
         const isEntitySearch = matchedEntities.length > 0;
 
         // Faz todas as buscas em paralelo
         const [customers, products, services, sales, suppliers, receivables, payables, banks] = await Promise.all([
-          // Search Customers
-          (isEntitySearch && !matchedEntities.includes('Cliente')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Cliente'))
-              ? supabase.from('customers').select('id, name, email, document').eq('company_id', companyId).limit(10)
-              : supabase.from('customers').select('id, name, email, document').eq('company_id', companyId).or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`).limit(5),
-          
-          // Search Products
-          (isEntitySearch && !matchedEntities.includes('Produto')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Produto'))
-              ? supabase.from('products').select('id, name, price, description, sku').eq('company_id', companyId).limit(10)
-              : supabase.from('products').select('id, name, price, description, sku').eq('company_id', companyId).or(`name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`).limit(5),
-          
-          // Search Services
-          (isEntitySearch && !matchedEntities.includes('Serviço')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Serviço'))
-              ? supabase.from('services').select('id, name, price, description').eq('company_id', companyId).limit(10)
-              : supabase.from('services').select('id, name, price, description').eq('company_id', companyId).or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`).limit(5),
-          
-          // Search Sales
-          (isEntitySearch && !matchedEntities.includes('Venda')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Venda'))
-              ? supabase.from('sales').select('id, sale_number, net_amount, customers(name)').eq('company_id', companyId).limit(10)
-              : supabase.from('sales').select('id, sale_number, net_amount, customers(name)').eq('company_id', companyId).ilike('sale_number', searchTerm).limit(5),
-          
-          // Search Suppliers
-          (isEntitySearch && !matchedEntities.includes('Fornecedor')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Fornecedor'))
-              ? supabase.from('suppliers').select('id, name, email, document').eq('company_id', companyId).limit(10)
-              : supabase.from('suppliers').select('id, name, email, document').eq('company_id', companyId).or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`).limit(5),
-          
-          // Search Accounts Receivable
-          (isEntitySearch && !matchedEntities.includes('Conta a Receber')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Conta a Receber'))
-              ? supabase.from('accounts_receivable').select('id, description, amount, document_number').eq('company_id', companyId).limit(10)
-              : supabase.from('accounts_receivable').select('id, description, amount, document_number').eq('company_id', companyId).or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`).limit(5),
-          
-          // Search Accounts Payable
-          (isEntitySearch && !matchedEntities.includes('Conta a Pagar')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Conta a Pagar'))
-              ? supabase.from('accounts_payable').select('id, description, amount, document_number').eq('company_id', companyId).limit(10)
-              : supabase.from('accounts_payable').select('id, description, amount, document_number').eq('company_id', companyId).or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`).limit(5),
-          
-          // Search Bank Accounts
-          (isEntitySearch && !matchedEntities.includes('Banco')) 
-            ? Promise.resolve({ data: [] as any[] }) 
-            : (isEntitySearch && matchedEntities.includes('Banco'))
-              ? supabase.from('bank_accounts').select('id, name, bank_name, account_number, balance').eq('company_id', companyId).limit(10)
-              : supabase.from('bank_accounts').select('id, name, bank_name, account_number, balance').eq('company_id', companyId).or(`name.ilike.${searchTerm},bank_name.ilike.${searchTerm},account_number.ilike.${searchTerm}`).limit(5),
-        ]);
-
+        // Search Customers
+        isEntitySearch && !matchedEntities.includes('Cliente') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Cliente') ? supabase.from('customers').select('id, name, email, document').eq('company_id', companyId).limit(10) : supabase.from('customers').select('id, name, email, document').eq('company_id', companyId).or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`).limit(5),
+        // Search Products
+        isEntitySearch && !matchedEntities.includes('Produto') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Produto') ? supabase.from('products').select('id, name, price, description, sku').eq('company_id', companyId).limit(10) : supabase.from('products').select('id, name, price, description, sku').eq('company_id', companyId).or(`name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`).limit(5),
+        // Search Services
+        isEntitySearch && !matchedEntities.includes('Serviço') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Serviço') ? supabase.from('services').select('id, name, price, description').eq('company_id', companyId).limit(10) : supabase.from('services').select('id, name, price, description').eq('company_id', companyId).or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`).limit(5),
+        // Search Sales
+        isEntitySearch && !matchedEntities.includes('Venda') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Venda') ? supabase.from('sales').select('id, sale_number, net_amount, customers(name)').eq('company_id', companyId).limit(10) : supabase.from('sales').select('id, sale_number, net_amount, customers(name)').eq('company_id', companyId).ilike('sale_number', searchTerm).limit(5),
+        // Search Suppliers
+        isEntitySearch && !matchedEntities.includes('Fornecedor') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Fornecedor') ? supabase.from('suppliers').select('id, name, email, document').eq('company_id', companyId).limit(10) : supabase.from('suppliers').select('id, name, email, document').eq('company_id', companyId).or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`).limit(5),
+        // Search Accounts Receivable
+        isEntitySearch && !matchedEntities.includes('Conta a Receber') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Conta a Receber') ? supabase.from('accounts_receivable').select('id, description, amount, document_number').eq('company_id', companyId).limit(10) : supabase.from('accounts_receivable').select('id, description, amount, document_number').eq('company_id', companyId).or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`).limit(5),
+        // Search Accounts Payable
+        isEntitySearch && !matchedEntities.includes('Conta a Pagar') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Conta a Pagar') ? supabase.from('accounts_payable').select('id, description, amount, document_number').eq('company_id', companyId).limit(10) : supabase.from('accounts_payable').select('id, description, amount, document_number').eq('company_id', companyId).or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`).limit(5),
+        // Search Bank Accounts
+        isEntitySearch && !matchedEntities.includes('Banco') ? Promise.resolve({
+          data: [] as any[]
+        }) : isEntitySearch && matchedEntities.includes('Banco') ? supabase.from('bank_accounts').select('id, name, bank_name, account_number, balance').eq('company_id', companyId).limit(10) : supabase.from('bank_accounts').select('id, name, bank_name, account_number, balance').eq('company_id', companyId).or(`name.ilike.${searchTerm},bank_name.ilike.${searchTerm},account_number.ilike.${searchTerm}`).limit(5)]);
         customers.data?.forEach(customer => {
           searchResults.push({
             id: customer.id,
@@ -168,7 +124,6 @@ export function GlobalSearch() {
             icon: User
           });
         });
-
         products.data?.forEach(product => {
           searchResults.push({
             id: product.id,
@@ -179,7 +134,6 @@ export function GlobalSearch() {
             icon: Package
           });
         });
-
         services.data?.forEach(service => {
           searchResults.push({
             id: service.id,
@@ -190,7 +144,6 @@ export function GlobalSearch() {
             icon: Briefcase
           });
         });
-
         sales.data?.forEach(sale => {
           searchResults.push({
             id: sale.id,
@@ -201,7 +154,6 @@ export function GlobalSearch() {
             icon: ShoppingCart
           });
         });
-
         suppliers.data?.forEach(supplier => {
           searchResults.push({
             id: supplier.id,
@@ -212,7 +164,6 @@ export function GlobalSearch() {
             icon: Users
           });
         });
-
         receivables.data?.forEach(receivable => {
           searchResults.push({
             id: receivable.id,
@@ -223,7 +174,6 @@ export function GlobalSearch() {
             icon: DollarSign
           });
         });
-
         payables.data?.forEach(payable => {
           searchResults.push({
             id: payable.id,
@@ -234,7 +184,6 @@ export function GlobalSearch() {
             icon: Banknote
           });
         });
-
         banks.data?.forEach(bank => {
           searchResults.push({
             id: bank.id,
@@ -245,7 +194,6 @@ export function GlobalSearch() {
             icon: Landmark
           });
         });
-
         setResults(searchResults);
         setLoading(false);
       } catch (error) {
@@ -258,10 +206,8 @@ export function GlobalSearch() {
     const debounceTimer = setTimeout(() => {
       searchData();
     }, 150);
-
     return () => clearTimeout(debounceTimer);
   }, [query, user?.id]);
-
   const handleSelect = (path: string) => {
     setOpen(false);
     setQuery("");
@@ -277,12 +223,10 @@ export function GlobalSearch() {
     acc[result.type].push(result);
     return acc;
   }, {} as Record<string, SearchResult[]>);
-
-  return (
-    <>
+  return <>
       <div className="relative w-96 max-w-sm cursor-pointer" onClick={() => setOpen(true)}>
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9 shadow-input hover:shadow-elevated transition-shadow">
+        <div className="flex h-10 w-full rounded-md bg-background px-3 py-2 text-sm ring-offset-background file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-9 shadow-input hover:shadow-elevated transition-shadow border-2 border-muted-foreground">
           <span className="text-muted-foreground">Buscar... (Ctrl+K)</span>
         </div>
       </div>
@@ -291,52 +235,31 @@ export function GlobalSearch() {
         <VisuallyHidden>
           <DialogTitle>Busca Global</DialogTitle>
         </VisuallyHidden>
-        <CommandInput 
-          placeholder="Buscar clientes, produtos, vendas, serviços..." 
-          value={query}
-          onValueChange={setQuery}
-        />
+        <CommandInput placeholder="Buscar clientes, produtos, vendas, serviços..." value={query} onValueChange={setQuery} />
         <CommandList>
-          {loading && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
+          {loading && <div className="py-6 text-center text-sm text-muted-foreground">
               Buscando...
-            </div>
-          )}
+            </div>}
           
-          {!loading && query.length >= 1 && results.length === 0 && (
-            <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
-          )}
+          {!loading && query.length >= 1 && results.length === 0 && <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>}
 
-          {!loading && query.length < 1 && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
+          {!loading && query.length < 1 && <div className="py-6 text-center text-sm text-muted-foreground">
               Digite para começar a buscar
-            </div>
-          )}
+            </div>}
 
-          {!loading && Object.keys(groupedResults).map((type) => (
-            <CommandGroup key={type} heading={type}>
-              {groupedResults[type].map((result) => {
-                const Icon = result.icon;
-                return (
-                  <CommandItem
-                    key={`${result.type}-${result.id}`}
-                    onSelect={() => handleSelect(result.path)}
-                    className="cursor-pointer"
-                  >
+          {!loading && Object.keys(groupedResults).map(type => <CommandGroup key={type} heading={type}>
+              {groupedResults[type].map(result => {
+            const Icon = result.icon;
+            return <CommandItem key={`${result.type}-${result.id}`} onSelect={() => handleSelect(result.path)} className="cursor-pointer">
                     <Icon className="mr-2 h-4 w-4" />
                     <div className="flex flex-col">
                       <span>{result.title}</span>
-                      {result.subtitle && (
-                        <span className="text-xs text-muted-foreground">{result.subtitle}</span>
-                      )}
+                      {result.subtitle && <span className="text-xs text-muted-foreground">{result.subtitle}</span>}
                     </div>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          ))}
+                  </CommandItem>;
+          })}
+            </CommandGroup>)}
         </CommandList>
       </CommandDialog>
-    </>
-  );
+    </>;
 }
