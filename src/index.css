@@ -81,6 +81,12 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 209 100% 18%;
     --sidebar-ring: 89 60% 51%;
+
+    /* Switch component */
+    --switch-track-off: 0 0% 88%;
+    --switch-knob-off: 0 0% 46%;
+    --switch-track-on: 209 100% 22%;
+    --switch-knob-on: 0 0% 100%;
   }
 
   .dark {
@@ -149,6 +155,12 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 210 40% 95%;
     --sidebar-border: 209 100% 12%;
     --sidebar-ring: 89 60% 51%;
+
+    /* Switch component - Dark mode */
+    --switch-track-off: 210 37% 17%;
+    --switch-knob-off: 220 9% 34%;
+    --switch-track-on: 209 100% 28%;
+    --switch-knob-on: 0 0% 100%;
   }
 }
 

@@ -76,7 +76,11 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				'switch-track-on': 'hsl(var(--switch-track-on))',
+				'switch-track-off': 'hsl(var(--switch-track-off))',
+				'switch-knob-on': 'hsl(var(--switch-knob-on))',
+				'switch-knob-off': 'hsl(var(--switch-knob-off))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
