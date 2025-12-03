@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Search, User, Package, ShoppingCart, FileText, Users, Briefcase, DollarSign, Banknote } from "lucide-react";
+import { Search, User, Package, ShoppingCart, FileText, Users, Briefcase, DollarSign, Banknote, Landmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthContext";
 
@@ -43,6 +43,31 @@ export function GlobalSearch() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
+  // Mapeamento de aliases para entidades
+  const entityAliases: Record<string, string[]> = {
+    'Cliente': ['cliente', 'clientes', 'customer', 'customers'],
+    'Produto': ['produto', 'produtos', 'product', 'products'],
+    'Serviço': ['servico', 'serviço', 'servicos', 'serviços', 'service', 'services'],
+    'Venda': ['venda', 'vendas', 'sale', 'sales'],
+    'Fornecedor': ['fornecedor', 'fornecedores', 'supplier', 'suppliers'],
+    'Conta a Receber': ['receber', 'conta a receber', 'contas a receber', 'receivable', 'receivables'],
+    'Conta a Pagar': ['pagar', 'conta a pagar', 'contas a pagar', 'payable', 'payables'],
+    'Banco': ['banco', 'bancos', 'bank', 'banks', 'conta bancaria', 'conta bancária', 'contas bancarias', 'contas bancárias'],
+  };
+
+  const getMatchedEntities = (searchQuery: string): string[] => {
+    const normalizedQuery = searchQuery.toLowerCase().trim();
+    const matched: string[] = [];
+    
+    for (const [entity, aliases] of Object.entries(entityAliases)) {
+      if (aliases.some(alias => alias.includes(normalizedQuery) || normalizedQuery.includes(alias))) {
+        matched.push(entity);
+      }
+    }
+    
+    return matched;
+  };
+
   useEffect(() => {
     const searchData = async () => {
       if (!query || query.length < 1) {
@@ -69,64 +94,100 @@ export function GlobalSearch() {
 
         const companyId = profileData.company_id;
         const searchTerm = `%${query}%`;
+        
+        // Verifica se está buscando por tipo de entidade
+        const matchedEntities = getMatchedEntities(query);
+        const isEntitySearch = matchedEntities.length > 0;
 
         // Faz todas as buscas em paralelo
-        const [customers, products, services, sales, suppliers, receivables, payables] = await Promise.all([
+        const [customers, products, services, sales, suppliers, receivables, payables, banks] = await Promise.all([
           // Search Customers
+          (isEntitySearch && !matchedEntities.includes('Cliente')) ? Promise.resolve({ data: [] }) :
           supabase
             .from('customers')
             .select('id, name, email, document')
             .eq('company_id', companyId)
-            .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
-            .limit(5),
+            .or(isEntitySearch && matchedEntities.includes('Cliente') 
+              ? `name.neq.` // Busca todos 
+              : `name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5),
           
           // Search Products
+          (isEntitySearch && !matchedEntities.includes('Produto')) ? Promise.resolve({ data: [] }) :
           supabase
             .from('products')
             .select('id, name, price, description, sku')
             .eq('company_id', companyId)
-            .or(`name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`)
-            .limit(5),
+            .or(isEntitySearch && matchedEntities.includes('Produto')
+              ? `name.neq.`
+              : `name.ilike.${searchTerm},description.ilike.${searchTerm},sku.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5),
           
           // Search Services
+          (isEntitySearch && !matchedEntities.includes('Serviço')) ? Promise.resolve({ data: [] }) :
           supabase
             .from('services')
             .select('id, name, price, description')
             .eq('company_id', companyId)
-            .or(`name.ilike.${searchTerm},description.ilike.${searchTerm}`)
-            .limit(5),
+            .or(isEntitySearch && matchedEntities.includes('Serviço')
+              ? `name.neq.`
+              : `name.ilike.${searchTerm},description.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5),
           
           // Search Sales
+          (isEntitySearch && !matchedEntities.includes('Venda')) ? Promise.resolve({ data: [] }) :
           supabase
             .from('sales')
             .select('id, sale_number, net_amount, customers(name)')
             .eq('company_id', companyId)
-            .ilike('sale_number', searchTerm)
-            .limit(5),
+            .or(isEntitySearch && matchedEntities.includes('Venda')
+              ? `sale_number.neq.`
+              : `sale_number.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5),
           
           // Search Suppliers
+          (isEntitySearch && !matchedEntities.includes('Fornecedor')) ? Promise.resolve({ data: [] }) :
           supabase
             .from('suppliers')
             .select('id, name, email, document')
             .eq('company_id', companyId)
-            .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
-            .limit(5),
+            .or(isEntitySearch && matchedEntities.includes('Fornecedor')
+              ? `name.neq.`
+              : `name.ilike.${searchTerm},email.ilike.${searchTerm},document.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5),
           
           // Search Accounts Receivable
+          (isEntitySearch && !matchedEntities.includes('Conta a Receber')) ? Promise.resolve({ data: [] }) :
           supabase
             .from('accounts_receivable')
             .select('id, description, amount, document_number')
             .eq('company_id', companyId)
-            .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
-            .limit(5),
+            .or(isEntitySearch && matchedEntities.includes('Conta a Receber')
+              ? `description.neq.`
+              : `description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5),
           
           // Search Accounts Payable
+          (isEntitySearch && !matchedEntities.includes('Conta a Pagar')) ? Promise.resolve({ data: [] }) :
           supabase
             .from('accounts_payable')
             .select('id, description, amount, document_number')
             .eq('company_id', companyId)
-            .or(`description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
-            .limit(5)
+            .or(isEntitySearch && matchedEntities.includes('Conta a Pagar')
+              ? `description.neq.`
+              : `description.ilike.${searchTerm},document_number.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5),
+          
+          // Search Bank Accounts
+          (isEntitySearch && !matchedEntities.includes('Banco')) ? Promise.resolve({ data: [] }) :
+          supabase
+            .from('bank_accounts')
+            .select('id, name, bank_name, account_number, balance')
+            .eq('company_id', companyId)
+            .or(isEntitySearch && matchedEntities.includes('Banco')
+              ? `name.neq.`
+              : `name.ilike.${searchTerm},bank_name.ilike.${searchTerm},account_number.ilike.${searchTerm}`)
+            .limit(isEntitySearch ? 10 : 5)
         ]);
 
         customers.data?.forEach(customer => {
@@ -203,6 +264,17 @@ export function GlobalSearch() {
             subtitle: `R$ ${payable.amount?.toFixed(2)}`,
             path: '/financeiro/contas-pagar',
             icon: Banknote
+          });
+        });
+
+        banks.data?.forEach(bank => {
+          searchResults.push({
+            id: bank.id,
+            type: 'Banco',
+            title: bank.name,
+            subtitle: `${bank.bank_name} - R$ ${bank.balance?.toFixed(2)}`,
+            path: '/financeiro/bancos',
+            icon: Landmark
           });
         });
 
