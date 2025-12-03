@@ -83,6 +83,12 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+			boxShadow: {
+				'input': 'var(--shadow-input)',
+				'premium': 'var(--shadow-premium)',
+				'card': 'var(--shadow-card)',
+				'elevated': 'var(--shadow-elevated)'
+			},
 			keyframes: {
 				'accordion-down': {
 					from: {
